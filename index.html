@@ -292,10 +292,6 @@
   var QA = [
     {q:"사람들과 시간을 보내고 난 뒤 나는?",
      a:"기운이 올라온다", b:"혼자 회복할 시간이 필요하다"},
-    {q:"중요한 결정을 내릴 때 나는?",
-     a:"사람들과 이야기하면서 정리된다", b:"혼자 충분히 생각한 뒤에 말한다"},
-    {q:"처음 가는 모임에서 나는?",
-     a:"먼저 말을 걸어보는 편이다", b:"분위기를 좀 보다가 움직인다"},
     {q:"관심이 주로 향하는 쪽은?",
      a:"바깥에서 벌어지는 일", b:"그 일이 내 안에 남긴 것"}
   ];
@@ -303,28 +299,16 @@
   var QF = [
     {p:["T","F"], q:"누가 고민을 털어놓을 때 먼저 나오는 반응은?",
      a:"원인이 뭔지 짚어보게 된다", b:"지금 마음이 어떤지 먼저 묻게 된다"},
-    {p:["T","F"], q:"내 결정을 뒤집게 만드는 건?",
-     a:"앞뒤 논리가 안 맞는다는 걸 알았을 때", b:"누군가 상처받는다는 걸 알았을 때"},
     {p:["T","S"], q:"처음 보는 기계를 다룰 때 나는?",
      a:"작동 원리를 먼저 이해하려 한다", b:"일단 만져보면서 익힌다"},
-    {p:["T","S"], q:"회의에서 내가 더 잘 잡아내는 건?",
-     a:"앞뒤가 안 맞는 논리", b:"실제로는 안 될 것 같은 구체적 조건"},
     {p:["T","N"], q:"계획을 세울 때 머릿속에 먼저 오는 건?",
      a:"단계와 근거", b:"이게 나중에 뭐가 될지에 대한 그림"},
-    {p:["T","N"], q:"설명을 들을 때 더 답답한 쪽은?",
-     a:"근거 없이 결론만 말할 때", b:"세부만 나열하고 방향이 없을 때"},
     {p:["F","S"], q:"좋은 하루였다고 느끼는 건 주로?",
      a:"누군가와 마음이 통했을 때", b:"몸이 편하고 먹은 게 맛있었을 때"},
-    {p:["F","S"], q:"어떤 공간에 들어갔을 때 먼저 느끼는 건?",
-     a:"사람들 사이의 분위기", b:"빛, 소리, 냄새 같은 감각"},
     {p:["F","N"], q:"책이나 영화에서 오래 남는 건?",
      a:"인물이 느꼈을 감정", b:"그 이야기가 암시하는 것"},
-    {p:["F","N"], q:"사람을 볼 때 더 먼저 잡히는 건?",
-     a:"저 사람이 지금 어떤 상태인지", b:"저 사람이 앞으로 어떻게 될 것 같은지"},
     {p:["S","N"], q:"뭔가를 설명할 때 내가 자주 쓰는 방식은?",
-     a:"실제 있었던 예를 든다", b:"비유로 바꿔서 말한다"},
-    {p:["S","N"], q:"새 프로젝트에서 내가 잘하는 구간은?",
-     a:"실제로 굴러가게 만드는 실행", b:"아직 없는 걸 떠올리는 초반"}
+     a:"실제 있었던 예를 든다", b:"비유로 바꿔서 말한다"}
   ];
 
   var QUESTIONS = QA.map(function(x){ return {kind:"att", q:x.q, a:x.a, b:x.b}; })
@@ -562,7 +546,7 @@
     app.innerHTML =
     '<div class="fade">' +
       '<div class="band stack">' +
-        '<span class="tag on">C.G. JUNG · 분석심리학 · 21문항 · 약 7분</span>' +
+        '<span class="tag on">C.G. JUNG · 분석심리학 · ' + TOTAL + '문항 · 약 4분</span>' +
         '<h1 class="hero">내면의<br><span class="lit">무의식</span>을<br>알아보는 지도</h1>' +
         '<p class="lede">내가 안다고 생각하는 나는 의식의 일부일 뿐입니다. 융은 밀어낸 나머지를 되찾아 통합하는 과정을 <b>개성화</b>라고 불렀습니다.</p>' +
         '<p class="kicker">이 검사는 당신이 가장 잘 쓰는 기능과, 가장 서툴러서 외면해온 기능을 찾습니다. 융에 따르면 <em>서툰 쪽이 성장이 일어나는 자리</em>입니다.</p>' +
@@ -571,9 +555,9 @@
       '<div class="band stack">' +
         '<span class="tag">진행 방식</span>' +
         '<div class="steps">' +
-          '<div class="step"><span class="n">01</span><span class="b"><b>태도 4문항</b> — 관심이 밖으로 향하는지 안으로 향하는지</span></div>' +
-          '<div class="step"><span class="n">02</span><span class="b"><b>기능 12문항</b> — 사고·감정·감각·직관 중 무엇을 먼저 쓰는지</span></div>' +
-          '<div class="step"><span class="n">03</span><span class="b"><b>무의식 5문항</b> — 보기에서 고르고, 필요하면 직접 덧붙입니다</span></div>' +
+          '<div class="step"><span class="n">01</span><span class="b"><b>태도 ' + QA.length + '문항</b> — 관심이 밖으로 향하는지 안으로 향하는지</span></div>' +
+          '<div class="step"><span class="n">02</span><span class="b"><b>기능 ' + QF.length + '문항</b> — 사고·감정·감각·직관 중 무엇을 먼저 쓰는지</span></div>' +
+          '<div class="step"><span class="n">03</span><span class="b"><b>무의식 ' + WRITTEN.length + '문항</b> — 보기에서 고르고, 필요하면 직접 덧붙입니다</span></div>' +
           '<div class="step"><span class="n">04</span><span class="b"><b>결과</b> — 융의 8유형, 열등기능, 그림자 대조, 개성화 선언문, 7일 훈련</span></div>' +
         '</div>' +
       '</div>' +
@@ -718,7 +702,7 @@
       var cls = k === R.dom ? "dom" : (k === R.aux ? "aux" : (k === R.inf ? "inf" : ""));
       return '<div class="fn ' + cls + '">' +
         '<span class="nm">' + FN[k] + '</span>' +
-        '<span class="meter"><u data-w="' + ((R.fn[k] / 6) * 100) + '"></u></span>' +
+        '<span class="meter"><u data-w="' + ((R.fn[k] / 3) * 100) + '"></u></span>' +
         '<span class="val">' + R.fn[k] + '/3</span>' +
         '<span class="role">' + (role[k] || "") + '</span>' +
       '</div>';
@@ -1089,7 +1073,7 @@
     ["T","F","S","N"].forEach(function(k){
       var px = pos[k][0], py = pos[k][1];
       var isDom = k === R.dom, isInf = k === R.inf, isAux = k === R.aux;
-      var size = 9 + (R.fn[k] / 6) * 17;
+      var size = 9 + (R.fn[k] / 3) * 17;
       var col = isDom ? C.lumen : (isInf ? C.ember : (isAux ? "#4E9C74" : "#33413B"));
 
       if(isDom){ glow(c, "rgba(124,255,178,.95)", 34); }
