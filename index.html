@@ -314,15 +314,8 @@
   var QUESTIONS = QA.map(function(x){ return {kind:"att", q:x.q, a:x.a, b:x.b}; })
         .concat(QF.map(function(x){ return {kind:"fn", p:x.p, q:x.q, a:x.a, b:x.b}; }));
 
-  /* 무의식 5문항 — 선택(복수) + 직접 입력 */
+  /* 무의식 3문항 — 선택(복수) + 직접 입력 */
   var WRITTEN = [
-    { id:"persona", label:"페르소나", term:"사회적 가면", tone:"mint",
-      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이려 하나요?",
-      why:"융은 이 가면을 페르소나라고 불렀습니다. 나쁜 게 아니라 살아가는 데 필요한 것이지만, 그게 나 자신이라고 착각하면 문제가 됩니다.",
-      opts:["실수 없는 사람","괜찮다고 말하는 사람",
-            "분위기를 편하게 하는 사람","늘 열심히 하는 사람",
-            "흔들리지 않는 사람","폐 끼치지 않는 사람"] },
-
     { id:"shadow", label:"그림자", term:"투사", tone:"ember",
       q:"유독 거슬리고 참기 힘든 사람은 어떤 사람인가요?",
       why:"내 안에 있지만 인정하지 않는 부분은 남에게 투사됩니다. 유난히 거슬리는 특징일수록 내 그림자일 가능성이 큽니다.",
@@ -336,13 +329,6 @@
       opts:["자기 시간을 정해 사는 모습","눈치 안 보고 말하는 모습",
             "한 분야에서 인정받는 모습","사람들이 모여드는 모습",
             "여유가 있는 모습","실패해도 금방 터는 모습"] },
-
-    { id:"self", label:"자기", term:"몰입의 순간", tone:"mint",
-      q:"시간 가는 줄 모르고 빠져 있었던 순간은 언제였나요?",
-      why:"융이 말한 자기(Self)는 의식과 무의식을 아우르는 중심입니다. 몰입의 순간은 그 중심에 가까이 갔던 흔적입니다.",
-      opts:["혼자 뭔가 만들 때","깊게 이야기를 들을 때",
-            "몸을 써서 할 때","문제를 붙잡고 파고들 때",
-            "사람들 앞에서 말할 때","계획 없이 돌아다닐 때"] },
 
     { id:"tension", label:"대극의 긴장", term:"두 마음", tone:"ember",
       q:"원하면서 동시에 두렵기도 한 것은 무엇인가요?",
@@ -740,16 +726,13 @@
     '<div class="fade">' +
 
       '<div class="band stack">' +
-        '<span class="tag on">결과 · 가설</span>' +
+        '<span class="tag on">1장 · 결과</span>' +
         '<div class="typecode">' + FN[R.dom] + '</div>' +
         '<h1 class="typename">' + esc(T.name) + '</h1>' +
         '<p class="typedesc">' + esc(T.line) + '. ' + esc(T.desc) + '</p>' +
-        (R.tied ? '<p class="note">' + FN[R.dom] + josa(FN[R.dom], "과", "와") + ' ' + FN[R.tied] + josa(FN[R.tied], "이", "가") + ' 동점입니다. 두 기능이 아직 갈리지 않았다는 뜻일 수 있고, 융의 관점에서는 <b>대극의 긴장이 살아 있는 상태</b>입니다.</p>' : '') +
-        (!R.attKey ? '<p class="note">태도 문항에서 외향과 내향이 팽팽했습니다. 상황에 따라 달라지는 영역일 수 있어 <b>내향</b>을 기준으로 계산했습니다.</p>' : '') +
-      '</div>' +
-
-      '<div class="band stack">' +
-        '<span class="tag">의식의 지형 · 네 기능</span>' +
+        (R.tied ? '<p class="note">' + FN[R.dom] + josa(FN[R.dom], "과", "와") + ' ' + FN[R.tied] + josa(FN[R.tied], "이", "가") + ' 동점입니다 — 두 기능이 아직 갈리지 않은, <b>대극의 긴장이 살아 있는 상태</b>입니다.</p>' : '') +
+        (!R.attKey ? '<p class="note">태도 문항에서 외향과 내향이 팽팽해 <b>내향</b>을 기준으로 계산했습니다.</p>' : '') +
+        '<hr class="rule">' +
         '<p class="hint">밝은 쪽이 의식이 자주 쓰는 기능, 어두운 쪽이 무의식에 남아 있는 기능입니다.</p>' +
         '<div class="fns">' + fnsHtml + '</div>' +
         '<div class="attitude">' +
@@ -762,38 +745,26 @@
         (domSrc.length ? '<p class="hint">주기능 근거로 고른 답 — <b>' + esc(domSrc.join(", ")) + '</b></p>' : '') +
       '</div>' +
 
-      (INF ?
       '<div class="band stack">' +
-        '<span class="tag warm">열등기능 · 개성화의 문</span>' +
-        '<div class="gate">' +
-          '<h3>' + ATT[R.infAtt] + '적 ' + FN[R.inf] + '</h3>' +
-          '<p>' + esc(INF.desc) + '</p>' +
-          '<p>융은 개성화의 열쇠가 <b>바로 이 자리</b>에 있다고 봤습니다. 열등기능은 단순한 약점이 아니라 아직 손대지 않은 자리이고, 여기에 접촉할 때 가장 큰 생기와 전체감이 옵니다. 다만 <b>주기능에서 곧장 갈 수는 없습니다.</b> 보조기능인 ' + FN[R.aux] + josa(FN[R.aux], "을", "를") + ' 거쳐야 합니다.</p>' +
-        '</div>' +
-      '</div>' : '') +
-
-      '<div class="band stack">' +
-        '<span class="tag warm">그림자 · 두 개의 투사</span>' +
+        '<span class="tag warm">2장 · 그림자와 열등기능</span>' +
+        (INF ?
+          '<div class="gate">' +
+            '<h3>' + ATT[R.infAtt] + '적 ' + FN[R.inf] + '</h3>' +
+            '<p>' + esc(INF.desc) + '</p>' +
+            '<p>융은 개성화의 열쇠가 <b>바로 이 자리</b>에 있다고 봤습니다. 다만 주기능에서 곧장 갈 수는 없고, 보조기능인 ' + FN[R.aux] + josa(FN[R.aux], "을", "를") + ' 거쳐야 합니다.</p>' +
+          '</div>'
+          : '') +
+        '<hr class="rule">' +
         '<p class="hint">거슬리는 모습과 부러운 모습은 같은 것의 양면일 때가 많습니다. 둘 다 아직 내 것으로 인정하지 않은 부분입니다.</p>' +
         '<div class="mirror">' +
           '<div><span class="tag warm">거슬리는 사람</span>' + block("shadow") + '</div>' +
           '<div><span class="tag on">부러운 사람</span>' + block("gold") + '</div>' +
         '</div>' +
-        '<p class="note">두 답을 나란히 놓고 물어보세요. <b>혹시 같은 성질의 양쪽 끝은 아닌가요?</b> “자기 얘기만 하는 사람”이 거슬리고 “눈치 안 보는 사람”이 부럽다면, 문제는 그 성질이 아니라 내가 그걸 쓰지 못하게 막아둔 방식일 수 있습니다.</p>' +
-      '</div>' +
-
-      '<div class="band stack">' +
-        '<span class="tag">페르소나와 몰입</span>' +
-        '<div class="stack-s"><span class="tag">사람들 앞에서의 나</span>' + block("persona") + '</div>' +
+        '<p class="note">혹시 같은 성질의 양쪽 끝은 아닌가요? 문제는 그 성질이 아니라 내가 그걸 쓰지 못하게 막아둔 방식일 수 있습니다.</p>' +
         '<hr class="rule">' +
-        '<div class="stack-s"><span class="tag on">시간 가는 줄 몰랐던 순간</span>' + block("self") + '</div>' +
-        '<p class="note">이 둘의 거리가 멀수록, 지금 가면을 쓰는 데 힘을 많이 쓰고 있다는 뜻일 수 있습니다.</p>' +
-      '</div>' +
-
-      '<div class="band stack">' +
-        '<span class="tag warm">대극의 긴장</span>' +
+        '<span class="tag">원하면서 동시에 두려운 것</span>' +
         block("tension") +
-        '<p class="note">융은 두 대극이 부딪히는 긴장을 없애지 말라고 했습니다. 한쪽을 이기게 하는 대신 둘 다 살아 있게 견디면, 논리로는 안 나오던 <b>제3의 것</b>이 나타난다고 봤습니다. 지금 당장 결정하지 않아도 됩니다.</p>' +
+        '<p class="note">두 대극이 부딪히는 긴장을 없애려 하지 마세요. 둘 다 살아 있게 견디면 논리로는 안 나오던 <b>제3의 것</b>이 나타납니다.</p>' +
       '</div>' +
 
       '<div class="band stack">' +
