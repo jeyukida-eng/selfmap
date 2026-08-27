@@ -1,0 +1,1420 @@
+<meta charset="utf-8">
+<title>개성화 지도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media=&quot;all&quot;">
+
+<style>
+  /* 의식은 빛, 무의식은 어둠 — 하나의 세계로 확정한 디자인 */
+  :root{
+    --void:#0A0D0C;
+    --deep:#0E1311;
+    --surface:#131A17;
+    --hair:#1D2723;
+    --hair-2:#2B3833;
+    --txt:#EAF2ED;
+    --txt-2:#93A29B;
+    --txt-3:#5A6862;
+    --lumen:#7CFFB2;
+    --lumen-deep:#2E6B4C;
+    --ember:#FF6B4A;
+    --ember-deep:#7A3325;
+
+    --f-ui:"Pretendard Variable", Pretendard, "Gothic A1", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+    --f-num:"Martian Mono", ui-monospace, "Consolas", monospace;
+  }
+
+  *{box-sizing:border-box}
+  html{background:var(--void)}
+  body{
+    margin:0;background:var(--void);color:var(--txt);
+    font-family:var(--f-ui);font-weight:350;line-height:1.72;
+    letter-spacing:-.01em;-webkit-font-smoothing:antialiased;
+  }
+
+  /* 배경 — 깊이, 빛, 필름 그레인 */
+  #field{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .aura{
+    position:fixed;left:50%;top:-18vh;width:120vw;height:70vh;transform:translateX(-50%);
+    background:radial-gradient(ellipse at 50% 40%, rgba(124,255,178,.09), rgba(124,255,178,0) 62%);
+    z-index:0;pointer-events:none;
+  }
+  .vig{
+    position:fixed;inset:0;z-index:55;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 28%, transparent 44%, rgba(0,0,0,.58) 100%);
+  }
+  .grain{
+    position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap{
+    position:relative;z-index:1;max-width:690px;margin:0 auto;
+    padding:clamp(20px,4vw,56px) clamp(18px,5vw,24px) clamp(30px,5vw,56px);
+    min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+  }
+  #app{flex:1;display:flex;flex-direction:column}
+  /* 문항 화면 - 세로를 꽉 채우고 버튼은 아래에 고정 */
+  .screen{flex:1;display:flex;flex-direction:column;gap:14px}
+  .screen .mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(16px,3.5vw,22px);padding:clamp(14px,4vw,26px) 0}
+  .screen .foot{border-top:1px solid var(--hair);padding-top:16px}
+
+  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.035em;line-height:1.22;text-wrap:balance}
+  p{margin:0}
+  button{font:inherit;color:inherit;cursor:pointer;font-family:var(--f-ui)}
+  :focus-visible{outline:1px solid var(--lumen);outline-offset:4px}
+
+  .tag{font-family:var(--f-num);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-3)}
+  .tag.on{color:var(--lumen)}
+  .tag.warm{color:var(--ember)}
+
+  /* 헤어라인 구획 — 같은 카드를 반복하지 않는다 */
+  .band{padding:clamp(28px,6vw,44px) 0;border-top:1px solid var(--hair)}
+  .band:first-child{border-top:0;padding-top:0}
+  .stack{display:flex;flex-direction:column;gap:20px}
+  .stack-s{display:flex;flex-direction:column;gap:11px}
+  .rule{height:1px;background:var(--hair);border:0;margin:0}
+
+  /* 진행 눈금 */
+  .scan{display:flex;align-items:flex-end;gap:2px;height:18px}
+  .scan i{flex:1;height:4px;background:var(--hair-2);transition:height .35s ease,background .35s ease,box-shadow .35s ease}
+  .scan i.q{height:7px}
+  .scan i.done{background:var(--lumen-deep)}
+  .scan i.now{height:18px;background:var(--lumen);box-shadow:0 0 12px rgba(124,255,178,.8)}
+  .scanlab{display:flex;justify-content:space-between;margin-top:9px}
+
+  /* 인트로 */
+  .hero{font-size:clamp(40px,11vw,76px);font-weight:900;letter-spacing:-.055em;line-height:1.02}
+  .hero .lit{color:var(--lumen);text-shadow:0 0 40px rgba(124,255,178,.45)}
+  .lede{font-size:clamp(15px,2.6vw,16.5px);color:var(--txt-2);max-width:42ch;line-height:1.8}
+  .lede b{color:var(--txt);font-weight:500}
+  .kicker{font-size:clamp(17px,3vw,19px);color:var(--txt);font-weight:500;line-height:1.62}
+  .kicker em{font-style:normal;color:var(--ember)}
+
+  .steps{display:flex;flex-direction:column}
+  .step{display:flex;gap:18px;padding:15px 0;border-top:1px solid var(--hair)}
+  .step:first-child{border-top:0;padding-top:0}
+  .step .n{font-family:var(--f-num);font-size:11px;color:var(--lumen-deep);flex:none;width:26px;padding-top:5px}
+  .step .b{font-size:14.5px;color:var(--txt-2);line-height:1.7}
+  .step .b b{color:var(--txt);font-weight:600}
+
+  /* 버튼 */
+  .btn{
+    background:transparent;border:1px solid var(--lumen-deep);color:var(--lumen);
+    padding:15px 30px;font-size:15px;font-weight:600;letter-spacing:-.01em;
+    transition:background .18s ease,box-shadow .18s ease;
+  }
+  .btn:hover{background:rgba(124,255,178,.09);box-shadow:0 0 26px -6px rgba(124,255,178,.5)}
+  .btn.solid{background:var(--lumen);color:#06110B;border-color:var(--lumen);box-shadow:0 0 30px -8px rgba(124,255,178,.7)}
+  .btn.solid:hover{background:#9BFFC5}
+  .btn.quiet{border-color:var(--hair-2);color:var(--txt-2)}
+  .btn.quiet:hover{border-color:var(--txt-3);color:var(--txt);background:transparent;box-shadow:none}
+  .btn:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+  .btnrow{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+
+  /* 문항 */
+  .qhead{display:flex;gap:clamp(14px,3vw,22px);align-items:flex-start}
+  .qbig{font-family:var(--f-num);font-weight:700;font-size:clamp(28px,7vw,40px);color:var(--lumen-deep);line-height:1;flex:none;padding-top:3px}
+  .qtext{font-size:clamp(21px,4.4vw,27px);font-weight:700;letter-spacing:-.035em}
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{
+    position:relative;text-align:left;background:var(--deep);border:1px solid var(--hair);
+    padding:17px 18px 17px 44px;font-size:15.5px;line-height:1.6;color:var(--txt-2);
+    transition:border-color .16s ease,color .16s ease,background .16s ease;
+  }
+  .opt::before{
+    content:attr(data-key);position:absolute;left:17px;top:18px;
+    font-family:var(--f-num);font-size:10px;color:var(--txt-3);transition:color .16s ease;
+  }
+  .opt::after{
+    content:"";position:absolute;left:-1px;top:-1px;bottom:-1px;width:2px;background:var(--lumen);
+    transform:scaleY(0);transform-origin:top;transition:transform .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .opt:hover{border-color:var(--hair-2);color:var(--txt);background:var(--surface)}
+  .opt:hover::after{transform:scaleY(1)}
+  .opt[aria-pressed="true"]{border-color:var(--lumen-deep);color:var(--txt);background:rgba(124,255,178,.05);box-shadow:0 0 30px -14px rgba(124,255,178,.9)}
+  .opt[aria-pressed="true"]::after{transform:scaleY(1)}
+  .opt[aria-pressed="true"]::before{color:var(--lumen)}
+
+  .skip{background:none;border:0;padding:8px 0;font-size:13px;color:var(--txt-3);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--hair-2)}
+  .skip:hover{color:var(--txt-2)}
+  .skip[aria-pressed="true"]{color:var(--lumen);text-decoration-color:var(--lumen-deep)}
+
+  /* 무의식 문항 — 복수 선택 */
+  .picks{display:grid;gap:7px;grid-template-columns:1fr 1fr}
+  @media(max-width:339px){.picks{grid-template-columns:1fr}}
+  .pick{
+    position:relative;text-align:left;background:var(--deep);border:1px solid var(--hair);
+    padding:12px 12px 12px 33px;font-size:13.5px;line-height:1.45;color:var(--txt-2);
+    min-height:58px;display:flex;align-items:center;
+    transition:border-color .16s ease,color .16s ease,background .16s ease;
+  }
+  .pick::before{
+    content:"";position:absolute;left:12px;top:calc(50% - 6px);width:11px;height:11px;
+    border:1px solid var(--hair-2);transition:border-color .16s ease,background .16s ease;
+  }
+  .pick:hover{border-color:var(--hair-2);color:var(--txt);background:var(--surface)}
+  .pick[aria-pressed="true"]{border-color:var(--ember-deep);color:var(--txt);background:rgba(255,107,74,.055)}
+  .pick[aria-pressed="true"]::before{background:var(--ember);border-color:var(--ember);box-shadow:0 0 12px rgba(255,107,74,.6)}
+  .pick.mint[aria-pressed="true"]{border-color:var(--lumen-deep);background:rgba(124,255,178,.055)}
+  .pick.mint[aria-pressed="true"]::before{background:var(--lumen);border-color:var(--lumen);box-shadow:0 0 12px rgba(124,255,178,.6)}
+
+  .picked{font-family:var(--f-num);font-size:10px;letter-spacing:.1em;color:var(--txt-3)}
+  .picked b{color:var(--lumen);font-weight:500}
+
+  .why{
+    background:none;border:0;padding:0;font-size:12.5px;color:var(--txt-3);text-align:left;
+    text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--hair-2);
+  }
+  .why:hover{color:var(--lumen)}
+  .more{
+    background:none;border:0;padding:7px 0;font-size:13px;color:var(--txt-3);
+    text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--hair-2);
+  }
+  .more:hover{color:var(--lumen)}
+  textarea{
+    width:100%;min-height:88px;resize:vertical;background:var(--deep);
+    border:1px solid var(--hair);color:var(--txt);font:inherit;font-size:15.5px;
+    padding:15px;line-height:1.75;
+  }
+  textarea:focus{border-color:var(--lumen-deep);outline:none}
+  textarea::placeholder{color:var(--txt-3)}
+  .hint{font-size:13px;color:var(--txt-3);line-height:1.72}
+  .hint b{color:var(--txt-2);font-weight:500}
+
+  /* 결과 */
+  .typecode{font-family:var(--f-num);font-weight:700;font-size:clamp(46px,15vw,104px);letter-spacing:-.06em;line-height:.92;color:var(--lumen);text-shadow:0 0 60px rgba(124,255,178,.4)}
+  .typename{font-size:clamp(27px,6.2vw,42px);font-weight:900;letter-spacing:-.05em}
+  .typedesc{font-size:15.5px;color:var(--txt-2);line-height:1.8}
+
+  .fns{display:flex;flex-direction:column;gap:2px}
+  .fn{display:flex;align-items:center;gap:13px;padding:15px 16px;background:var(--deep);border:1px solid transparent}
+  .fn .nm{font-size:16px;font-weight:600;width:52px;flex:none;color:var(--txt-3)}
+  .fn .meter{flex:1;height:5px;background:#141B18;position:relative;overflow:hidden}
+  .fn .meter u{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--txt-3);transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+  .fn .val{font-family:var(--f-num);font-size:11px;color:var(--txt-3);width:36px;text-align:right;flex:none}
+  .fn .role{font-family:var(--f-num);font-size:9px;letter-spacing:.1em;color:var(--txt-3);width:62px;text-align:right;flex:none}
+  .fn.dom{background:rgba(124,255,178,.06);border-color:var(--lumen-deep);box-shadow:0 0 40px -18px rgba(124,255,178,.9)}
+  .fn.dom .nm{color:var(--lumen);font-weight:700}
+  .fn.dom .meter u{background:var(--lumen);box-shadow:0 0 14px rgba(124,255,178,.7)}
+  .fn.dom .val,.fn.dom .role{color:var(--lumen)}
+  .fn.aux .nm{color:var(--txt)}
+  .fn.aux .meter u{background:var(--lumen-deep)}
+  .fn.aux .val,.fn.aux .role{color:var(--txt-2)}
+  .fn.inf{background:#0C100E;border-color:var(--ember-deep)}
+  .fn.inf .nm{color:var(--ember)}
+  .fn.inf .meter u{background:var(--ember-deep)}
+  .fn.inf .val,.fn.inf .role{color:var(--ember)}
+
+  .attitude{padding:14px 0 2px}
+  .attrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+  .attrow span{font-size:14px;color:var(--txt-3)}
+  .attrow span.on{color:var(--txt);font-weight:600}
+  .attbar{position:relative;height:26px}
+  .attbar .ln{position:absolute;left:0;right:0;top:12px;height:1px;background:var(--hair-2)}
+  .attbar .mid{position:absolute;left:50%;top:5px;width:1px;height:15px;background:var(--hair-2)}
+  .attbar .pin{position:absolute;top:6px;width:2px;height:13px;background:var(--lumen);box-shadow:0 0 14px rgba(124,255,178,.9);transition:left 1.1s cubic-bezier(.2,.8,.2,1)}
+
+  .gate{border:1px solid var(--ember-deep);background:linear-gradient(180deg,rgba(255,107,74,.055),rgba(255,107,74,0));padding:clamp(20px,4vw,26px);display:flex;flex-direction:column;gap:13px}
+  .gate h3{font-size:clamp(19px,3.6vw,23px);color:var(--ember)}
+  .gate p{font-size:14.5px;color:var(--txt-2);line-height:1.8}
+  .gate p b{color:var(--txt);font-weight:600}
+
+  .mirror{display:grid;gap:2px}
+  @media(min-width:600px){.mirror{grid-template-columns:1fr 1fr}}
+  .mirror>div{background:var(--deep);padding:19px;display:flex;flex-direction:column;gap:10px}
+  .quote{font-size:14.5px;color:var(--txt);line-height:1.75;white-space:pre-wrap;word-break:break-word}
+  .quote.none{color:var(--txt-3);font-style:italic}
+
+  .decl{border:1px solid var(--lumen-deep);padding:clamp(22px,4.5vw,32px);display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,rgba(124,255,178,.055),rgba(124,255,178,0))}
+  .decl .ln{font-size:clamp(18px,3.5vw,23px);font-weight:600;line-height:1.85;letter-spacing:-.03em}
+  .decl input{
+    font:inherit;font-size:inherit;font-weight:600;color:var(--lumen);background:transparent;
+    border:0;border-bottom:1px solid var(--lumen-deep);padding:0 3px 2px;
+    min-width:7ch;max-width:100%;box-sizing:border-box;
+  }
+  .decl input:focus{outline:none;border-bottom-color:var(--lumen);background:rgba(124,255,178,.07)}
+
+  .todo{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-top:1px solid var(--hair)}
+  .todo:first-child{border-top:0;padding-top:0}
+  .todo input[type=checkbox]{margin-top:5px;width:15px;height:15px;accent-color:var(--lumen);flex:none;cursor:pointer}
+  .todo .t{font-size:15px;color:var(--txt);line-height:1.65}
+  .todo .c{font-size:12.5px;color:var(--txt-3);line-height:1.6}
+
+  .note{font-size:12.5px;color:var(--txt-3);line-height:1.75}
+  .note b{color:var(--txt-2);font-weight:500}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(16px);background:var(--lumen);color:#06110B;padding:11px 20px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .22s ease,transform .22s ease;z-index:70}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* 공유 카드 시트 */
+  .sheet{position:fixed;inset:0;z-index:80;display:none;background:rgba(4,7,6,.86);padding:clamp(12px,3vw,28px);overflow-y:auto}
+  .sheet.open{display:flex;align-items:flex-start;justify-content:center}
+  .sheetbox{background:var(--deep);border:1px solid var(--hair-2);width:100%;max-width:460px;margin:auto;padding:clamp(16px,4vw,24px);display:flex;flex-direction:column;gap:15px}
+  .sheethead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .xclose{background:transparent;border:1px solid var(--hair-2);color:var(--txt-2);padding:6px 12px;font-size:13px}
+  .xclose:hover{border-color:var(--txt-3);color:var(--txt)}
+  .cardprev{background:var(--void);border:1px solid var(--hair);padding:9px;display:flex;justify-content:center;align-items:center;min-height:170px}
+  .cardprev img{display:block;width:100%;max-width:290px;height:auto}
+  .cardprev span{font-size:13px;color:var(--txt-3)}
+  .seg{display:flex;border:1px solid var(--hair-2)}
+  .seg button{flex:1;background:transparent;border:0;padding:11px 6px;font-size:13.5px;color:var(--txt-3)}
+  .seg button+button{border-left:1px solid var(--hair-2)}
+  .seg button[aria-pressed="true"]{background:rgba(124,255,178,.09);color:var(--lumen);font-weight:600}
+  .chk{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--txt-2);cursor:pointer}
+  .chk input{width:15px;height:15px;accent-color:var(--lumen)}
+
+  .fade{animation:up .5s cubic-bezier(.2,.85,.25,1) both}
+  @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
+</style>
+
+<canvas id="field" aria-hidden="true"></canvas>
+<div class="aura" aria-hidden="true"></div>
+<div class="vig" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="wrap"><main id="app"></main></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ 융 심리유형: 태도 + 네 기능 ============ */
+
+  var FN = {T:"사고", F:"감정", S:"감각", N:"직관"};
+  var ATT = {E:"외향", I:"내향"};
+  var OPP = {T:"F", F:"T", S:"N", N:"S"};
+  var JUDGING = {T:1, F:1};
+
+  var QA = [
+    {q:"사람들과 시간을 보내고 난 뒤 나는?",
+     a:"기운이 올라온다", b:"혼자 회복할 시간이 필요하다"},
+    {q:"중요한 결정을 내릴 때 나는?",
+     a:"사람들과 이야기하면서 정리된다", b:"혼자 충분히 생각한 뒤에 말한다"},
+    {q:"처음 가는 모임에서 나는?",
+     a:"먼저 말을 걸어보는 편이다", b:"분위기를 좀 보다가 움직인다"},
+    {q:"관심이 주로 향하는 쪽은?",
+     a:"바깥에서 벌어지는 일", b:"그 일이 내 안에 남긴 것"}
+  ];
+
+  var QF = [
+    {p:["T","F"], q:"누가 고민을 털어놓을 때 먼저 나오는 반응은?",
+     a:"원인이 뭔지 짚어보게 된다", b:"지금 마음이 어떤지 먼저 묻게 된다"},
+    {p:["T","F"], q:"내 결정을 뒤집게 만드는 건?",
+     a:"앞뒤 논리가 안 맞는다는 걸 알았을 때", b:"누군가 상처받는다는 걸 알았을 때"},
+    {p:["T","S"], q:"처음 보는 기계를 다룰 때 나는?",
+     a:"작동 원리를 먼저 이해하려 한다", b:"일단 만져보면서 익힌다"},
+    {p:["T","S"], q:"회의에서 내가 더 잘 잡아내는 건?",
+     a:"앞뒤가 안 맞는 논리", b:"실제로는 안 될 것 같은 구체적 조건"},
+    {p:["T","N"], q:"계획을 세울 때 머릿속에 먼저 오는 건?",
+     a:"단계와 근거", b:"이게 나중에 뭐가 될지에 대한 그림"},
+    {p:["T","N"], q:"설명을 들을 때 더 답답한 쪽은?",
+     a:"근거 없이 결론만 말할 때", b:"세부만 나열하고 방향이 없을 때"},
+    {p:["F","S"], q:"좋은 하루였다고 느끼는 건 주로?",
+     a:"누군가와 마음이 통했을 때", b:"몸이 편하고 먹은 게 맛있었을 때"},
+    {p:["F","S"], q:"어떤 공간에 들어갔을 때 먼저 느끼는 건?",
+     a:"사람들 사이의 분위기", b:"빛, 소리, 냄새 같은 감각"},
+    {p:["F","N"], q:"책이나 영화에서 오래 남는 건?",
+     a:"인물이 느꼈을 감정", b:"그 이야기가 암시하는 것"},
+    {p:["F","N"], q:"사람을 볼 때 더 먼저 잡히는 건?",
+     a:"저 사람이 지금 어떤 상태인지", b:"저 사람이 앞으로 어떻게 될 것 같은지"},
+    {p:["S","N"], q:"뭔가를 설명할 때 내가 자주 쓰는 방식은?",
+     a:"실제 있었던 예를 든다", b:"비유로 바꿔서 말한다"},
+    {p:["S","N"], q:"새 프로젝트에서 내가 잘하는 구간은?",
+     a:"실제로 굴러가게 만드는 실행", b:"아직 없는 걸 떠올리는 초반"}
+  ];
+
+  var QUESTIONS = QA.map(function(x){ return {kind:"att", q:x.q, a:x.a, b:x.b}; })
+        .concat(QF.map(function(x){ return {kind:"fn", p:x.p, q:x.q, a:x.a, b:x.b}; }));
+
+  /* 무의식 5문항 — 선택(복수) + 직접 입력 */
+  var WRITTEN = [
+    { id:"persona", label:"페르소나", term:"사회적 가면", tone:"mint",
+      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이려 하나요?",
+      why:"융은 이 가면을 페르소나라고 불렀습니다. 나쁜 게 아니라 살아가는 데 필요한 것이지만, 그게 나 자신이라고 착각하면 문제가 됩니다.",
+      opts:["실수 없는 사람","괜찮다고 말하는 사람",
+            "분위기를 편하게 하는 사람","늘 열심히 하는 사람",
+            "흔들리지 않는 사람","폐 끼치지 않는 사람"] },
+
+    { id:"shadow", label:"그림자", term:"투사", tone:"ember",
+      q:"유독 거슬리고 참기 힘든 사람은 어떤 사람인가요?",
+      why:"내 안에 있지만 인정하지 않는 부분은 남에게 투사됩니다. 유난히 거슬리는 특징일수록 내 그림자일 가능성이 큽니다.",
+      opts:["자기 얘기만 하는 사람","대충 하고도 당당한 사람",
+            "계산적으로 움직이는 사람","감정을 그대로 쏟는 사람",
+            "규칙을 무시하는 사람","확신에 차 단정하는 사람"] },
+
+    { id:"gold", label:"황금 그림자", term:"못 산 가능성", tone:"mint",
+      q:"부럽거나 자꾸 눈이 가는 사람은 어떤 모습인가요?",
+      why:"동경과 질투는 아직 내 것이라고 주장하지 못한 자질에 붙습니다. 융은 이걸 황금 그림자라고 했습니다.",
+      opts:["자기 시간을 정해 사는 모습","눈치 안 보고 말하는 모습",
+            "한 분야에서 인정받는 모습","사람들이 모여드는 모습",
+            "여유가 있는 모습","실패해도 금방 터는 모습"] },
+
+    { id:"self", label:"자기", term:"몰입의 순간", tone:"mint",
+      q:"시간 가는 줄 모르고 빠져 있었던 순간은 언제였나요?",
+      why:"융이 말한 자기(Self)는 의식과 무의식을 아우르는 중심입니다. 몰입의 순간은 그 중심에 가까이 갔던 흔적입니다.",
+      opts:["혼자 뭔가 만들 때","깊게 이야기를 들을 때",
+            "몸을 써서 할 때","문제를 붙잡고 파고들 때",
+            "사람들 앞에서 말할 때","계획 없이 돌아다닐 때"] },
+
+    { id:"tension", label:"대극의 긴장", term:"두 마음", tone:"ember",
+      q:"원하면서 동시에 두렵기도 한 것은 무엇인가요?",
+      why:"융은 두 대극이 부딪히는 긴장을 견딜 때 제3의 것이 태어난다고 했습니다. 한쪽을 없애는 게 답이 아닙니다.",
+      opts:["혼자 하고 싶지만 수입이 걱정","솔직하고 싶지만 관계가 걱정",
+            "쉬고 싶지만 뒤처질까 걱정","새로 시작하고 싶지만 아깝다",
+            "가까워지고 싶지만 실망시킬까","인정받고 싶지만 나서기 부담"] }
+  ];
+
+  var TYPES = {
+    ET:{ name:"외향적 사고형", line:"바깥의 사실과 기준으로 세상을 정리한다", way:"바깥의 사실과 기준으로 세상을 정리하는",
+         desc:"목표와 규칙을 세우고 그쪽으로 일과 사람을 움직이는 데 강합니다. 대신 자기 안에서 올라오는 감정은 뒤로 밀리기 쉽고, 쌓였다가 예상 못 한 순간에 터집니다." },
+    IT:{ name:"내향적 사고형", line:"자기 안에 개념의 뼈대를 세운다", way:"자기 안에 개념의 뼈대를 세우는",
+         desc:"남이 뭐라 하든 스스로 납득되는 논리를 만드는 데 시간을 씁니다. 깊이는 있지만, 그걸 밖으로 전달하고 사람들 사이에서 조율하는 일은 자주 뒷전이 됩니다." },
+    EF:{ name:"외향적 감정형", line:"사람들 사이의 온도를 읽고 맞춘다", way:"사람들 사이의 온도를 읽고 맞추는",
+         desc:"분위기를 살리고 사람을 연결하는 힘이 있습니다. 그 과정에서 정작 자기가 뭘 원하는지는 흐려지고, 나중에 억울함으로 돌아오기도 합니다." },
+    IF:{ name:"내향적 감정형", line:"말하지 않는 자기만의 기준이 단단하다", way:"말하지 않는 자기 기준을 지켜온",
+         desc:"옳고 그름에 대한 감각이 깊고 쉽게 타협하지 않습니다. 다만 그 기준을 설명하지 않아서 차갑거나 고집스럽게 오해받는 일이 잦습니다." },
+    ES:{ name:"외향적 감각형", line:"지금 여기의 구체적인 현실에 밝다", way:"지금 여기의 현실을 몸으로 붙잡는",
+         desc:"되는 것과 안 되는 것을 빨리 알아채고 몸으로 먼저 움직입니다. 대신 아직 오지 않은 가능성이나 숨은 의미는 잘 보지 않아 기회를 놓치기도 합니다." },
+    IS:{ name:"내향적 감각형", line:"겪은 것이 안에 인상으로 오래 남는다", way:"겪은 것을 안에 오래 남기는",
+         desc:"익숙한 것을 정확하게 반복하고 지켜내는 데 강합니다. 그래서 안정적이지만, 방식을 바꿔야 할 때 유난히 힘이 듭니다." },
+    EN:{ name:"외향적 직관형", line:"바깥 세계에서 가능성을 계속 발견한다", way:"바깥에서 가능성을 계속 발견하는",
+         desc:"새 판을 여는 데 강하고 사람과 기회를 잘 엮습니다. 다만 시작한 것을 끝까지 끌고 가는 구간에서 힘이 빠지고, 벌여놓은 것이 쌓입니다." },
+    IN:{ name:"내향적 직관형", line:"안에서 떠오르는 상을 따라간다", way:"안에서 떠오르는 상을 따라가는",
+         desc:"남들이 아직 못 보는 방향을 먼저 감지합니다. 그 감을 현실의 구체적인 절차와 숫자로 옮기는 데 애를 먹고, 설명이 어렵다는 말을 자주 듣습니다." }
+  };
+
+  var INFERIOR = {
+    IF:{ short:"자기 감정을 알아차리는 일",
+         desc:"지금 내 기분이 뭔지 모른 채 지나갑니다. 감정이 쌓였다가 엉뚱한 데서 한꺼번에 터지는 식으로 나옵니다.",
+         act:["하루 한 번, 지금 기분을 판단 없이 한 단어로 적기","좋다·나쁘다로 평가하지 말고 이름만 붙여보세요"] },
+    ET:{ short:"밖으로 꺼내 정리하는 일",
+         desc:"머릿속에는 있는데 순서와 마감으로 옮기지 못합니다. 그래서 실제로 굴러가는 체계가 안 잡힙니다.",
+         act:["머릿속 계획 하나를 종이에 순서와 날짜까지 적기","적고 나서 답답해졌는지 가벼워졌는지 보세요"] },
+    EF:{ short:"분위기를 읽고 맞추는 일",
+         desc:"의도와 다르게 차갑거나 무례하게 보입니다. 관계에서 생긴 마찰의 원인을 뒤늦게 압니다.",
+         act:["하루 한 번, 용건보다 상대 상태를 먼저 묻기","어색했는지 의외로 편했는지 기록하세요"] },
+    IT:{ short:"스스로 근거를 따져보는 일",
+         desc:"남의 말이나 분위기에 쉽게 흔들립니다. 내가 왜 그렇게 믿는지 설명하려면 막힙니다.",
+         act:["옳다고 믿는 것 하나를 골라 이유를 세 줄로 쓰기","쓰다 막히는 지점이 어디였는지 보세요"] },
+    IN:{ short:"결론 없이 머무는 일",
+         desc:"답이 안 보이는 상태를 못 견디고 성급하게 결론을 냅니다. 그래서 더 나은 답을 놓칩니다.",
+         act:["급하지 않은 문제 하나를 두고 5분간 결론 내지 않기","불편했는지, 뭔가 떠올랐는지 적으세요"] },
+    ES:{ short:"몸과 지금 여기",
+         desc:"먹고 자고 쉬는 걸 자주 미룹니다. 머리는 계속 도는데 몸의 신호는 놓칩니다.",
+         act:["하루 20분, 생각 없이 몸만 쓰기 (걷기·요리·정리)","낭비였는지 회복이었는지 보세요"] },
+    IS:{ short:"같은 것을 반복하는 일",
+         desc:"반복을 못 견뎌서 디테일과 관리에서 자주 사고가 납니다. 새것으로 도망치는 패턴이 있습니다.",
+         act:["익숙한 일 하나를 3일 연속 똑같이 하기","지루했는지, 처음 보이는 게 생겼는지 적으세요"] },
+    EN:{ short:"다른 방식을 시도하는 일",
+         desc:"하던 대로가 안 통할 때 막힙니다. 새로운 방법을 떠올리는 것 자체가 부담스럽습니다.",
+         act:["늘 하던 일 하나를 다른 방법 3개로 적어보기","억지로라도 세 개를 채우고 기분을 보세요"] }
+  };
+
+  /* ============ 유형 → 여행 우선순위 매핑 ============
+     "마이데이"(여행 코스 추천 앱)의 7기준 코드와 맞춥니다: see·eat·do·story·shot·easy·worth
+     엄밀한 심리학적 대응이 아니라, 결과를 실제 행동(여행)으로 옮기기 위한 재미 요소입니다.
+  ==================================================== */
+  var TRAVELMAP = {
+    ET:["easy","worth","do"],
+    IT:["story","see","worth"],
+    EF:["eat","shot","do"],
+    IF:["see","story","eat"],
+    ES:["do","eat","easy"],
+    IS:["eat","easy","worth"],
+    EN:["do","shot","story"],
+    IN:["see","story","shot"]
+  };
+  var CRIT_LABEL = {
+    see:"🌊 예쁜 풍경", eat:"🍊 맛있는 음식", do:"🏄 재미있는 체험", story:"📖 이야기",
+    shot:"📸 사진", easy:"🚗 편한 이동", worth:"💰 가성비"
+  };
+  var MYDAY_URL = "https://jeyukida-eng.github.io/myday/";
+
+  var SITE = (location.protocol.indexOf("http") === 0)
+    ? (location.origin + location.pathname).replace(/index\.html$/, "")
+    : "jeyukida-eng.github.io/self-map/";
+
+  /* ============ 상태 ============ */
+
+  var KEY = "self-map-jung-v1";
+  var TOTAL = QUESTIONS.length + WRITTEN.length;
+  var state = {step:-1, ans:{}, pick:{}, text:{}, decl:{}, done:[], feedback:""};
+
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  (function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return;
+      var v = JSON.parse(raw);
+      if(v && typeof v === "object" && v.ans){
+        state = Object.assign(state, v);
+        if(!state.pick) state.pick = {};
+      }
+    }catch(e){}
+  })();
+  var resumable = Object.keys(state.ans).length > 0 || state.step > 0;
+
+  /* ============ 채점 ============ */
+
+  function analyze(){
+    var att = 0, fn = {T:0, F:0, S:0, N:0}, src = {T:[], F:[], S:[], N:[]};
+
+    QUESTIONS.forEach(function(q, i){
+      var v = state.ans[i];
+      if(v === undefined || v === 0) return;
+      if(q.kind === "att"){ att += v; return; }
+      var k = v === 1 ? q.p[0] : q.p[1];
+      fn[k] += 1; src[k].push(i);
+    });
+
+    var order = ["T","F","S","N"].sort(function(x, y){ return fn[y] - fn[x]; });
+    var dom = order[0];
+    var tied = (fn[order[1]] === fn[dom]) ? order[1] : null;
+
+    // 보조기능 — 주기능과 다른 범주(판단↔지각)에서 높은 쪽
+    var other = JUDGING[dom] ? ["S","N"] : ["T","F"];
+    var aux = fn[other[0]] >= fn[other[1]] ? other[0] : other[1];
+
+    var attKey = att > 0 ? "E" : (att < 0 ? "I" : null);
+    var domAtt = attKey || "I";
+
+    return {
+      att:att, attKey:attKey, fn:fn, src:src,
+      dom:dom, aux:aux, inf:OPP[dom], tied:tied,
+      domAtt:domAtt, infAtt:domAtt === "E" ? "I" : "E",
+      typeKey:domAtt + dom,
+      infKey:(domAtt === "E" ? "I" : "E") + OPP[dom]
+    };
+  }
+
+  /* ============ 유틸 ============ */
+
+  var app = document.getElementById("app");
+
+  function esc(s){
+    return String(s).replace(/[&<>"]/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+    });
+  }
+  function hasJong(str){
+    var t = String(str || "").replace(/[\s"'“”‘’).\]]+$/, "");
+    if(!t) return false;
+    var c = t.charCodeAt(t.length - 1);
+    if(c < 0xAC00 || c > 0xD7A3) return true;
+    return (c - 0xAC00) % 28 !== 0;
+  }
+  function josa(w, withJ, withoutJ){ return hasJong(w) ? withJ : withoutJ; }
+  // 받침이 ㄹ이면 '로', 그 외 받침은 '으로'
+  function euro(w){
+    var t = String(w || "").replace(/[\s"').\]]+$/, "");
+    if(!t) return "로";
+    var c = t.charCodeAt(t.length - 1);
+    if(c < 0xAC00 || c > 0xD7A3) return "로";
+    var jong = (c - 0xAC00) % 28;
+    return (jong === 0 || jong === 8) ? "로" : "으로";
+  }
+  function isize(v){ return Math.max(6, Math.ceil(String(v).length * 1.8)); }
+
+  function answerOf(w){
+    var picks = (state.pick[w.id] || []).map(function(n){ return w.opts[n]; });
+    var free = (state.text[w.id] || "").trim();
+    if(free) picks.push(free);
+    return picks;
+  }
+
+  function toast(msg){
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h);
+    t._h = setTimeout(function(){ t.classList.remove("show"); }, 1900);
+  }
+
+  function scan(step){
+    var h = '<div class="scan" role="progressbar" aria-valuemin="1" aria-valuemax="' + TOTAL +
+            '" aria-valuenow="' + (step + 1) + '" aria-label="진행 상황">';
+    for(var i = 0; i < TOTAL; i++){
+      var c = (i % 4 === 3) ? "q" : "";
+      if(i < step) c += " done";
+      if(i === step) c += " now";
+      h += '<i class="' + c.trim() + '"></i>';
+    }
+    var phase = step < QA.length ? "태도" : (step < QUESTIONS.length ? "네 기능" : "무의식");
+    return h + '</div><div class="scanlab"><span class="tag on">' +
+           String(step + 1).padStart(2, "0") + ' / ' + TOTAL +
+           '</span><span class="tag">' + phase + '</span></div>';
+  }
+
+  /* ============ 렌더 ============ */
+
+  function render(){
+    window.scrollTo({top:0, behavior:"instant"});
+    if(state.step === -1) return renderIntro();
+    if(state.step < QUESTIONS.length) return renderQuestion(state.step);
+    if(state.step < TOTAL) return renderWritten(state.step - QUESTIONS.length);
+    return renderResult();
+  }
+
+  function renderIntro(){
+    app.innerHTML =
+    '<div class="fade">' +
+      '<div class="band stack">' +
+        '<span class="tag on">C.G. JUNG · 분석심리학 · 21문항 · 약 7분</span>' +
+        '<h1 class="hero">내면의<br><span class="lit">무의식</span>을<br>알아보는 지도</h1>' +
+        '<p class="lede">내가 안다고 생각하는 나는 의식의 일부일 뿐입니다. 융은 밀어낸 나머지를 되찾아 통합하는 과정을 <b>개성화</b>라고 불렀습니다.</p>' +
+        '<p class="kicker">이 검사는 당신이 가장 잘 쓰는 기능과, 가장 서툴러서 외면해온 기능을 찾습니다. 융에 따르면 <em>서툰 쪽이 성장이 일어나는 자리</em>입니다.</p>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag">진행 방식</span>' +
+        '<div class="steps">' +
+          '<div class="step"><span class="n">01</span><span class="b"><b>태도 4문항</b> — 관심이 밖으로 향하는지 안으로 향하는지</span></div>' +
+          '<div class="step"><span class="n">02</span><span class="b"><b>기능 12문항</b> — 사고·감정·감각·직관 중 무엇을 먼저 쓰는지</span></div>' +
+          '<div class="step"><span class="n">03</span><span class="b"><b>무의식 5문항</b> — 보기에서 고르고, 필요하면 직접 덧붙입니다</span></div>' +
+          '<div class="step"><span class="n">04</span><span class="b"><b>결과</b> — 융의 8유형, 열등기능, 그림자 대조, 개성화 선언문, 7일 훈련</span></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<div class="btnrow"><button class="btn solid" id="start">시작하기</button>' +
+          (resumable ? '<button class="btn quiet" id="resume">이어서 하기 · ' + (Math.min(state.step, TOTAL - 1) + 1) + '/' + TOTAL + '</button>' : '') +
+        '</div>' +
+        '<p class="note">융의 유형론은 심리측정 도구로 검증된 것이 아닙니다. 이 결과는 <b>진단이 아니라 가설</b>이며, 맞는지는 마지막의 7일 훈련으로 직접 확인하는 것이 순서입니다. 답변은 이 브라우저에만 저장되고 어디로도 전송되지 않습니다.</p>' +
+      '</div>' +
+    '</div>';
+
+    document.getElementById("start").onclick = function(){
+      state = {step:0, ans:{}, pick:{}, text:{}, decl:{}, done:[], feedback:""};
+      save(); render();
+    };
+    var r = document.getElementById("resume");
+    if(r) r.onclick = function(){ if(state.step < 0) state.step = 0; render(); };
+  }
+
+  function renderQuestion(i){
+    var q = QUESTIONS[i], cur = state.ans[i];
+    var meta = q.kind === "att" ? "태도 · 외향 / 내향"
+                                : "기능 · " + FN[q.p[0]] + " / " + FN[q.p[1]];
+    app.innerHTML =
+      '<div class="screen fade">' +
+        '<div>' + scan(i) + '</div>' +
+        '<div class="mid">' +
+          '<div class="qhead">' +
+            '<span class="qbig">' + String(i + 1).padStart(2, "0") + '</span>' +
+            '<div class="stack-s">' +
+              '<span class="tag">' + esc(meta) + '</span>' +
+              '<h2 class="qtext">' + esc(q.q) + '</h2>' +
+            '</div>' +
+          '</div>' +
+          '<div class="opts">' +
+            '<button class="opt" data-key="A" data-v="1" aria-pressed="' + (cur === 1) + '">' + esc(q.a) + '</button>' +
+            '<button class="opt" data-key="B" data-v="-1" aria-pressed="' + (cur === -1) + '">' + esc(q.b) + '</button>' +
+          '</div>' +
+          '<div><button class="skip" data-v="0" aria-pressed="' + (cur === 0) + '">둘 다 비슷하다 · 잘 모르겠다</button></div>' +
+        '</div>' +
+        '<div class="foot btnrow">' +
+          '<button class="btn quiet" id="prev">이전</button>' +
+          '<button class="btn" id="next"' + (cur === undefined ? " disabled" : "") + '>다음</button>' +
+        '</div>' +
+      '</div>';
+
+    Array.prototype.forEach.call(app.querySelectorAll("[data-v]"), function(b){
+      b.onclick = function(){
+        state.ans[i] = Number(b.dataset.v); save();
+        Array.prototype.forEach.call(app.querySelectorAll("[data-v]"), function(x){
+          x.setAttribute("aria-pressed", String(Number(x.dataset.v) === state.ans[i]));
+        });
+        document.getElementById("next").disabled = false;
+        setTimeout(function(){ state.step = i + 1; save(); render(); }, 250);
+      };
+    });
+    document.getElementById("prev").onclick = function(){ state.step = i - 1; save(); render(); };
+    document.getElementById("next").onclick = function(){ state.step = i + 1; save(); render(); };
+  }
+
+  function renderWritten(j){
+    var w = WRITTEN[j], step = QUESTIONS.length + j;
+    if(!state.pick[w.id]) state.pick[w.id] = [];
+    var sel = state.pick[w.id];
+    var toneCls = w.tone === "mint" ? " mint" : "";
+    var hasFree = !!(state.text[w.id] || "").trim();
+
+    app.innerHTML =
+      '<div class="screen fade">' +
+        '<div>' + scan(step) + '</div>' +
+        '<div class="mid">' +
+          '<div class="qhead">' +
+            '<span class="qbig">' + String(step + 1).padStart(2, "0") + '</span>' +
+            '<div class="stack-s">' +
+              '<span class="tag ' + (w.tone === "mint" ? "on" : "warm") + '">' + esc(w.label) + ' · ' + esc(w.term) + '</span>' +
+              '<h2 class="qtext">' + esc(w.q) + '</h2>' +
+            '</div>' +
+          '</div>' +
+          '<div><button class="why" id="why" aria-expanded="false">융은 왜 이걸 물었나요?</button>' +
+            '<p class="hint" id="whytext" hidden style="margin-top:9px">' + esc(w.why) + '</p></div>' +
+          '<div class="stack-s">' +
+            '<span class="picked">해당되는 것을 모두 고르세요 · 선택 <b id="cnt">' + sel.length + '</b>개</span>' +
+            '<div class="picks">' + w.opts.map(function(o, n){
+              return '<button class="pick' + toneCls + '" data-n="' + n + '" aria-pressed="' + (sel.indexOf(n) >= 0) + '">' + esc(o) + '</button>';
+            }).join("") + '</div>' +
+          '</div>' +
+          '<div class="stack-s">' +
+            '<button class="more" id="more" aria-expanded="' + hasFree + '">' + (hasFree ? "− 직접 쓴 내용 접기" : "＋ 보기에 없다면 직접 쓰기") + '</button>' +
+            '<textarea id="ta" placeholder="내 경우엔…"' + (hasFree ? "" : " hidden") + '>' + esc(state.text[w.id] || "") + '</textarea>' +
+          '</div>' +
+        '</div>' +
+        '<div class="foot btnrow">' +
+          '<button class="btn quiet" id="prev">이전</button>' +
+          '<button class="btn' + (step === TOTAL - 1 ? " solid" : "") + '" id="next">' + (step === TOTAL - 1 ? "결과 보기" : "다음") + '</button>' +
+          '<button class="skip" id="skip">건너뛰기</button>' +
+        '</div>' +
+      '</div>';
+
+    Array.prototype.forEach.call(app.querySelectorAll(".pick"), function(b){
+      b.onclick = function(){
+        var n = Number(b.dataset.n), k = sel.indexOf(n);
+        if(k >= 0) sel.splice(k, 1); else sel.push(n);
+        b.setAttribute("aria-pressed", String(k < 0));
+        document.getElementById("cnt").textContent = sel.length;
+        save();
+      };
+    });
+    var ta = document.getElementById("ta");
+    ta.oninput = function(){ state.text[w.id] = ta.value; save(); };
+    var whyBtn = document.getElementById("why"), whyTxt = document.getElementById("whytext");
+    whyBtn.onclick = function(){
+      var open = whyTxt.hasAttribute("hidden");
+      if(open) whyTxt.removeAttribute("hidden"); else whyTxt.setAttribute("hidden", "");
+      whyBtn.setAttribute("aria-expanded", String(open));
+      whyBtn.textContent = open ? "설명 접기" : "융은 왜 이걸 물었나요?";
+    };
+    var more = document.getElementById("more");
+    more.onclick = function(){
+      var open = ta.hasAttribute("hidden");
+      if(open){ ta.removeAttribute("hidden"); ta.focus(); }
+      else{ ta.setAttribute("hidden", ""); }
+      more.setAttribute("aria-expanded", String(open));
+      more.textContent = open ? "− 직접 쓴 내용 접기" : "＋ 보기에 없다면 직접 쓰기";
+    };
+    document.getElementById("prev").onclick = function(){ state.step = step - 1; save(); render(); };
+    document.getElementById("next").onclick = function(){ state.step = step + 1; save(); render(); };
+    document.getElementById("skip").onclick = function(){ state.step = step + 1; save(); render(); };
+  }
+
+  /* ============ 결과 ============ */
+
+  function renderResult(){
+    var R = analyze();
+    var T = TYPES[R.typeKey];
+    var INF = INFERIOR[R.infKey];
+
+    var role = {};
+    role[R.dom] = "주기능"; role[R.aux] = "보조기능"; role[R.inf] = "열등기능";
+
+    var fnsHtml = ["T","F","S","N"].map(function(k){
+      var cls = k === R.dom ? "dom" : (k === R.aux ? "aux" : (k === R.inf ? "inf" : ""));
+      return '<div class="fn ' + cls + '">' +
+        '<span class="nm">' + FN[k] + '</span>' +
+        '<span class="meter"><u data-w="' + ((R.fn[k] / 6) * 100) + '"></u></span>' +
+        '<span class="val">' + R.fn[k] + '/6</span>' +
+        '<span class="role">' + (role[k] || "") + '</span>' +
+      '</div>';
+    }).join("");
+
+    var attPct = 6 + ((R.att + 4) / 8) * 88;
+    var domSrc = R.src[R.dom].slice(0, 2).map(function(qi){
+      var q = QUESTIONS[qi];
+      return "“" + (q.p[0] === R.dom ? q.a : q.b) + "”";
+    });
+
+    var TM = TRAVELMAP[R.typeKey] || ["see","story","shot"];
+    var travelHref = MYDAY_URL + "?from=selfmap&type=" + encodeURIComponent(R.typeKey)
+      + "&prio=" + TM.map(encodeURIComponent).join(",");
+
+    var d1 = state.decl.v || (FN[R.dom] + euro(FN[R.dom]) + " 세상을 붙잡는 힘");
+    var d2 = state.decl.w || T.way;
+    var infShort = INF ? INF.short : "내가 외면해온 것";
+    var d3 = state.decl.g || (infShort + josa(infShort, "을", "를") + " 되찾는 중이라는 것");
+
+    function block(id){
+      var w = WRITTEN.filter(function(x){ return x.id === id; })[0];
+      var a = answerOf(w);
+      return a.length ? '<p class="quote">' + esc(a.join("\n")) + '</p>'
+                      : '<p class="quote none">건너뛴 항목입니다</p>';
+    }
+
+    var acts = [
+      INF ? INF.act : ["미뤄둔 것 하나를 이번 주에 끝내기", "끝냈을 때 실제로 뿌듯했는지 보기"],
+      ["보조기능 " + FN[R.aux] + josa(FN[R.aux], "을", "를") + " 하루 한 번 의도적으로 쓰기", "융에 따르면 열등기능으로 가는 길은 보조기능을 거칩니다"],
+      ["부럽다고 고른 그 모습을 30분만 흉내내보기", "그게 정말 내가 원하던 것이었는지 확인하세요"]
+    ];
+
+    app.innerHTML =
+    '<div class="fade">' +
+
+      '<div class="band stack">' +
+        '<span class="tag on">결과 · 가설</span>' +
+        '<div class="typecode">' + FN[R.dom] + '</div>' +
+        '<h1 class="typename">' + esc(T.name) + '</h1>' +
+        '<p class="typedesc">' + esc(T.line) + '. ' + esc(T.desc) + '</p>' +
+        (R.tied ? '<p class="note">' + FN[R.dom] + josa(FN[R.dom], "과", "와") + ' ' + FN[R.tied] + josa(FN[R.tied], "이", "가") + ' 동점입니다. 두 기능이 아직 갈리지 않았다는 뜻일 수 있고, 융의 관점에서는 <b>대극의 긴장이 살아 있는 상태</b>입니다.</p>' : '') +
+        (!R.attKey ? '<p class="note">태도 문항에서 외향과 내향이 팽팽했습니다. 상황에 따라 달라지는 영역일 수 있어 <b>내향</b>을 기준으로 계산했습니다.</p>' : '') +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag">의식의 지형 · 네 기능</span>' +
+        '<p class="hint">밝은 쪽이 의식이 자주 쓰는 기능, 어두운 쪽이 무의식에 남아 있는 기능입니다.</p>' +
+        '<div class="fns">' + fnsHtml + '</div>' +
+        '<div class="attitude">' +
+          '<div class="attrow">' +
+            '<span' + (R.attKey === "E" ? ' class="on"' : '') + '>외향 · 관심이 밖으로</span>' +
+            '<span' + (R.attKey === "I" ? ' class="on"' : '') + '>안으로 · 내향</span>' +
+          '</div>' +
+          '<div class="attbar"><div class="ln"></div><div class="mid"></div><div class="pin" data-p="' + attPct + '" style="left:50%"></div></div>' +
+        '</div>' +
+        (domSrc.length ? '<p class="hint">주기능 근거로 고른 답 — <b>' + esc(domSrc.join(", ")) + '</b></p>' : '') +
+      '</div>' +
+
+      (INF ?
+      '<div class="band stack">' +
+        '<span class="tag warm">열등기능 · 개성화의 문</span>' +
+        '<div class="gate">' +
+          '<h3>' + ATT[R.infAtt] + '적 ' + FN[R.inf] + '</h3>' +
+          '<p>' + esc(INF.desc) + '</p>' +
+          '<p>융은 개성화의 열쇠가 <b>바로 이 자리</b>에 있다고 봤습니다. 열등기능은 단순한 약점이 아니라 아직 손대지 않은 자리이고, 여기에 접촉할 때 가장 큰 생기와 전체감이 옵니다. 다만 <b>주기능에서 곧장 갈 수는 없습니다.</b> 보조기능인 ' + FN[R.aux] + josa(FN[R.aux], "을", "를") + ' 거쳐야 합니다.</p>' +
+        '</div>' +
+      '</div>' : '') +
+
+      '<div class="band stack">' +
+        '<span class="tag warm">그림자 · 두 개의 투사</span>' +
+        '<p class="hint">거슬리는 모습과 부러운 모습은 같은 것의 양면일 때가 많습니다. 둘 다 아직 내 것으로 인정하지 않은 부분입니다.</p>' +
+        '<div class="mirror">' +
+          '<div><span class="tag warm">거슬리는 사람</span>' + block("shadow") + '</div>' +
+          '<div><span class="tag on">부러운 사람</span>' + block("gold") + '</div>' +
+        '</div>' +
+        '<p class="note">두 답을 나란히 놓고 물어보세요. <b>혹시 같은 성질의 양쪽 끝은 아닌가요?</b> “자기 얘기만 하는 사람”이 거슬리고 “눈치 안 보는 사람”이 부럽다면, 문제는 그 성질이 아니라 내가 그걸 쓰지 못하게 막아둔 방식일 수 있습니다.</p>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag">페르소나와 몰입</span>' +
+        '<div class="stack-s"><span class="tag">사람들 앞에서의 나</span>' + block("persona") + '</div>' +
+        '<hr class="rule">' +
+        '<div class="stack-s"><span class="tag on">시간 가는 줄 몰랐던 순간</span>' + block("self") + '</div>' +
+        '<p class="note">이 둘의 거리가 멀수록, 지금 가면을 쓰는 데 힘을 많이 쓰고 있다는 뜻일 수 있습니다.</p>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag warm">대극의 긴장</span>' +
+        block("tension") +
+        '<p class="note">융은 두 대극이 부딪히는 긴장을 없애지 말라고 했습니다. 한쪽을 이기게 하는 대신 둘 다 살아 있게 견디면, 논리로는 안 나오던 <b>제3의 것</b>이 나타난다고 봤습니다. 지금 당장 결정하지 않아도 됩니다.</p>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag on">개성화 선언문</span>' +
+        '<p class="hint">당신의 답에서 만든 <b>초안</b>입니다. 밑줄 친 부분을 당신의 말로 바꾸세요.</p>' +
+        '<div class="decl">' +
+          '<div class="ln">나는 <input id="dv" value="' + esc(d1) + '" size="' + isize(d1) + '" aria-label="가진 힘"><span id="jv">' + josa(d1, "을", "를") + '</span> 가지고 있고,</div>' +
+          '<div class="ln"><input id="dw" value="' + esc(d2) + '" size="' + isize(d2) + '" aria-label="살아온 방식"> 방식으로 살아왔으며,</div>' +
+          '<div class="ln">이제 <input id="dg" value="' + esc(d3) + '" size="' + isize(d3) + '" aria-label="배우는 것"><span id="jg">' + josa(d3, "을", "를") + '</span> 배우는 중이다.</div>' +
+        '</div>' +
+        '<p class="note">이 문장이 새로운 의무처럼 느껴진다면 아직 내 문장이 아닙니다. 부담이 되는 단어는 지우세요.</p>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag on">7일 훈련 · 열등기능 접촉</span>' +
+        '<p class="hint">목표가 아니라 <b>확인</b>입니다. 위 가설이 나와 맞는지 작게 시험합니다.</p>' +
+        '<div>' + acts.map(function(a, n){
+          return '<label class="todo">' +
+            '<input type="checkbox" data-n="' + n + '"' + (state.done.indexOf(n) >= 0 ? " checked" : "") + '>' +
+            '<span><span class="t">' + esc(a[0]) + '</span><br><span class="c">' + esc(a[1]) + '</span></span>' +
+          '</label>';
+        }).join("") + '</div>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag on">TRAVEL MATCH</span>' +
+        '<h3 style="font-size:19px">이 성향이면, 여행에서 이런 걸 먼저 보게 됩니다</h3>' +
+        '<p class="hint">' + TM.map(function(k){ return CRIT_LABEL[k]; }).join('  ·  ') + '</p>' +
+        '<p class="hint">엄밀한 진단이 아니라, 방금 나온 성향을 실제 여행 우선순위로 바꿔본 겁니다. 뭘 고를지 막막할 때는 이대로 맡겨도 됩니다.</p>' +
+        '<div class="btnrow">' +
+          '<a class="btn solid" href="' + travelHref + '" target="_blank" rel="noopener">이 성향으로 여행 코스 짜기 →</a>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="band stack">' +
+        '<span class="tag">마지막으로</span>' +
+        '<h3 style="font-size:19px">이 정리에서 “내 이야기 같다” 싶은 부분과 “아닌 것 같다” 싶은 부분은 각각 무엇인가요?</h3>' +
+        '<textarea id="fb" placeholder="아닌 부분이 오히려 더 중요한 단서입니다">' + esc(state.feedback || "") + '</textarea>' +
+        '<hr class="rule">' +
+        '<div class="btnrow">' +
+          '<button class="btn solid" id="cardBtn">공유 카드 만들기</button>' +
+          '<button class="btn" id="copy">결과 복사</button>' +
+          '<button class="btn quiet" id="back">답변 고치기</button>' +
+          '<button class="btn quiet" id="reset">처음부터</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    setTimeout(function(){
+      Array.prototype.forEach.call(app.querySelectorAll(".meter u"), function(u){
+        u.style.width = u.dataset.w + "%";
+      });
+      var pin = app.querySelector(".pin");
+      if(pin) pin.style.left = pin.dataset.p + "%";
+    }, 60);
+
+    ["dv","dw","dg"].forEach(function(id, n){
+      var el = document.getElementById(id);
+      el.oninput = function(){
+        state.decl[["v","w","g"][n]] = el.value;
+        el.size = isize(el.value);
+        if(id === "dv") document.getElementById("jv").textContent = josa(el.value, "을", "를");
+        if(id === "dg") document.getElementById("jg").textContent = josa(el.value, "을", "를");
+        save();
+      };
+    });
+    Array.prototype.forEach.call(app.querySelectorAll(".todo input"), function(c){
+      c.onchange = function(){
+        var n = Number(c.dataset.n), k = state.done.indexOf(n);
+        if(c.checked && k < 0) state.done.push(n);
+        if(!c.checked && k >= 0) state.done.splice(k, 1);
+        save();
+      };
+    });
+    var fb = document.getElementById("fb");
+    fb.oninput = function(){ state.feedback = fb.value; save(); };
+
+    document.getElementById("cardBtn").onclick = function(){
+      openCard({R:R, T:T, INF:INF,
+        flavor: "이제 " + d3 + josa(d3, "을", "를") + " 배우는 중이다."});
+    };
+    document.getElementById("back").onclick = function(){ state.step = TOTAL - 1; save(); render(); };
+    document.getElementById("reset").onclick = function(){
+      state = {step:-1, ans:{}, pick:{}, text:{}, decl:{}, done:[], feedback:""};
+      save(); resumable = false; render();
+    };
+    document.getElementById("copy").onclick = function(){
+      navigator.clipboard.writeText(buildText(R, T, INF, [d1, d2, d3], acts)).then(
+        function(){ toast("결과를 복사했습니다"); },
+        function(){ toast("복사에 실패했습니다. 화면에서 직접 선택해 주세요"); }
+      );
+    };
+  }
+
+  function buildText(R, T, INF, decl, acts){
+    var L = [];
+    L.push("개성화 지도 — " + T.name);
+    L.push("(진단이 아니라 가설입니다)");
+    L.push("");
+    L.push("[네 기능]");
+    ["T","F","S","N"].forEach(function(k){
+      var r = k === R.dom ? " ← 주기능" : (k === R.aux ? " ← 보조기능" : (k === R.inf ? " ← 열등기능" : ""));
+      L.push("· " + FN[k] + " " + R.fn[k] + "/6" + r);
+    });
+    L.push("· 태도: " + (R.attKey ? ATT[R.attKey] : "외향/내향 팽팽함"));
+    L.push("");
+    if(INF){
+      L.push("[열등기능 — 개성화의 문]");
+      L.push(ATT[R.infAtt] + "적 " + FN[R.inf] + " — " + INF.desc);
+      L.push("보조기능 " + FN[R.aux] + josa(FN[R.aux], "을", "를") + " 거쳐야 접근할 수 있습니다.");
+      L.push("");
+    }
+    L.push("[무의식 문항]");
+    WRITTEN.forEach(function(w){
+      var a = answerOf(w);
+      L.push("· " + w.label + " — " + w.q);
+      L.push(a.length ? a.map(function(x){ return "  " + x; }).join("\n") : "  (건너뜀)");
+    });
+    L.push("");
+    L.push("[개성화 선언문]");
+    L.push("나는 " + decl[0] + josa(decl[0], "을", "를") + " 가지고 있고,");
+    L.push(decl[1] + " 방식으로 살아왔으며,");
+    L.push("이제 " + decl[2] + josa(decl[2], "을", "를") + " 배우는 중이다.");
+    L.push("");
+    L.push("[7일 훈련]");
+    acts.forEach(function(a){ L.push("· " + a[0] + " / " + a[1]); });
+    if((state.feedback || "").trim()){
+      L.push("");
+      L.push("[맞는 부분 / 아닌 부분]");
+      L.push(state.feedback.trim());
+    }
+    L.push("");
+    L.push(SITE);
+    return L.join("\n");
+  }
+
+  /* ============ 공유 카드 ============ */
+
+  var CF_UI  = '"Pretendard Variable", Pretendard, "Gothic A1", sans-serif';
+  var CF_NUM = '"Martian Mono", monospace';
+  var C = {
+    void:"#0A0D0C", deep:"#0E1311", hair:"#1D2723", hair2:"#2B3833",
+    txt:"#EAF2ED", txt2:"#93A29B", txt3:"#5A6862",
+    lumen:"#7CFFB2", lumenDeep:"#2E6B4C", ember:"#FF6B4A", emberDeep:"#7A3325"
+  };
+  var RATIOS = { feed:[1080,1350], story:[1080,1920] };
+  var cardOpt = { ratio:"feed", decl:true };
+  var cardData = null, cardBlob = null;
+
+  function fnt(wt, size, fam){ return wt + " " + size + "px " + fam; }
+
+  function fitOneLine(c, text, maxW, weight, start, min, fam){
+    var size = start;
+    while(size > min){
+      c.font = fnt(weight, size, fam);
+      if(c.measureText(text).width <= maxW) break;
+      size -= 2;
+    }
+    c.font = fnt(weight, size, fam);
+    return size;
+  }
+
+  function wrapKo(c, text, maxW){
+    var lines = [], cur = "";
+    for(var i = 0; i < text.length; i++){
+      var ch = text[i];
+      if(c.measureText(cur + ch).width > maxW && cur){
+        var sp = cur.lastIndexOf(" ");
+        if(sp > 0 && cur.length - sp < 14){ lines.push(cur.slice(0, sp)); cur = cur.slice(sp + 1) + ch; }
+        else { lines.push(cur); cur = ch; }
+      } else cur += ch;
+    }
+    if(cur) lines.push(cur);
+    return lines;
+  }
+
+  function glow(c, color, blur){ c.shadowColor = color; c.shadowBlur = blur; }
+  function noGlow(c){ c.shadowColor = "transparent"; c.shadowBlur = 0; }
+
+  function drawBackdrop(c, W, H){
+    c.fillStyle = C.void; c.fillRect(0, 0, W, H);
+    // 위쪽 빛무리
+    var g = c.createRadialGradient(W * .5, H * .12, 0, W * .5, H * .12, W * .9);
+    g.addColorStop(0, "rgba(124,255,178,.10)");
+    g.addColorStop(1, "rgba(124,255,178,0)");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    // 등고선
+    for(var n = 0; n < 10; n++){
+      c.strokeStyle = "rgba(124,255,178," + (0.10 - n * 0.009).toFixed(3) + ")";
+      c.lineWidth = 1.4;
+      c.beginPath();
+      var r = 120 + n * 128;
+      for(var a = 0; a <= Math.PI * 2 + 0.06; a += 0.05){
+        var rr = r + Math.sin(a * 3 + n * .66) * (22 + n * 5) + Math.cos(a * 5 - n * .38) * (12 + n * 2.6);
+        var x = W * .5 + Math.cos(a) * rr * 1.25, y = H * .30 + Math.sin(a) * rr * .62;
+        if(a === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.closePath(); c.stroke();
+    }
+    // 비네트
+    var v = c.createRadialGradient(W * .5, H * .32, H * .18, W * .5, H * .5, H * .78);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.62)");
+    c.fillStyle = v; c.fillRect(0, 0, W, H);
+  }
+
+  function drawGrain(c, W, H){
+    var n = document.createElement("canvas");
+    n.width = n.height = 190;
+    var nc = n.getContext("2d");
+    var id = nc.createImageData(190, 190), px = id.data;
+    for(var i = 0; i < px.length; i += 4){
+      var v = 90 + Math.random() * 76;
+      px[i] = px[i+1] = px[i+2] = v;
+      px[i+3] = 255;
+    }
+    nc.putImageData(id, 0, 0);
+    c.save();
+    c.globalCompositeOperation = "overlay";
+    c.globalAlpha = .13;
+    c.fillStyle = c.createPattern(n, "repeat");
+    c.fillRect(0, 0, W, H);
+    c.restore();
+  }
+
+  function rr(c, x, y, w, h, r){
+    c.beginPath();
+    if(c.roundRect){ c.roundRect(x, y, w, h, r); return; }
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  // 네 기능을 대극으로 배치한 카드 일러스트 — 사고↔감정, 감각↔직관
+  function drawPsycheArt(c, x, y, w, h, R){
+    c.save();
+    rr(c, x, y, w, h, 10); c.clip();
+
+    // 바탕
+    var g = c.createLinearGradient(x, y, x, y + h);
+    g.addColorStop(0, "#101917"); g.addColorStop(1, "#0A0F0D");
+    c.fillStyle = g; c.fillRect(x, y, w, h);
+
+    var cx = x + w / 2, cy = y + h / 2;
+
+    // 등고선
+    for(var n = 0; n < 7; n++){
+      c.strokeStyle = "rgba(124,255,178," + (0.13 - n * 0.016).toFixed(3) + ")";
+      c.lineWidth = 1.2;
+      c.beginPath();
+      var rad = 52 + n * 46;
+      for(var a = 0; a <= Math.PI * 2 + 0.06; a += 0.06){
+        var q = rad + Math.sin(a * 3 + n * .7) * (11 + n * 3) + Math.cos(a * 5 - n * .4) * (7 + n * 1.6);
+        var px = cx + Math.cos(a) * q * 1.35, py = cy + Math.sin(a) * q * .95;
+        if(a === 0) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+      c.closePath(); c.stroke();
+    }
+
+    // 대극 축
+    var rx = w * 0.31, ry = h * 0.30;
+    var pos = {
+      T:[cx, cy - ry], F:[cx, cy + ry],
+      S:[cx + rx, cy], N:[cx - rx, cy]
+    };
+    c.strokeStyle = "rgba(124,255,178,.14)"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(pos.T[0], pos.T[1]); c.lineTo(pos.F[0], pos.F[1]); c.stroke();
+    c.beginPath(); c.moveTo(pos.N[0], pos.N[1]); c.lineTo(pos.S[0], pos.S[1]); c.stroke();
+
+    // 중심 — 자기(Self)
+    c.strokeStyle = "rgba(124,255,178,.30)"; c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, 15, 0, Math.PI * 2); c.stroke();
+
+    // 네 기능 노드
+    ["T","F","S","N"].forEach(function(k){
+      var px = pos[k][0], py = pos[k][1];
+      var isDom = k === R.dom, isInf = k === R.inf, isAux = k === R.aux;
+      var size = 9 + (R.fn[k] / 6) * 17;
+      var col = isDom ? C.lumen : (isInf ? C.ember : (isAux ? "#4E9C74" : "#33413B"));
+
+      if(isDom){ glow(c, "rgba(124,255,178,.95)", 34); }
+      else if(isInf){ glow(c, "rgba(255,107,74,.45)", 16); }
+      c.fillStyle = col;
+      c.beginPath(); c.arc(px, py, size, 0, Math.PI * 2); c.fill();
+      noGlow(c);
+
+      if(isDom){
+        c.strokeStyle = "rgba(124,255,178,.35)"; c.lineWidth = 1;
+        c.beginPath(); c.arc(px, py, size + 15, 0, Math.PI * 2); c.stroke();
+      }
+
+      c.font = fnt(isDom ? 700 : 500, 22, CF_UI);
+      c.fillStyle = isDom ? C.lumen : (isInf ? C.ember : C.txt3);
+      c.textAlign = "center"; c.textBaseline = "middle";
+      var off = (k === "T") ? -size - 22 : (k === "F") ? size + 22 : 0;
+      var offx = (k === "S") ? size + 30 : (k === "N") ? -size - 30 : 0;
+      c.fillText(FN[k], px + offx, py + off);
+    });
+
+    c.textAlign = "left"; c.textBaseline = "alphabetic";
+    c.restore();
+
+    // 아트 프레임
+    c.strokeStyle = "rgba(124,255,178,.30)"; c.lineWidth = 2;
+    rr(c, x, y, w, h, 10); c.stroke();
+  }
+
+  function drawCard(cv){
+    var dim = RATIOS[cardOpt.ratio], W = dim[0], H = dim[1];
+    cv.width = W; cv.height = H;
+    var c = cv.getContext("2d");
+    drawBackdrop(c, W, H);
+
+    // 카드 본체 — 트레이딩 카드 비율 (0.715)
+    var CW = Math.round(Math.min(W - 150, (H - 150) * 0.715));
+    var CH = Math.round(CW / 0.715);
+    var x0 = Math.round((W - CW) / 2), y0 = Math.round((H - CH) / 2);
+
+    c.save();
+    c.shadowColor = "rgba(0,0,0,.75)"; c.shadowBlur = 60; c.shadowOffsetY = 22;
+    c.fillStyle = "#0B100E";
+    rr(c, x0, y0, CW, CH, 30); c.fill();
+    c.restore();
+
+    // 테두리
+    var bg = c.createLinearGradient(x0, y0, x0 + CW, y0 + CH);
+    bg.addColorStop(0, "#7CFFB2"); bg.addColorStop(.45, "#2E6B4C"); bg.addColorStop(1, "#1A3A2A");
+    c.strokeStyle = bg; c.lineWidth = 7;
+    rr(c, x0 + 3.5, y0 + 3.5, CW - 7, CH - 7, 28); c.stroke();
+    c.strokeStyle = "rgba(124,255,178,.18)"; c.lineWidth = 1;
+    rr(c, x0 + 14.5, y0 + 14.5, CW - 29, CH - 29, 20); c.stroke();
+
+    drawCardFace(c, x0, y0, CW, CH);
+    drawGrain(c, W, H);
+  }
+
+  function drawCardFace(c, x0, y0, CW, CH){
+    var d = cardData, R = d.R, T = d.T, INF = d.INF;
+    var P = 48, L = x0 + P, IW = CW - P * 2;
+    c.textBaseline = "alphabetic"; c.textAlign = "left";
+
+    // 세로 배분 — 남는 공간은 전부 일러스트가 흡수한다
+    var NAME = 96, GAP1 = 26, BAND = 44, GAP2 = 20,
+        MOVES = 182, GAP3 = 22, WEAK = 88, GAP4 = 26, FLAV = 64, CRED = 56;
+    var artH = CH - (NAME + GAP1 + GAP2 + BAND + MOVES + GAP3 + WEAK + GAP4 + FLAV + CRED);
+
+    // ── 이름 줄
+    var y = y0 + NAME;
+    fitOneLine(c, T.name, IW - 190, 900, 46, 28, CF_UI);
+    c.fillStyle = C.txt;
+    c.fillText(T.name, L, y);
+
+    c.textAlign = "right";
+    c.font = fnt(700, 42, CF_NUM);
+    var numW = c.measureText(R.fn[R.dom] + "/6").width;
+    c.fillStyle = C.lumen;
+    glow(c, "rgba(124,255,178,.55)", 24);
+    c.fillText(R.fn[R.dom] + "/6", x0 + CW - P, y);
+    noGlow(c);
+    c.font = fnt(700, 20, CF_UI); c.fillStyle = C.txt2;
+    c.fillText(FN[R.dom], x0 + CW - P - numW - 14, y);
+    c.textAlign = "left";
+
+    // ── 일러스트
+    var artY = y + GAP1;
+    drawPsycheArt(c, L, artY, IW, artH, R);
+    y = artY + artH + GAP2;
+
+    // ── 분류 띠
+    c.fillStyle = "rgba(124,255,178,.07)";
+    c.fillRect(L, y, IW, BAND);
+    c.font = fnt(500, 18, CF_UI); c.fillStyle = C.txt2;
+    c.fillText("태도 " + ATT[R.domAtt] + "   ·   보조기능 " + FN[R.aux] + "   ·   " + T.line, L + 16, y + 29);
+    y += BAND;
+
+    // ── 기술 두 개
+    function move(yy, key, label, dmg, desc, isDom){
+      var col = isDom ? C.lumen : C.txt2;
+      c.beginPath(); c.arc(L + 21, yy - 8, 19, 0, Math.PI * 2);
+      c.fillStyle = isDom ? "rgba(124,255,178,.16)" : "rgba(147,162,155,.10)";
+      c.fill();
+      c.strokeStyle = isDom ? C.lumen : "#3C4A44"; c.lineWidth = 1.5; c.stroke();
+      c.font = fnt(700, 18, CF_UI); c.fillStyle = col;
+      c.textAlign = "center"; c.fillText(FN[key], L + 21, yy - 1); c.textAlign = "left";
+
+      c.font = fnt(700, 27, CF_UI); c.fillStyle = C.txt;
+      c.fillText(label, L + 54, yy);
+      c.textAlign = "right";
+      c.font = fnt(700, 27, CF_NUM); c.fillStyle = col;
+      c.fillText(dmg, x0 + CW - P, yy);
+      c.textAlign = "left";
+
+      c.font = fnt(400, 19, CF_UI); c.fillStyle = C.txt3;
+      c.fillText(wrapKo(c, desc, IW - 54)[0], L + 54, yy + 30);
+    }
+
+    c.strokeStyle = "rgba(124,255,178,.12)"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(L, y + 12); c.lineTo(L + IW, y + 12); c.stroke();
+    move(y + 58, R.dom, "주기능 · " + FN[R.dom], R.fn[R.dom] + "/6", T.line, true);
+    c.beginPath(); c.moveTo(L, y + 104); c.lineTo(L + IW, y + 104); c.stroke();
+    move(y + 150, R.aux, "보조기능 · " + FN[R.aux], R.fn[R.aux] + "/6",
+         "열등기능으로 가는 길은 여기를 거친다", false);
+    y += MOVES + GAP3;
+
+    // ── 약점 · 저항 · 태도
+    c.fillStyle = "rgba(255,107,74,.055)";
+    c.fillRect(L, y, IW, WEAK);
+    c.strokeStyle = "rgba(255,107,74,.30)"; c.lineWidth = 1;
+    c.strokeRect(L + .5, y + .5, IW - 1, WEAK - 1);
+
+    var colW = IW / 3;
+    [["약점 · 열등기능", INF ? ATT[R.infAtt] + "적 " + FN[R.inf] : "-", C.ember],
+     ["저항 · 보조기능", FN[R.aux], C.txt],
+     ["태도", ATT[R.domAtt] + "형", C.txt]].forEach(function(col, i){
+      var cxp = L + colW * i + colW / 2;
+      c.textAlign = "center";
+      c.font = fnt(500, 13, CF_NUM); c.fillStyle = C.txt3;
+      c.fillText(col[0], cxp, y + 32);
+      c.font = fnt(700, 24, CF_UI); c.fillStyle = col[2];
+      c.fillText(col[1], cxp, y + 64);
+      if(i){
+        c.strokeStyle = "rgba(255,107,74,.18)";
+        c.beginPath(); c.moveTo(L + colW * i, y + 14); c.lineTo(L + colW * i, y + WEAK - 14); c.stroke();
+      }
+    });
+    c.textAlign = "left";
+    y += WEAK + GAP4;
+
+    // ── 플레이버
+    var flavor = cardOpt.decl ? d.flavor : (INF ? INF.desc : T.desc);
+    c.font = "italic 400 20px " + CF_UI;
+    c.fillStyle = C.txt2;
+    wrapKo(c, flavor, IW).slice(0, 2).forEach(function(ln, i){
+      c.fillText(ln, L, y + 22 + i * 29);
+    });
+
+    // ── 하단 크레딧
+    var by = y0 + CH - 40;
+    c.font = fnt(500, 14, CF_NUM); c.fillStyle = C.txt3;
+    c.fillText("C.G. JUNG · 1921 · " + R.typeKey, L, by);
+    c.textAlign = "right"; c.fillStyle = C.lumen;
+    c.fillText(SITE.replace(/^https?:\/\//, ""), x0 + CW - P, by);
+    c.textAlign = "left";
+  }
+
+  function ensureFonts(){
+    if(!document.fonts || !document.fonts.load) return Promise.resolve();
+    return Promise.all([
+      document.fonts.load('900 92px ' + CF_UI),
+      document.fonts.load('800 38px ' + CF_UI),
+      document.fonts.load('600 26px ' + CF_UI),
+      document.fonts.load('400 30px ' + CF_UI),
+      document.fonts.load('500 19px ' + CF_NUM)
+    ]).catch(function(){});
+  }
+
+  function refreshCard(){
+    var prev = document.getElementById("cardprev");
+    prev.innerHTML = '<span>카드를 그리는 중…</span>';
+    ensureFonts().then(function(){
+      var cv = document.createElement("canvas");
+      drawCard(cv);
+      cv.toBlob(function(blob){
+        cardBlob = blob;
+        var img = new Image();
+        img.alt = "결과 카드 미리보기";
+        img.src = URL.createObjectURL(blob);
+        img.onload = function(){ prev.innerHTML = ""; prev.appendChild(img); };
+      }, "image/png");
+    });
+  }
+
+  function isIOS(){
+    return /iP(hone|ad|od)/.test(navigator.userAgent) ||
+           (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function saveCard(){
+    var name = "jung-card-" + (cardData && cardData.R ? cardData.R.typeKey : "map") + ".png";
+
+    // 1) 아티팩트 뷰어 안이면 전용 저장 통로를 쓴다
+    if(window.claude && typeof window.claude.use === "function"){
+      window.claude.use("downloads").then(function(dl){
+        if(dl && dl.save){
+          dl.save({ filename: name, data: cardBlob }).then(
+            function(){ toast("이미지를 저장했습니다"); },
+            function(e){ if(e && e.code !== "declined") webSave(name); }
+          );
+        } else webSave(name);
+      }, function(){ webSave(name); });
+      return;
+    }
+    webSave(name);
+  }
+
+  function webSave(name){
+    var url = URL.createObjectURL(cardBlob);
+    var a = document.createElement("a");
+    // 2) iOS Safari는 blob 다운로드를 무시한다 — 새 탭으로 열어 길게 누르게 한다
+    if(isIOS() || typeof a.download === "undefined"){
+      window.open(url, "_blank");
+      toast("열린 이미지를 길게 눌러 저장하세요");
+      return;
+    }
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    toast("이미지를 저장했습니다");
+  }
+
+  function openCard(data){
+    cardData = data;
+    var sheet = document.getElementById("cardsheet");
+    if(!sheet){
+      sheet = document.createElement("div");
+      sheet.className = "sheet"; sheet.id = "cardsheet";
+      sheet.innerHTML =
+        '<div class="sheetbox">' +
+          '<div class="sheethead"><span class="tag on">공유 카드</span>' +
+            '<button class="xclose" id="cardClose">닫기</button></div>' +
+          '<div class="cardprev" id="cardprev"></div>' +
+          '<div class="seg" id="ratioSeg">' +
+            '<button data-r="feed" aria-pressed="true">피드 4:5</button>' +
+            '<button data-r="story" aria-pressed="false">스토리 9:16</button>' +
+          '</div>' +
+          '<label class="chk"><input type="checkbox" id="incDecl" checked> 아래 문구를 내 선언문으로</label>' +
+          '<div class="btnrow">' +
+            '<button class="btn solid" id="cardShare">공유하기</button>' +
+            '<button class="btn" id="cardSave">이미지 저장</button>' +
+          '</div>' +
+          '<p class="note">저장이 안 되면 위 이미지를 <b>길게 누르거나</b>(폰) <b>우클릭</b>해서(PC) 저장하세요. 무의식 문항에 적은 내용은 카드에 들어가지 않습니다.</p>' +
+        '</div>';
+      document.body.appendChild(sheet);
+
+      sheet.onclick = function(e){ if(e.target === sheet) sheet.classList.remove("open"); };
+      document.getElementById("cardClose").onclick = function(){ sheet.classList.remove("open"); };
+      Array.prototype.forEach.call(sheet.querySelectorAll("#ratioSeg button"), function(b){
+        b.onclick = function(){
+          cardOpt.ratio = b.dataset.r;
+          Array.prototype.forEach.call(sheet.querySelectorAll("#ratioSeg button"), function(x){
+            x.setAttribute("aria-pressed", String(x === b));
+          });
+          refreshCard();
+        };
+      });
+      document.getElementById("incDecl").onchange = function(){
+        cardOpt.decl = this.checked; refreshCard();
+      };
+      document.getElementById("cardSave").onclick = function(){
+        if(!cardBlob) return;
+        saveCard();
+      };
+      document.getElementById("cardShare").onclick = function(){
+        if(!cardBlob) return;
+        var file = new File([cardBlob], "individuation-map.png", {type:"image/png"});
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          navigator.share({ files:[file], text: cardData.T.name + " · 개성화 지도\n" + SITE })
+            .catch(function(){});
+        }else{
+          toast("이 브라우저는 공유를 지원하지 않습니다. 이미지를 길게 눌러 저장하세요");
+        }
+      };
+    }
+    sheet.classList.add("open");
+    refreshCard();
+  }
+
+  /* ============ 배경 — 무의식의 지층 ============ */
+
+  (function field(){
+    var cv = document.getElementById("field"), ctx = cv.getContext("2d");
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var w, h, dpr, t = 0;
+
+    function size(){
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = cv.clientWidth; h = cv.clientHeight;
+      cv.width = w * dpr; cv.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function draw(){
+      ctx.clearRect(0, 0, w, h);
+      var lines = 11, cx = w * 0.5, cy = h * 0.30;
+      for(var n = 0; n < lines; n++){
+        ctx.strokeStyle = "rgba(124,255,178," + (0.135 - (n / lines) * 0.105).toFixed(3) + ")";
+        ctx.lineWidth = n === 0 ? 1.3 : 1;
+        ctx.beginPath();
+        var r = 74 + n * Math.max(58, w / 11);
+        for(var a = 0; a <= Math.PI * 2 + 0.06; a += 0.055){
+          var rr = r + Math.sin(a * 3 + n * 0.66 + t) * (15 + n * 3.4) +
+                       Math.cos(a * 5 - n * 0.38 - t * 0.72) * (8 + n * 1.8);
+          var x = cx + Math.cos(a) * rr * 1.3, y = cy + Math.sin(a) * rr * 0.58;
+          if(a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+    }
+    function loop(){ t += 0.0013; draw(); requestAnimationFrame(loop); }
+    window.addEventListener("resize", function(){ size(); draw(); });
+    size();
+    if(reduce) draw(); else loop();
+  })();
+
+  render();
+})();
+</script>
