@@ -719,7 +719,7 @@
       return '<div class="fn ' + cls + '">' +
         '<span class="nm">' + FN[k] + '</span>' +
         '<span class="meter"><u data-w="' + ((R.fn[k] / 6) * 100) + '"></u></span>' +
-        '<span class="val">' + R.fn[k] + '/6</span>' +
+        '<span class="val">' + R.fn[k] + '/3</span>' +
         '<span class="role">' + (role[k] || "") + '</span>' +
       '</div>';
     }).join("");
@@ -912,7 +912,7 @@
     L.push("[네 기능]");
     ["T","F","S","N"].forEach(function(k){
       var r = k === R.dom ? " ← 주기능" : (k === R.aux ? " ← 보조기능" : (k === R.inf ? " ← 열등기능" : ""));
-      L.push("· " + FN[k] + " " + R.fn[k] + "/6" + r);
+      L.push("· " + FN[k] + " " + R.fn[k] + "/3" + r);
     });
     L.push("· 태도: " + (R.attKey ? ATT[R.attKey] : "외향/내향 팽팽함"));
     L.push("");
@@ -1166,10 +1166,10 @@
 
     c.textAlign = "right";
     c.font = fnt(700, 42, CF_NUM);
-    var numW = c.measureText(R.fn[R.dom] + "/6").width;
+    var numW = c.measureText(R.fn[R.dom] + "/3").width;
     c.fillStyle = C.lumen;
     glow(c, "rgba(124,255,178,.55)", 24);
-    c.fillText(R.fn[R.dom] + "/6", x0 + CW - P, y);
+    c.fillText(R.fn[R.dom] + "/3", x0 + CW - P, y);
     noGlow(c);
     c.font = fnt(700, 20, CF_UI); c.fillStyle = C.txt2;
     c.fillText(FN[R.dom], x0 + CW - P - numW - 14, y);
@@ -1210,9 +1210,9 @@
 
     c.strokeStyle = "rgba(124,255,178,.12)"; c.lineWidth = 1;
     c.beginPath(); c.moveTo(L, y + 12); c.lineTo(L + IW, y + 12); c.stroke();
-    move(y + 58, R.dom, "주기능 · " + FN[R.dom], R.fn[R.dom] + "/6", T.line, true);
+    move(y + 58, R.dom, "주기능 · " + FN[R.dom], R.fn[R.dom] + "/3", T.line, true);
     c.beginPath(); c.moveTo(L, y + 104); c.lineTo(L + IW, y + 104); c.stroke();
-    move(y + 150, R.aux, "보조기능 · " + FN[R.aux], R.fn[R.aux] + "/6",
+    move(y + 150, R.aux, "보조기능 · " + FN[R.aux], R.fn[R.aux] + "/3",
          "열등기능으로 가는 길은 여기를 거친다", false);
     y += MOVES + GAP3;
 
