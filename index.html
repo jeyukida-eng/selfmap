@@ -794,8 +794,8 @@
         '<h3 style="font-size:19px">이 성향이면, 여행에서 이런 걸 먼저 보게 됩니다</h3>' +
         '<p class="hint">' + TM.map(function(k){ return CRIT_LABEL[k]; }).join('  ·  ') + '</p>' +
         '<p class="hint">엄밀한 진단이 아니라, 방금 나온 성향을 실제 여행 우선순위로 바꿔서 코스까지 바로 만들어봤습니다.</p>' +
-        '<iframe src="' + travelHref + '" title="이 성향에 맞는 제주 여행 코스" loading="lazy" ' +
-          'style="width:100%;height:1400px;border:1px solid #1D2723;background:#07080B;margin-top:4px"></iframe>' +
+        '<iframe id="travelFrame" src="' + travelHref + '" title="이 성향에 맞는 제주 여행 코스" loading="lazy" ' +
+          'style="width:100%;height:900px;border:1px solid #1D2723;background:#07080B;margin-top:4px;display:block"></iframe>' +
         '<div class="btnrow" style="margin-top:10px">' +
           '<a class="btn quiet" href="' + travelHref + '" target="_blank" rel="noopener">새 창에서 크게 보기 →</a>' +
         '</div>' +
@@ -814,6 +814,29 @@
         '</div>' +
       '</div>' +
     '</div>';
+
+    (function(){
+      var tf = document.getElementById("travelFrame");
+      if(!tf) return;
+      function fit(){
+        try{
+          var doc = tf.contentDocument;
+          var h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+          if(h > 0) tf.style.height = (h + 40) + "px";
+        }catch(e){ /* 다른 출처면 손대지 않고 기본 높이로 둔다 */ }
+      }
+      tf.addEventListener("load", function(){
+        fit();
+        try{
+          var doc = tf.contentDocument;
+          if(window.ResizeObserver){
+            new ResizeObserver(fit).observe(doc.body);
+          } else {
+            setInterval(fit, 700);
+          }
+        }catch(e){}
+      });
+    })();
 
     setTimeout(function(){
       Array.prototype.forEach.call(app.querySelectorAll(".meter u"), function(u){
