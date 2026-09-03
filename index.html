@@ -1009,14 +1009,20 @@
         }catch(e){ /* 다른 출처면 손대지 않고 기본 높이로 둔다 */ }
       }
       tf.addEventListener("load", function(){
+        /* ResizeObserver로 계속 지켜보면 마이데이의 100dvh가 iframe 높이 변화에
+           다시 반응해 서로 부풀리는 되먹임이 생긴다(실측: 계속 커짐).
+           그래서 정해진 횟수만 다시 재는 방식으로 바꿔 루프를 원천 차단한다. */
         fit();
+        setTimeout(fit, 500);
+        setTimeout(fit, 1200);
         try{
           var doc = tf.contentDocument;
-          if(window.ResizeObserver){
-            new ResizeObserver(fit).observe(doc.body);
-          } else {
-            setInterval(fit, 700);
-          }
+          doc.addEventListener("click", function(e){
+            if(e.target && e.target.closest && e.target.closest(".alt[data-r]")){
+              setTimeout(fit, 250);
+              setTimeout(fit, 700);
+            }
+          });
         }catch(e){}
       });
     })();
