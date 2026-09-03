@@ -230,6 +230,7 @@
   .mirror{display:grid;gap:2px}
   @media(min-width:600px){.mirror{grid-template-columns:1fr 1fr}}
   .mirror>div{background:var(--deep);padding:19px;display:flex;flex-direction:column;gap:10px}
+  .wblock{background:var(--deep);padding:19px;border-radius:18px}
   .quote{font-size:14.5px;color:var(--txt);line-height:1.75;white-space:pre-wrap;word-break:break-word}
   .quote.none{color:var(--txt-3);font-style:italic}
 
@@ -975,7 +976,7 @@
           '<span class="tag on">WHY THIS ROUTE</span>' +
           '<p>평소 <b>' + FN[R.dom] + '</b>의 방식으로 세상을 다루는 당신은, 여행에서 <b>' + esc(INF ? INF.short : "익숙하지 않은 감각") + '</b>을 회복할 필요가 있습니다. 그래서 ' + TM.map(function(k){ return CRIT_LABEL[k]; }).join(' · ') + '을 먼저 담았습니다.</p>' +
         '</div>' +
-        '<div class="stack-s">' +
+        '<div class="stack-s wblock">' +
           '<span class="tag">사람들 앞에서의 나 · 페르소나</span>' +
           block("persona") +
         '</div>' +
@@ -983,7 +984,7 @@
           '<div><span class="tag warm">거슬리는 사람 · 그림자</span>' + block("shadow") + '</div>' +
           '<div><span class="tag on">부러운 사람 · 황금 그림자</span>' + block("gold") + '</div>' +
         '</div>' +
-        '<div class="stack-s">' +
+        '<div class="stack-s wblock">' +
           '<span class="tag warm">원하면서 동시에 두려운 것 · 대극의 긴장</span>' +
           block("tension") +
         '</div>' +
