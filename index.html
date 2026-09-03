@@ -1080,7 +1080,10 @@
     app.innerHTML =
     '<div class="fade">' +
       '<div class="band stack">' +
-        '<button class="btn quiet" id="backToResult">← 결과로 돌아가기</button>' +
+        '<div class="btnrow">' +
+          '<button class="btn quiet" id="backToResult">← 결과로 돌아가기</button>' +
+          '<button class="btn quiet" id="toIntro">처음부터</button>' +
+        '</div>' +
         '<span class="tag on">DESTINATION MATCH</span>' +
         '<div class="destination-portal stack">' +
           '<span class="eyebrow"><i></i>YOUR JEJU ROUTE IS READY</span>' +
@@ -1128,6 +1131,10 @@
     })();
 
     document.getElementById("backToResult").onclick = function(){ state.step = TOTAL; save(); render(); };
+    document.getElementById("toIntro").onclick = function(){
+      state = {step:-1, ans:{}, pick:{}, text:{}, decl:{}, done:[], feedback:""};
+      save(); resumable = false; render();
+    };
   }
 
   function buildText(R, T, INF, decl, acts){
