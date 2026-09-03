@@ -399,18 +399,18 @@
   .btn.quiet{background:rgba(7,18,28,.42);border-color:rgba(180,215,225,.16)}
   a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 
-  .screen{gap:24px}
-  .screen .mid{justify-content:center;gap:24px;padding:24px 0 34px}
-  .screen .foot{border-color:var(--hair);padding-top:20px}
+  .screen{gap:16px}
+  .screen .mid{justify-content:center;gap:16px;padding:16px 0 20px}
+  .screen .foot{border-color:var(--hair);padding-top:16px}
   .scan{height:12px;gap:5px;align-items:center}
   .scan i{height:2px;border-radius:99px;background:rgba(166,205,211,.13)}
   .scan i.q{height:2px}.scan i.done{background:rgba(131,230,221,.32)}
   .scan i.now{height:4px;border-radius:99px;background:var(--lumen)}
   .scanlab{margin-top:12px}
   .tag{font-size:10px;letter-spacing:.13em}
-  .qhead{gap:20px}
-  .qbig{font-size:clamp(32px,7vw,52px);color:rgba(131,230,221,.25)}
-  .qtext{font-size:clamp(24px,4.5vw,34px);line-height:1.38;word-break:keep-all}
+  .qhead{gap:16px}
+  .qbig{font-size:clamp(26px,6vw,44px);color:rgba(131,230,221,.25)}
+  .qtext{font-size:clamp(22px,4.2vw,32px);line-height:1.34;word-break:keep-all}
   .question-hint{font-size:14px;color:var(--txt-3);padding-left:72px;margin-top:-8px}
   .opts{gap:11px}
   .opt,.pick,textarea{border-radius:16px;background:rgba(10,20,31,.72);border-color:rgba(180,215,225,.13);backdrop-filter:blur(10px)}
@@ -418,8 +418,9 @@
   .opt::before{left:20px;top:23px}
   .opt::after{left:12px;top:18%;bottom:18%;width:2px;border-radius:2px}
   .opt[aria-pressed="true"]{background:linear-gradient(90deg,rgba(131,230,221,.1),rgba(10,20,31,.72));box-shadow:0 16px 50px rgba(0,0,0,.2)}
-  .pick{min-height:64px;padding:14px 14px 14px 40px}
-  .pick::before{left:15px;border-radius:50%}
+  .picks{gap:11px}
+  .pick{min-height:52px;padding:11px 12px 11px 32px;font-size:12.8px;line-height:1.4}
+  .pick::before{left:13px;border-radius:50%}
   .hint,.note{font-size:13.5px}
 
   .band{padding:clamp(34px,7vw,62px) 0;border-color:var(--hair)}
@@ -469,7 +470,6 @@
     .journey-strip div{padding:11px 9px;font-size:11.5px}
     .question-hint{padding-left:0}
     .qhead{gap:13px}.qbig{font-size:30px}.qtext{font-size:23px}
-    .picks{grid-template-columns:1fr}
     .priority-chip{font-size:12.5px}
     .compact-coordinate{grid-template-columns:1fr;gap:6px}
     .fn{padding:13px 11px;gap:8px}.fn .role{display:none}.fn .nm{width:43px}.fn .val{width:34px}
