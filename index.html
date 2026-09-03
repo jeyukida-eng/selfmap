@@ -768,7 +768,8 @@
     if(state.step === -1) return renderIntro();
     if(state.step < QUESTIONS.length) return renderQuestion(state.step);
     if(state.step < TOTAL) return renderWritten(state.step - QUESTIONS.length);
-    return renderResult();
+    if(state.step === TOTAL) return renderResult();
+    return renderRoute();
   }
 
   function renderIntro(){
@@ -1006,9 +1007,7 @@
           '<span class="eyebrow"><i></i>YOUR JEJU ROUTE IS READY</span>' +
           '<h2 class="destination-title">마음이 움직인다면,<br>이제 제주로 떠나볼까요?</h2>' +
           '<div class="trip-mood"><span>🌊 바람을 만나고</span><span>🍊 맛을 발견하고</span><span>📷 장면을 남겨요</span></div>' +
-          '<iframe id="travelFrame" src="' + travelHref + '" title="내면 성향에 맞춘 제주 여행 코스" loading="lazy" ' +
-            'style="width:100%;height:720px;border:1px solid #1D2723;background:#07080B;margin-top:4px;display:block"></iframe>' +
-          '<div class="btnrow"><a class="btn solid" href="' + travelHref + '" target="_blank" rel="noopener">나의 제주 코스 크게 보기 →</a></div>' +
+          '<div class="btnrow"><button class="btn solid" id="goRoute">나의 제주 코스 보러 가기 →</button></div>' +
         '</div>' +
       '</div>' +
 
@@ -1022,40 +1021,6 @@
         '</div>' +
       '</div>' +
     '</div>';
-
-    (function(){
-      var tf = document.getElementById("travelFrame");
-      if(!tf) return;
-      function fit(){
-        try{
-          var doc = tf.contentDocument;
-          /* body.scrollHeight를 쓰면 마이데이 쪽 .wrap{min-height:100dvh}가
-             iframe 자체 높이를 기준으로 다시 부풀려지는 되먹임 루프가 생겨
-             바닥에 빈 공간이 쌓인다. 실제 마지막 콘텐츠(.band) 끝 지점만 잰다. */
-          var bands = doc.querySelectorAll(".band");
-          var last = bands.length ? bands[bands.length - 1] : doc.body;
-          var h = last.getBoundingClientRect().bottom;
-          if(h > 0) tf.style.height = (h + 40) + "px";
-        }catch(e){ /* 다른 출처면 손대지 않고 기본 높이로 둔다 */ }
-      }
-      tf.addEventListener("load", function(){
-        /* ResizeObserver로 계속 지켜보면 마이데이의 100dvh가 iframe 높이 변화에
-           다시 반응해 서로 부풀리는 되먹임이 생긴다(실측: 계속 커짐).
-           그래서 정해진 횟수만 다시 재는 방식으로 바꿔 루프를 원천 차단한다. */
-        fit();
-        setTimeout(fit, 500);
-        setTimeout(fit, 1200);
-        try{
-          var doc = tf.contentDocument;
-          doc.addEventListener("click", function(e){
-            if(e.target && e.target.closest && e.target.closest(".alt[data-r]")){
-              setTimeout(fit, 250);
-              setTimeout(fit, 700);
-            }
-          });
-        }catch(e){}
-      });
-    })();
 
     setTimeout(function(){
       Array.prototype.forEach.call(app.querySelectorAll(".meter u"), function(u){
@@ -1102,6 +1067,67 @@
         function(){ toast("복사에 실패했습니다. 화면에서 직접 선택해 주세요"); }
       );
     };
+    document.getElementById("goRoute").onclick = function(){ state.step = TOTAL + 1; save(); render(); };
+  }
+
+  function renderRoute(){
+    document.body.dataset.view = "route";
+    var R = analyze();
+    var TM = TRAVELMAP[R.typeKey] || ["see","story","shot"];
+    var travelHref = MYDAY_URL + "?from=selfmap&type=" + encodeURIComponent(R.typeKey)
+      + "&prio=" + TM.map(encodeURIComponent).join(",");
+
+    app.innerHTML =
+    '<div class="fade">' +
+      '<div class="band stack">' +
+        '<button class="btn quiet" id="backToResult">← 결과로 돌아가기</button>' +
+        '<span class="tag on">DESTINATION MATCH</span>' +
+        '<div class="destination-portal stack">' +
+          '<span class="eyebrow"><i></i>YOUR JEJU ROUTE IS READY</span>' +
+          '<h2 class="destination-title">마음이 움직인다면,<br>이제 제주로 떠나볼까요?</h2>' +
+          '<div class="trip-mood"><span>🌊 바람을 만나고</span><span>🍊 맛을 발견하고</span><span>📷 장면을 남겨요</span></div>' +
+          '<iframe id="travelFrame" src="' + travelHref + '" title="내면 성향에 맞춘 제주 여행 코스" loading="lazy" ' +
+            'style="width:100%;height:720px;border:1px solid #1D2723;background:#07080B;margin-top:4px;display:block"></iframe>' +
+          '<div class="btnrow"><a class="btn solid" href="' + travelHref + '" target="_blank" rel="noopener">나의 제주 코스 크게 보기 →</a></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    (function(){
+      var tf = document.getElementById("travelFrame");
+      if(!tf) return;
+      function fit(){
+        try{
+          var doc = tf.contentDocument;
+          /* body.scrollHeight를 쓰면 마이데이 쪽 .wrap{min-height:100dvh}가
+             iframe 자체 높이를 기준으로 다시 부풀려지는 되먹임 루프가 생겨
+             바닥에 빈 공간이 쌓인다. 실제 마지막 콘텐츠(.band) 끝 지점만 잰다. */
+          var bands = doc.querySelectorAll(".band");
+          var last = bands.length ? bands[bands.length - 1] : doc.body;
+          var h = last.getBoundingClientRect().bottom;
+          if(h > 0) tf.style.height = (h + 40) + "px";
+        }catch(e){ /* 다른 출처면 손대지 않고 기본 높이로 둔다 */ }
+      }
+      tf.addEventListener("load", function(){
+        /* ResizeObserver로 계속 지켜보면 마이데이의 100dvh가 iframe 높이 변화에
+           다시 반응해 서로 부풀리는 되먹임이 생긴다(실측: 계속 커짐).
+           그래서 정해진 횟수만 다시 재는 방식으로 바꿔 루프를 원천 차단한다. */
+        fit();
+        setTimeout(fit, 500);
+        setTimeout(fit, 1200);
+        try{
+          var doc = tf.contentDocument;
+          doc.addEventListener("click", function(e){
+            if(e.target && e.target.closest && e.target.closest(".alt[data-r]")){
+              setTimeout(fit, 250);
+              setTimeout(fit, 700);
+            }
+          });
+        }catch(e){}
+      });
+    })();
+
+    document.getElementById("backToResult").onclick = function(){ state.step = TOTAL; save(); render(); };
   }
 
   function buildText(R, T, INF, decl, acts){
