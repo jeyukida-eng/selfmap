@@ -530,8 +530,15 @@
   var QUESTIONS = QA.map(function(x){ return {kind:"att", q:x.q, a:x.a, b:x.b}; })
         .concat(QF.map(function(x){ return {kind:"fn", p:x.p, q:x.q, a:x.a, b:x.b}; }));
 
-  /* 무의식 3문항 — 선택(복수) + 직접 입력 */
+  /* 무의식 4문항 — 선택(복수) + 직접 입력 */
   var WRITTEN = [
+    { id:"persona", label:"페르소나", term:"사회적 가면", tone:"mint",
+      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이려 하나요?",
+      why:"융은 이 가면을 페르소나라고 불렀습니다. 나쁜 게 아니라 살아가는 데 필요한 것이지만, 그게 나 자신이라고 착각하면 문제가 됩니다.",
+      opts:["실수 없는 사람","괜찮다고 말하는 사람",
+            "분위기를 편하게 하는 사람","늘 열심히 하는 사람",
+            "흔들리지 않는 사람","폐 끼치지 않는 사람"] },
+
     { id:"shadow", label:"그림자", term:"투사", tone:"ember",
       q:"유독 거슬리고 참기 힘든 사람은 어떤 사람인가요?",
       why:"내 안에 있지만 인정하지 않는 부분은 남에게 투사됩니다. 유난히 거슬리는 특징일수록 내 그림자일 가능성이 큽니다.",
@@ -967,6 +974,10 @@
         '<div class="result-explain">' +
           '<span class="tag on">WHY THIS ROUTE</span>' +
           '<p>평소 <b>' + FN[R.dom] + '</b>의 방식으로 세상을 다루는 당신은, 여행에서 <b>' + esc(INF ? INF.short : "익숙하지 않은 감각") + '</b>을 회복할 필요가 있습니다. 그래서 ' + TM.map(function(k){ return CRIT_LABEL[k]; }).join(' · ') + '을 먼저 담았습니다.</p>' +
+        '</div>' +
+        '<div class="stack-s">' +
+          '<span class="tag">사람들 앞에서의 나 · 페르소나</span>' +
+          block("persona") +
         '</div>' +
         '<p class="note">여행을 고르기 위한 성향 가설이며, 심리 진단이 아닙니다.</p>' +
       '</div>' +
