@@ -1102,13 +1102,22 @@
       function fit(){
         try{
           var doc = tf.contentDocument;
-          /* body.scrollHeight를 쓰면 마이데이 쪽 .wrap{min-height:100dvh}가
-             iframe 자체 높이를 기준으로 다시 부풀려지는 되먹임 루프가 생겨
-             바닥에 빈 공간이 쌓인다. 실제 마지막 콘텐츠(.band) 끝 지점만 잰다. */
           var bands = doc.querySelectorAll(".band");
-          var last = bands.length ? bands[bands.length - 1] : doc.body;
-          var h = last.getBoundingClientRect().bottom;
-          if(h > 0) tf.style.height = (h + 40) + "px";
+          if(bands.length){
+            /* 결과/인트로 화면 — .band는 늘어나지 않는 자연 높이 블록이라
+               마지막 블록의 끝 지점을 그대로 재면 실제 콘텐츠 높이가 나온다. */
+            var h = bands[bands.length - 1].getBoundingClientRect().bottom;
+            if(h > 0) tf.style.height = (h + 40) + "px";
+          } else if(doc.querySelector(".screen")){
+            /* 질문/선택 화면 — .mid{flex:1}가 "주어진 높이를 꽉 채우는" 구조라
+               body.scrollHeight를 재면 방금 전(다른 화면) 높이가 그대로 되풀이된다.
+               이런 화면은 애초에 모바일 한 화면 크기로 설계된 것이므로
+               내용에 맞춰 늘리지 않고 고정 높이로 보여준다. */
+            tf.style.height = "720px";
+          } else {
+            var h2 = doc.body.getBoundingClientRect().bottom;
+            if(h2 > 0) tf.style.height = (h2 + 40) + "px";
+          }
         }catch(e){ /* 다른 출처면 손대지 않고 기본 높이로 둔다 */ }
       }
       tf.addEventListener("load", function(){
@@ -1120,12 +1129,21 @@
         setTimeout(fit, 1200);
         try{
           var doc = tf.contentDocument;
-          doc.addEventListener("click", function(e){
-            if(e.target && e.target.closest && e.target.closest(".alt[data-r]")){
-              setTimeout(fit, 250);
-              setTimeout(fit, 700);
-            }
+          var appEl = doc.getElementById("app") || doc.body;
+          /* 특정 버튼(.alt[data-r])만 감시하면 "지역·동행 직접 정하기"처럼
+             내부에서 화면이 바뀌는 다른 모든 경로에서 iframe 높이가 그대로
+             남아 이전 화면 크기만큼 빈 공간이 생긴다. 내부 렌더링이 일어날 때마다
+             (앱 콘텐츠가 통째로 바뀔 때마다) 다시 재는 걸로 일반화한다.
+             DOM 변경 자체만 감지하므로 iframe 크기 변경이 이걸 다시 건드리지 않아
+             ResizeObserver 때와 같은 되먹임은 생기지 않는다. */
+          var pending = null;
+          var mo = new MutationObserver(function(){
+            if(pending) clearTimeout(pending);
+            pending = setTimeout(function(){
+              fit(); setTimeout(fit, 300); setTimeout(fit, 800);
+            }, 60);
           });
+          mo.observe(appEl, { childList:true, subtree:true });
         }catch(e){}
       });
     })();
