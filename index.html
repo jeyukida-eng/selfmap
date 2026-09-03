@@ -999,7 +999,12 @@
       function fit(){
         try{
           var doc = tf.contentDocument;
-          var h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+          /* body.scrollHeight를 쓰면 마이데이 쪽 .wrap{min-height:100dvh}가
+             iframe 자체 높이를 기준으로 다시 부풀려지는 되먹임 루프가 생겨
+             바닥에 빈 공간이 쌓인다. 실제 마지막 콘텐츠(.band) 끝 지점만 잰다. */
+          var bands = doc.querySelectorAll(".band");
+          var last = bands.length ? bands[bands.length - 1] : doc.body;
+          var h = last.getBoundingClientRect().bottom;
           if(h > 0) tf.style.height = (h + 40) + "px";
         }catch(e){ /* 다른 출처면 손대지 않고 기본 높이로 둔다 */ }
       }
