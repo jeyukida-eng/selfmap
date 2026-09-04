@@ -1605,7 +1605,7 @@
       window.claude.use("downloads").then(function(dl){
         if(dl && dl.save){
           dl.save({ filename: name, data: cardBlob }).then(
-            function(){ toast("이미지를 저장했습니다 · 곧 처음 화면으로 돌아갑니다"); resetAfterSave(); },
+            function(){ toast("이미지를 저장했습니다"); resetAfterSave(); },
             function(e){ if(e && e.code !== "declined") webSave(name); }
           );
         } else webSave(name);
@@ -1619,9 +1619,7 @@
     setTimeout(function(){
       var sheet = document.getElementById("cardsheet");
       if(sheet) sheet.classList.remove("open");
-      state = {step:-1, ans:{}, pick:{}, text:{}, decl:{}, done:[], feedback:""};
-      save(); resumable = false; render();
-    }, 2600);
+    }, 1200);
   }
 
   function webSave(name){
@@ -1630,14 +1628,14 @@
     // 2) iOS Safari는 blob 다운로드를 무시한다 — 새 탭으로 열어 길게 누르게 한다
     if(isIOS() || typeof a.download === "undefined"){
       window.open(url, "_blank");
-      toast("열린 이미지를 길게 눌러 저장하세요 · 곧 처음 화면으로 돌아갑니다");
+      toast("열린 이미지를 길게 눌러 저장하세요");
       resetAfterSave();
       return;
     }
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-    toast("이미지를 저장했습니다 · 곧 처음 화면으로 돌아갑니다");
+    toast("이미지를 저장했습니다");
     resetAfterSave();
   }
 
@@ -1688,7 +1686,7 @@
         var file = new File([cardBlob], "individuation-map.png", {type:"image/png"});
         if(navigator.canShare && navigator.canShare({files:[file]})){
           navigator.share({ files:[file], text: "나의 마음탑승권 · " + cardData.T.name + "\n" + SITE })
-            .then(function(){ toast("공유했습니다 · 곧 처음 화면으로 돌아갑니다"); resetAfterSave(); })
+            .then(function(){ toast("공유했습니다"); resetAfterSave(); })
             .catch(function(){});
         }else{
           toast("이 브라우저는 공유를 지원하지 않습니다. 이미지를 길게 눌러 저장하세요");
