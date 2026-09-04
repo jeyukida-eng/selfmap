@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F5F9F8">
 <meta name="description" content="내면의 자아와 무의식적 끌림을 읽어 지금의 나에게 맞는 제주 여행지를 발견합니다.">
-<title>여행무의식 | 내 안의 목적지를 찾다</title>
+<title>마음탑승권 | 내 안의 목적지를 찾다</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&display=swap">
@@ -571,10 +571,10 @@
 <div class="vig" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 
-<header class="topbar" aria-label="여행무의식">
+<header class="topbar" aria-label="마음탑승권">
   <a class="brand" href="#" aria-label="처음 화면으로">
     <span class="brandmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z" fill="currentColor"/></svg></span>
-    <span><span class="brandko">내가 모르는 진짜 내 마음이 원하는 여행지를 찾는 어플</span><span class="branden">TRAVEL SUBCONSCIOUS</span></span>
+    <span><span class="brandko">내가 모르는 진짜 내 마음이 원하는 여행지를 찾는 어플</span><span class="branden">MIND BOARDING PASS</span></span>
   </a>
   <nav class="header-links" aria-label="주요 메뉴"><button data-nav="home">여행 찾기</button><button data-nav="quiz">내 여행 취향</button></nav>
   <span class="local-only">JEJU · 제주</span>
@@ -1235,7 +1235,7 @@
     var prio = TRAVELMAP[R.typeKey] || ["see","story","shot"];
     var course = MYDAY_URL + "?from=selfmap&type=" + encodeURIComponent(R.typeKey)
       + "&prio=" + prio.map(encodeURIComponent).join(",");
-    L.push("여행무의식 — " + P.name + " " + P.noun);
+    L.push("마음탑승권 — " + P.name + " " + P.noun);
     L.push(P.need);
     L.push("");
     L.push("먼저 보는 것 · " + prio.map(function(k){ return CRIT_LABEL[k]; }).join(" · "));
@@ -1486,7 +1486,7 @@
     c.fillStyle = "rgba(124,255,178,.07)";
     c.fillRect(L, y, IW, BAND);
     c.font = fnt(500, 18, CF_UI); c.fillStyle = C.txt2;
-    c.fillText("여행무의식 " + R.typeKey + "   ·   " + ATT[R.domAtt] + "   ·   " + T.line, L + 16, y + 29);
+    c.fillText("마음탑승권 " + R.typeKey + "   ·   " + ATT[R.domAtt] + "   ·   " + T.line, L + 16, y + 29);
     y += BAND;
 
     // ── 기술 두 개
@@ -1553,7 +1553,7 @@
     // ── 하단 크레딧
     var by = y0 + CH - 40;
     c.font = fnt(500, 14, CF_NUM); c.fillStyle = C.txt3;
-    c.fillText("TRAVEL SUBCONSCIOUS · " + R.typeKey, L, by);
+    c.fillText("MIND BOARDING PASS · " + R.typeKey, L, by);
     c.textAlign = "right"; c.fillStyle = C.lumen;
     c.fillText(SITE.replace(/^https?:\/\//, ""), x0 + CW - P, by);
     c.textAlign = "left";
@@ -1681,7 +1681,7 @@
         if(!cardBlob) return;
         var file = new File([cardBlob], "individuation-map.png", {type:"image/png"});
         if(navigator.canShare && navigator.canShare({files:[file]})){
-          navigator.share({ files:[file], text: "나의 여행무의식 · " + cardData.T.name + "\n" + SITE })
+          navigator.share({ files:[file], text: "나의 마음탑승권 · " + cardData.T.name + "\n" + SITE })
             .then(function(){ toast("공유했습니다 · 곧 처음 화면으로 돌아갑니다"); resetAfterSave(); })
             .catch(function(){});
         }else{
