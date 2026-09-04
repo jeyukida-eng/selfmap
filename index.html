@@ -1331,7 +1331,7 @@
   }
 
   function drawCard(cv){
-    var W = 1900, H = 760;
+    var W = 1080, H = 1350;
     cv.width = W; cv.height = H;
     drawTicket(cv.getContext("2d"), W, H);
   }
@@ -1373,6 +1373,13 @@
     c.restore();
   }
 
+  function dashH(c, x1, x2, y, color){
+    c.save();
+    c.strokeStyle = color; c.lineWidth = 2; c.setLineDash([10, 8]);
+    c.beginPath(); c.moveTo(x1, y); c.lineTo(x2, y); c.stroke();
+    c.restore();
+  }
+
   function fmtToday(){
     var d = new Date();
     return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0");
@@ -1389,27 +1396,20 @@
 
   function drawTicket(c, W, H){
     var NAVY = "#16233F", CREAM = "#FFFFFF", INK = "#16233F", MUTE = "#8891A1", LINE = "#E1E4EA";
-    var HEAD = 108, STUB = Math.round(W * 0.745), P1 = 56, P2 = 44;
+    var HEAD = 100, PAD = 64, L = PAD, RGT = W - PAD, CWm = RGT - L;
 
     c.clearRect(0, 0, W, H);
     c.fillStyle = CREAM; c.fillRect(0, 0, W, H);
     c.fillStyle = NAVY; c.fillRect(0, 0, W, HEAD);
 
     // 헤더
-    planeIcon(c, P1 + 16, HEAD / 2, 30, "#FFFFFF");
-    c.textAlign = "left"; c.font = fnt(800, 30, CF_UI); c.fillStyle = "#FFFFFF";
+    planeIcon(c, PAD - 8, HEAD / 2, 28, "#FFFFFF");
+    c.textAlign = "left"; c.font = fnt(800, 26, CF_UI); c.fillStyle = "#FFFFFF";
     c.textBaseline = "middle";
-    c.fillText("마음 탑승권", P1 + 42, HEAD / 2);
-    c.textAlign = "center"; c.font = fnt(700, 22, CF_NUM);
-    c.fillText("BOARDING PASS  탑승권", STUB / 2, HEAD / 2);
-    c.fillText("마음 탑승권", STUB + (W - STUB) / 2, HEAD / 2);
+    c.fillText("마음 탑승권", PAD + 16, HEAD / 2);
+    c.textAlign = "right"; c.font = fnt(700, 18, CF_NUM);
+    c.fillText("BOARDING PASS 탑승권", RGT, HEAD / 2);
     c.textBaseline = "alphabetic"; c.textAlign = "left";
-
-    // 절취선 + 펀치홀
-    dashV(c, STUB, HEAD + 22, H - 22, LINE);
-    [HEAD, H].forEach(function(cy){
-      c.fillStyle = CREAM; c.beginPath(); c.arc(STUB, cy, 15, 0, Math.PI * 2); c.fill();
-    });
 
     var d = cardData, R = d.R, T = d.T, INF = d.INF;
     var TP = TRAVEL_PROFILE[R.typeKey] || TRAVEL_PROFILE.IN;
@@ -1417,83 +1417,78 @@
     var coord = ATT[R.domAtt] + FN[R.dom] + "형";
     var weak = INF ? ATT[R.infAtt] + "적 " + FN[R.inf] : "-";
 
-    // ── 메인 스텁
-    var L = P1, RGT = STUB - P1, CWm = RGT - L;
-    labelValue(c, L, HEAD + 64, "PASSENGER NAME / 탑승객", TP.name + " " + TP.noun, 15, 32, "left");
-    labelValue(c, RGT, HEAD + 64, "TYPE / 유형", R.typeKey, 15, 34, "right", "#16233F");
+    // 탑승객 · 유형
+    labelValue(c, L, HEAD + 70, "PASSENGER NAME / 탑승객", TP.name + " " + TP.noun, 14, 32, "left");
+    labelValue(c, RGT, HEAD + 70, "TYPE / 유형", R.typeKey, 14, 32, "right", INK);
 
     c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L, HEAD + 128); c.lineTo(RGT, HEAD + 128); c.stroke();
+    c.beginPath(); c.moveTo(L, HEAD + 150); c.lineTo(RGT, HEAD + 150); c.stroke();
 
-    labelValue(c, L, HEAD + 172, "FROM / 출발", "NOW   지금의 일상", 15, 30, "left");
-    labelValue(c, L + 460, HEAD + 172, "TO / 도착", coord, 15, 30, "left", "#16233F");
+    // 출발 · 도착
+    labelValue(c, L, HEAD + 190, "FROM / 출발", "NOW   지금의 일상", 14, 26, "left");
+    labelValue(c, L + CWm * 0.5, HEAD + 190, "TO / 도착", coord, 14, 26, "left", INK);
 
-    var boxW = 148, boxH = 78, boxGap = 20;
-    var seatX = RGT - boxW, gateX = seatX - boxGap - boxW, boxY = HEAD + 150;
-    [["DOM", "주기능", FN[R.dom], R.fn[R.dom] + "/3", gateX], ["AUX", "보조기능", FN[R.aux], R.fn[R.aux] + "/3", seatX]].forEach(function(b){
+    c.strokeStyle = LINE; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(L, HEAD + 260); c.lineTo(RGT, HEAD + 260); c.stroke();
+
+    // 주기능 · 보조기능 박스
+    var boxGap = 24, boxW = (CWm - boxGap) / 2, boxH = 110, boxY = HEAD + 290;
+    [["DOM", "주기능", FN[R.dom], R.fn[R.dom] + "/3", L], ["AUX", "보조기능", FN[R.aux], R.fn[R.aux] + "/3", L + boxW + boxGap]].forEach(function(b){
       c.strokeStyle = LINE; c.lineWidth = 1.5;
-      rr(c, b[4], boxY, boxW, boxH, 10); c.stroke();
-      c.textAlign = "center"; c.font = fnt(600, 12, CF_NUM); c.fillStyle = MUTE;
-      c.fillText(b[0] + " / " + b[1] + " · " + b[2], b[4] + boxW / 2, boxY + 24);
-      c.font = fnt(800, 28, CF_UI); c.fillStyle = INK;
-      c.fillText(b[3], b[4] + boxW / 2, boxY + 60);
+      rr(c, b[4], boxY, boxW, boxH, 12); c.stroke();
+      c.textAlign = "center"; c.font = fnt(600, 13, CF_NUM); c.fillStyle = MUTE;
+      c.fillText(b[0] + " / " + b[1] + " · " + b[2], b[4] + boxW / 2, boxY + 30);
+      c.font = fnt(800, 32, CF_UI); c.fillStyle = INK;
+      c.fillText(b[3], b[4] + boxW / 2, boxY + 74);
       c.textAlign = "left";
     });
 
     c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L, HEAD + 272); c.lineTo(RGT, HEAD + 272); c.stroke();
+    c.beginPath(); c.moveTo(L, boxY + boxH + 30); c.lineTo(RGT, boxY + boxH + 30); c.stroke();
 
-    var cols = [["FLIGHT / 편명", "MT " + R.typeKey], ["DATE / 일자", fmtToday()], ["ATTITUDE / 태도", ATT[R.domAtt] + "형"], ["WEAKNESS / 약점", weak]];
-    var colW = (CWm - 160) / 4;
-    cols.forEach(function(col, i){ labelValue(c, L + colW * i, HEAD + 316, col[0], col[1], 13, 22, "left"); });
-    c.textAlign = "right"; c.font = fnt(600, 15, CF_NUM); c.fillStyle = MUTE;
-    c.fillText("SEQ 001", RGT, HEAD + 316);
-    c.textAlign = "left";
+    // 태도 · 약점 / 편명 · 일자
+    var rowY = boxY + boxH + 70;
+    labelValue(c, L, rowY, "ATTITUDE / 태도", ATT[R.domAtt] + "형", 13, 24, "left");
+    labelValue(c, L + CWm * 0.5, rowY, "WEAKNESS / 약점", weak, 13, 24, "left");
+    var rowY2 = rowY + 70;
+    labelValue(c, L, rowY2, "FLIGHT / 편명", "MT " + R.typeKey, 12, 18, "left");
+    labelValue(c, L + CWm * 0.5, rowY2, "DATE / 일자", fmtToday(), 12, 18, "left");
 
-    c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L, HEAD + 372); c.lineTo(RGT, HEAD + 372); c.stroke();
-
-    // 가방 아이콘
-    var bx = L, by2 = HEAD + 402;
+    // 가방 아이콘 · 바이럴 문구
+    var bx = L, by2 = rowY2 + 62;
     c.strokeStyle = INK; c.lineWidth = 2.5;
     rr(c, bx, by2 + 12, 52, 38, 6); c.stroke();
     c.beginPath(); c.arc(bx + 26, by2 + 12, 12, Math.PI, 0); c.stroke();
 
     var flavor = cardOpt.decl ? d.flavor : (INF ? INF.desc : T.desc);
-    c.font = fnt(800, 26, CF_UI); c.fillStyle = INK;
+    c.font = fnt(800, 27, CF_UI); c.fillStyle = INK;
     c.fillText("나는 '" + destName + "' 유형이래", bx + 76, by2 + 22);
     c.font = fnt(500, 17, CF_UI); c.fillStyle = MUTE;
-    c.fillText(wrapKo(c, flavor, CWm - 76 - 340)[0] || "", bx + 76, by2 + 51);
+    c.fillText(wrapKo(c, flavor, CWm - 76)[0] || "", bx + 76, by2 + 51);
 
-    c.textAlign = "right"; c.font = "italic 400 15px " + CF_UI; c.fillStyle = MUTE;
-    c.fillText("여행 취향 안내용 · 실제 항공권이 아닙니다", RGT, H - 30);
+    c.textAlign = "right"; c.font = "italic 400 14px " + CF_UI; c.fillStyle = MUTE;
+    c.fillText("여행 취향 안내용 · 실제 항공권이 아닙니다", RGT, by2 + 92);
     c.textAlign = "left";
 
-    // ── 오른쪽 스텁
-    var L2 = STUB + P2, RGT2 = W - P2, CW2 = RGT2 - L2;
-    c.font = fnt(700, 20, CF_NUM); c.fillStyle = MUTE;
-    c.fillText("마음 탑승권", L2, HEAD + 46);
-    c.font = fnt(800, 22, CF_UI); c.fillStyle = INK;
-    c.fillText(TP.noun, L2, HEAD + 82);
-    c.font = fnt(800, 30, CF_UI); c.fillStyle = INK;
-    c.fillText("NOW  →  " + destCode, L2, HEAD + 126);
+    // 절취선 + 펀치홀
+    var tearY = by2 + 130;
+    dashH(c, 0, W, tearY, LINE);
+    [0, W].forEach(function(cx){
+      c.fillStyle = CREAM; c.beginPath(); c.arc(cx, tearY, 15, 0, Math.PI * 2); c.fill();
+    });
 
-    c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L2, HEAD + 148); c.lineTo(RGT2, HEAD + 148); c.stroke();
+    // 하단 — QR
+    c.textAlign = "center"; c.font = fnt(700, 22, CF_NUM); c.fillStyle = MUTE;
+    var qrLabelY = tearY + 46;
+    c.fillText("마음 탑승권 · NOW → " + destCode, W / 2, qrLabelY);
 
-    labelValue(c, L2, HEAD + 182, "FLIGHT", "MT " + R.typeKey, 12, 20, "left");
-    labelValue(c, L2 + CW2 / 2, HEAD + 182, "DATE", fmtToday(), 12, 20, "left");
-    labelValue(c, L2, HEAD + 240, "DOM", FN[R.dom], 12, 20, "left");
-    labelValue(c, L2 + CW2 / 2, HEAD + 240, "AUX", FN[R.aux], 12, 20, "left");
-
-    var qrSize = Math.min(CW2, 250), qrX = L2 + (CW2 - qrSize) / 2, qrY = HEAD + 296;
+    var qrSize = Math.min(360, H - qrLabelY - 130), qrX = (W - qrSize) / 2, qrY = qrLabelY + 26;
     qrDraw(c, SITE, qrX, qrY, qrSize, INK, CREAM);
 
-    c.textAlign = "center";
-    c.font = fnt(800, 20, CF_UI); c.fillStyle = INK;
-    c.fillText("SCAN TO DISCOVER", L2 + CW2 / 2, qrY + qrSize + 34);
-    c.font = fnt(500, 16, CF_UI); c.fillStyle = MUTE;
-    c.fillText("내 마음의 여행 찾기", L2 + CW2 / 2, qrY + qrSize + 60);
+    c.font = fnt(800, 26, CF_UI); c.fillStyle = INK;
+    c.fillText("SCAN TO DISCOVER", W / 2, qrY + qrSize + 46);
+    c.font = fnt(500, 17, CF_UI); c.fillStyle = MUTE;
+    c.fillText("내 마음의 여행 찾기", W / 2, qrY + qrSize + 72);
     c.textAlign = "left";
   }
 
