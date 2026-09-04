@@ -1728,7 +1728,7 @@
         if(!cardBlob) return;
         var file = new File([cardBlob], "individuation-map.png", {type:"image/png"});
         if(navigator.canShare && navigator.canShare({files:[file]})){
-          navigator.share({ files:[file], text: "나의 마음탑승권 · " + cardData.T.name + "\n" + SITE })
+          navigator.share({ files:[file], text: "나는 '" + cardData.T.name + "' 유형이래 👀 너는 어떤 여행 성격일까? 마음탑승권으로 무료로 확인해봐 →\n" + SITE })
             .then(function(){ toast("공유했습니다"); resetAfterSave(); })
             .catch(function(){});
         }else{
