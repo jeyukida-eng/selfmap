@@ -503,8 +503,8 @@
   a{color:var(--lumen)}
   :focus-visible{outline:3px solid #007D68;outline-offset:4px}
   .topbar{height:78px;position:relative;padding:0 max(24px,calc((100vw - 1140px)/2));background:#FFF;border-bottom:1px solid var(--hair);pointer-events:auto;gap:20px}
-  .brand{gap:10px;flex-shrink:0}.brandmark{width:34px;height:34px;border:0;box-shadow:none;background:#152642;border-radius:11px;display:grid;place-items:center;color:white}
-  .brandmark::before,.brandmark::after{display:none}.brandmark svg{width:23px;height:23px}
+  .brand{gap:10px;flex-shrink:0}.brandmark{width:34px;height:34px;border:0;box-shadow:none;border-radius:11px;overflow:hidden;display:grid;place-items:center}
+  .brandmark::before,.brandmark::after{display:none}.brandmark img{width:100%;height:100%;object-fit:cover;display:block}
   .brandko{font-size:20px;font-weight:800;letter-spacing:-.06em}.branden{font-size:10px;letter-spacing:.13em;color:#688379;margin-top:1px}
   .header-links{display:flex;gap:28px;align-items:center;margin-left:auto;margin-right:36px}
   .header-links button{border:0;background:none;font-size:15px;font-weight:600;color:var(--txt-2);padding:16px 0}
@@ -579,7 +579,7 @@
 
 <header class="topbar" aria-label="마음탑승권">
   <a class="brand" href="#" aria-label="처음 화면으로">
-    <span class="brandmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M22 2 15 22 11 13 2 9Z" fill="currentColor"/></svg></span>
+    <span class="brandmark" aria-hidden="true"><img src="icons/icon-192.png" alt="" width="34" height="34"></span>
     <span><span class="brandko">내가 모르는 진짜 내 마음이 원하는 여행지를 찾는 어플</span><span class="branden">MIND BOARDING PASS</span></span>
   </a>
   <nav class="header-links" aria-label="주요 메뉴"><button data-nav="home">여행 찾기</button><button data-nav="quiz">내 여행 취향</button></nav>
