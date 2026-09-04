@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media=&quot;all&quot;">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
 <style>
   /* 의식은 빛, 무의식은 어둠 — 하나의 세계로 확정한 디자인 */
@@ -1299,27 +1300,10 @@
 
   var CF_UI  = '"Pretendard Variable", Pretendard, "Gothic A1", sans-serif';
   var CF_NUM = '"Martian Mono", monospace';
-  var C = {
-    void:"#060D15", deep:"#0A141F", hair:"#17303A", hair2:"#294853",
-    txt:"#F2F7F7", txt2:"#A9BAC1", txt3:"#667C86",
-    lumen:"#83E6DD", lumenDeep:"#226B70", ember:"#FF8B6A", emberDeep:"#743D36"
-  };
-  var RATIOS = { feed:[1080,1350], story:[1080,1920] };
-  var cardOpt = { ratio:"feed", decl:true };
+  var cardOpt = { decl:true };
   var cardData = null, cardBlob = null;
 
   function fnt(wt, size, fam){ return wt + " " + size + "px " + fam; }
-
-  function fitOneLine(c, text, maxW, weight, start, min, fam){
-    var size = start;
-    while(size > min){
-      c.font = fnt(weight, size, fam);
-      if(c.measureText(text).width <= maxW) break;
-      size -= 2;
-    }
-    c.font = fnt(weight, size, fam);
-    return size;
-  }
 
   function wrapKo(c, text, maxW){
     var lines = [], cur = "";
@@ -1335,54 +1319,6 @@
     return lines;
   }
 
-  function glow(c, color, blur){ c.shadowColor = color; c.shadowBlur = blur; }
-  function noGlow(c){ c.shadowColor = "transparent"; c.shadowBlur = 0; }
-
-  function drawBackdrop(c, W, H){
-    c.fillStyle = C.void; c.fillRect(0, 0, W, H);
-    // 위쪽 빛무리
-    var g = c.createRadialGradient(W * .5, H * .12, 0, W * .5, H * .12, W * .9);
-    g.addColorStop(0, "rgba(124,255,178,.10)");
-    g.addColorStop(1, "rgba(124,255,178,0)");
-    c.fillStyle = g; c.fillRect(0, 0, W, H);
-    // 등고선
-    for(var n = 0; n < 10; n++){
-      c.strokeStyle = "rgba(124,255,178," + (0.10 - n * 0.009).toFixed(3) + ")";
-      c.lineWidth = 1.4;
-      c.beginPath();
-      var r = 120 + n * 128;
-      for(var a = 0; a <= Math.PI * 2 + 0.06; a += 0.05){
-        var rr = r + Math.sin(a * 3 + n * .66) * (22 + n * 5) + Math.cos(a * 5 - n * .38) * (12 + n * 2.6);
-        var x = W * .5 + Math.cos(a) * rr * 1.25, y = H * .30 + Math.sin(a) * rr * .62;
-        if(a === 0) c.moveTo(x, y); else c.lineTo(x, y);
-      }
-      c.closePath(); c.stroke();
-    }
-    // 비네트
-    var v = c.createRadialGradient(W * .5, H * .32, H * .18, W * .5, H * .5, H * .78);
-    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.62)");
-    c.fillStyle = v; c.fillRect(0, 0, W, H);
-  }
-
-  function drawGrain(c, W, H){
-    var n = document.createElement("canvas");
-    n.width = n.height = 190;
-    var nc = n.getContext("2d");
-    var id = nc.createImageData(190, 190), px = id.data;
-    for(var i = 0; i < px.length; i += 4){
-      var v = 90 + Math.random() * 76;
-      px[i] = px[i+1] = px[i+2] = v;
-      px[i+3] = 255;
-    }
-    nc.putImageData(id, 0, 0);
-    c.save();
-    c.globalCompositeOperation = "overlay";
-    c.globalAlpha = .13;
-    c.fillStyle = c.createPattern(n, "repeat");
-    c.fillRect(0, 0, W, H);
-    c.restore();
-  }
-
   function rr(c, x, y, w, h, r){
     c.beginPath();
     if(c.roundRect){ c.roundRect(x, y, w, h, r); return; }
@@ -1394,217 +1330,170 @@
     c.closePath();
   }
 
-  // 네 기능을 대극으로 배치한 카드 일러스트 — 사고↔감정, 감각↔직관
-  function drawPsycheArt(c, x, y, w, h, R){
-    c.save();
-    rr(c, x, y, w, h, 10); c.clip();
-
-    // 바탕
-    var g = c.createLinearGradient(x, y, x, y + h);
-    g.addColorStop(0, "#101917"); g.addColorStop(1, "#0A0F0D");
-    c.fillStyle = g; c.fillRect(x, y, w, h);
-
-    var cx = x + w / 2, cy = y + h / 2;
-
-    // 등고선
-    for(var n = 0; n < 7; n++){
-      c.strokeStyle = "rgba(124,255,178," + (0.13 - n * 0.016).toFixed(3) + ")";
-      c.lineWidth = 1.2;
-      c.beginPath();
-      var rad = 52 + n * 46;
-      for(var a = 0; a <= Math.PI * 2 + 0.06; a += 0.06){
-        var q = rad + Math.sin(a * 3 + n * .7) * (11 + n * 3) + Math.cos(a * 5 - n * .4) * (7 + n * 1.6);
-        var px = cx + Math.cos(a) * q * 1.35, py = cy + Math.sin(a) * q * .95;
-        if(a === 0) c.moveTo(px, py); else c.lineTo(px, py);
-      }
-      c.closePath(); c.stroke();
-    }
-
-    // 대극 축
-    var rx = w * 0.31, ry = h * 0.30;
-    var pos = {
-      T:[cx, cy - ry], F:[cx, cy + ry],
-      S:[cx + rx, cy], N:[cx - rx, cy]
-    };
-    c.strokeStyle = "rgba(124,255,178,.14)"; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(pos.T[0], pos.T[1]); c.lineTo(pos.F[0], pos.F[1]); c.stroke();
-    c.beginPath(); c.moveTo(pos.N[0], pos.N[1]); c.lineTo(pos.S[0], pos.S[1]); c.stroke();
-
-    // 중심 — 자기(Self)
-    c.strokeStyle = "rgba(124,255,178,.30)"; c.lineWidth = 1;
-    c.beginPath(); c.arc(cx, cy, 15, 0, Math.PI * 2); c.stroke();
-
-    // 네 기능 노드
-    ["T","F","S","N"].forEach(function(k){
-      var px = pos[k][0], py = pos[k][1];
-      var isDom = k === R.dom, isInf = k === R.inf, isAux = k === R.aux;
-      var size = 9 + (R.fn[k] / 3) * 17;
-      var col = isDom ? C.lumen : (isInf ? C.ember : (isAux ? "#4E9C74" : "#33413B"));
-
-      if(isDom){ glow(c, "rgba(124,255,178,.95)", 34); }
-      else if(isInf){ glow(c, "rgba(255,107,74,.45)", 16); }
-      c.fillStyle = col;
-      c.beginPath(); c.arc(px, py, size, 0, Math.PI * 2); c.fill();
-      noGlow(c);
-
-      if(isDom){
-        c.strokeStyle = "rgba(124,255,178,.35)"; c.lineWidth = 1;
-        c.beginPath(); c.arc(px, py, size + 15, 0, Math.PI * 2); c.stroke();
-      }
-
-      c.font = fnt(isDom ? 700 : 500, 22, CF_UI);
-      c.fillStyle = isDom ? C.lumen : (isInf ? C.ember : C.txt3);
-      c.textAlign = "center"; c.textBaseline = "middle";
-      var off = (k === "T") ? -size - 22 : (k === "F") ? size + 22 : 0;
-      var offx = (k === "S") ? size + 30 : (k === "N") ? -size - 30 : 0;
-      c.fillText(FN[k], px + offx, py + off);
-    });
-
-    c.textAlign = "left"; c.textBaseline = "alphabetic";
-    c.restore();
-
-    // 아트 프레임
-    c.strokeStyle = "rgba(124,255,178,.30)"; c.lineWidth = 2;
-    rr(c, x, y, w, h, 10); c.stroke();
-  }
-
   function drawCard(cv){
-    var dim = RATIOS[cardOpt.ratio], W = dim[0], H = dim[1];
+    var W = 1900, H = 760;
     cv.width = W; cv.height = H;
-    var c = cv.getContext("2d");
-    drawBackdrop(c, W, H);
-
-    // 카드 본체 — 트레이딩 카드 비율 (0.715)
-    var CW = Math.round(Math.min(W - 150, (H - 150) * 0.715));
-    var CH = Math.round(CW / 0.715);
-    var x0 = Math.round((W - CW) / 2), y0 = Math.round((H - CH) / 2);
-
-    c.save();
-    c.shadowColor = "rgba(0,0,0,.75)"; c.shadowBlur = 60; c.shadowOffsetY = 22;
-    c.fillStyle = "#0B100E";
-    rr(c, x0, y0, CW, CH, 30); c.fill();
-    c.restore();
-
-    // 테두리
-    var bg = c.createLinearGradient(x0, y0, x0 + CW, y0 + CH);
-    bg.addColorStop(0, "#7CFFB2"); bg.addColorStop(.45, "#2E6B4C"); bg.addColorStop(1, "#1A3A2A");
-    c.strokeStyle = bg; c.lineWidth = 7;
-    rr(c, x0 + 3.5, y0 + 3.5, CW - 7, CH - 7, 28); c.stroke();
-    c.strokeStyle = "rgba(124,255,178,.18)"; c.lineWidth = 1;
-    rr(c, x0 + 14.5, y0 + 14.5, CW - 29, CH - 29, 20); c.stroke();
-
-    drawCardFace(c, x0, y0, CW, CH);
-    drawGrain(c, W, H);
+    drawTicket(cv.getContext("2d"), W, H);
   }
 
-  function drawCardFace(c, x0, y0, CW, CH){
-    var d = cardData, R = d.R, T = d.T, INF = d.INF;
-    var TP = TRAVEL_PROFILE[R.typeKey] || TRAVEL_PROFILE.IN;
-    var P = 48, L = x0 + P, IW = CW - P * 2;
+  /* ============ 탑승권 카드 — 실제 QR로 사이트 연결 ============ */
+
+  function qrDraw(c, text, x, y, size, dark, light){
+    var qr = qrcode(0, "M");
+    qr.addData(text);
+    qr.make();
+    var n = qr.getModuleCount(), cell = size / n;
+    c.fillStyle = light; c.fillRect(x, y, size, size);
+    c.fillStyle = dark;
+    for(var row = 0; row < n; row++){
+      for(var col = 0; col < n; col++){
+        if(qr.isDark(row, col)) c.fillRect(x + col * cell, y + row * cell, Math.ceil(cell) + .5, Math.ceil(cell) + .5);
+      }
+    }
+  }
+
+  function planeIcon(c, cx, cy, s, color){
+    var pts = [[22, 2], [15, 22], [11, 13], [2, 9]];
+    var x0 = 2, y0 = 2, w0 = 20;
+    c.save();
+    c.fillStyle = color;
+    c.beginPath();
+    pts.forEach(function(p, i){
+      var px = cx + (p[0] - x0 - w0 / 2) * (s / w0), py = cy + (p[1] - y0 - w0 / 2) * (s / w0);
+      if(i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    });
+    c.closePath(); c.fill();
+    c.restore();
+  }
+
+  function dashV(c, x, y1, y2, color){
+    c.save();
+    c.strokeStyle = color; c.lineWidth = 2; c.setLineDash([10, 8]);
+    c.beginPath(); c.moveTo(x, y1); c.lineTo(x, y2); c.stroke();
+    c.restore();
+  }
+
+  function fmtToday(){
+    var d = new Date();
+    return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0");
+  }
+
+  function labelValue(c, x, y, label, value, labelSize, valueSize, align, valueColor){
+    c.textAlign = align || "left";
+    c.font = fnt(600, labelSize, CF_NUM); c.fillStyle = "#8891A1";
+    c.fillText(label, x, y);
+    c.font = fnt(800, valueSize, CF_UI); c.fillStyle = valueColor || "#16233F";
+    c.fillText(value, x, y + valueSize + 10);
+    c.textAlign = "left";
+  }
+
+  function drawTicket(c, W, H){
+    var NAVY = "#16233F", CREAM = "#FFFFFF", INK = "#16233F", MUTE = "#8891A1", LINE = "#E1E4EA";
+    var HEAD = 108, STUB = Math.round(W * 0.745), P1 = 56, P2 = 44;
+
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = CREAM; c.fillRect(0, 0, W, H);
+    c.fillStyle = NAVY; c.fillRect(0, 0, W, HEAD);
+
+    // 헤더
+    planeIcon(c, P1 + 16, HEAD / 2, 30, "#FFFFFF");
+    c.textAlign = "left"; c.font = fnt(800, 30, CF_UI); c.fillStyle = "#FFFFFF";
+    c.textBaseline = "middle";
+    c.fillText("마음 탑승권", P1 + 42, HEAD / 2);
+    c.textAlign = "center"; c.font = fnt(700, 22, CF_NUM);
+    c.fillText("BOARDING PASS  탑승권", STUB / 2, HEAD / 2);
+    c.fillText("마음 탑승권", STUB + (W - STUB) / 2, HEAD / 2);
     c.textBaseline = "alphabetic"; c.textAlign = "left";
 
-    // 세로 배분 — 남는 공간은 전부 일러스트가 흡수한다
-    var NAME = 96, GAP1 = 26, BAND = 44, GAP2 = 20,
-        MOVES = 182, GAP3 = 22, WEAK = 88, GAP4 = 26, FLAV = 64, CRED = 56;
-    var artH = CH - (NAME + GAP1 + GAP2 + BAND + MOVES + GAP3 + WEAK + GAP4 + FLAV + CRED);
+    // 절취선 + 펀치홀
+    dashV(c, STUB, HEAD + 22, H - 22, LINE);
+    [HEAD, H].forEach(function(cy){
+      c.fillStyle = CREAM; c.beginPath(); c.arc(STUB, cy, 15, 0, Math.PI * 2); c.fill();
+    });
 
-    // ── 이름 줄
-    var y = y0 + NAME;
-    var cardTitle = TP.name + " " + TP.noun;
-    fitOneLine(c, cardTitle, IW - 190, 900, 46, 24, CF_UI);
-    c.fillStyle = C.txt;
-    c.fillText(cardTitle, L, y);
+    var d = cardData, R = d.R, T = d.T, INF = d.INF;
+    var TP = TRAVEL_PROFILE[R.typeKey] || TRAVEL_PROFILE.IN;
+    var destCode = R.typeKey, destName = TP.noun;
+    var coord = ATT[R.domAtt] + FN[R.dom] + "형";
+    var weak = INF ? ATT[R.infAtt] + "적 " + FN[R.inf] : "-";
 
-    c.textAlign = "right";
-    c.font = fnt(700, 42, CF_NUM);
-    var numW = c.measureText(R.fn[R.dom] + "/3").width;
-    c.fillStyle = C.lumen;
-    glow(c, "rgba(124,255,178,.55)", 24);
-    c.fillText(R.fn[R.dom] + "/3", x0 + CW - P, y);
-    noGlow(c);
-    c.font = fnt(700, 20, CF_UI); c.fillStyle = C.txt2;
-    c.fillText(FN[R.dom], x0 + CW - P - numW - 14, y);
-    c.textAlign = "left";
+    // ── 메인 스텁
+    var L = P1, RGT = STUB - P1, CWm = RGT - L;
+    labelValue(c, L, HEAD + 64, "PASSENGER NAME / 탑승객", TP.name + " " + TP.noun, 15, 32, "left");
+    labelValue(c, RGT, HEAD + 64, "TYPE / 유형", R.typeKey, 15, 34, "right", "#16233F");
 
-    // ── 일러스트
-    var artY = y + GAP1;
-    drawPsycheArt(c, L, artY, IW, artH, R);
-    y = artY + artH + GAP2;
+    c.strokeStyle = LINE; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(L, HEAD + 128); c.lineTo(RGT, HEAD + 128); c.stroke();
 
-    // ── 분류 띠
-    c.fillStyle = "rgba(124,255,178,.07)";
-    c.fillRect(L, y, IW, BAND);
-    c.font = fnt(500, 18, CF_UI); c.fillStyle = C.txt2;
-    c.fillText("마음탑승권 " + R.typeKey + "   ·   " + ATT[R.domAtt] + "   ·   " + T.line, L + 16, y + 29);
-    y += BAND;
+    labelValue(c, L, HEAD + 172, "FROM / 출발", "NOW   지금의 일상", 15, 30, "left");
+    labelValue(c, L + 460, HEAD + 172, "TO / 도착", coord, 15, 30, "left", "#16233F");
 
-    // ── 기술 두 개
-    function move(yy, key, label, dmg, desc, isDom){
-      var col = isDom ? C.lumen : C.txt2;
-      c.beginPath(); c.arc(L + 21, yy - 8, 19, 0, Math.PI * 2);
-      c.fillStyle = isDom ? "rgba(124,255,178,.16)" : "rgba(147,162,155,.10)";
-      c.fill();
-      c.strokeStyle = isDom ? C.lumen : "#3C4A44"; c.lineWidth = 1.5; c.stroke();
-      c.font = fnt(700, 18, CF_UI); c.fillStyle = col;
-      c.textAlign = "center"; c.fillText(FN[key], L + 21, yy - 1); c.textAlign = "left";
-
-      c.font = fnt(700, 27, CF_UI); c.fillStyle = C.txt;
-      c.fillText(label, L + 54, yy);
-      c.textAlign = "right";
-      c.font = fnt(700, 27, CF_NUM); c.fillStyle = col;
-      c.fillText(dmg, x0 + CW - P, yy);
+    var boxW = 148, boxH = 78, boxGap = 20;
+    var seatX = RGT - boxW, gateX = seatX - boxGap - boxW, boxY = HEAD + 150;
+    [["DOM", "주기능", FN[R.dom], R.fn[R.dom] + "/3", gateX], ["AUX", "보조기능", FN[R.aux], R.fn[R.aux] + "/3", seatX]].forEach(function(b){
+      c.strokeStyle = LINE; c.lineWidth = 1.5;
+      rr(c, b[4], boxY, boxW, boxH, 10); c.stroke();
+      c.textAlign = "center"; c.font = fnt(600, 12, CF_NUM); c.fillStyle = MUTE;
+      c.fillText(b[0] + " / " + b[1] + " · " + b[2], b[4] + boxW / 2, boxY + 24);
+      c.font = fnt(800, 28, CF_UI); c.fillStyle = INK;
+      c.fillText(b[3], b[4] + boxW / 2, boxY + 60);
       c.textAlign = "left";
-
-      c.font = fnt(400, 19, CF_UI); c.fillStyle = C.txt3;
-      c.fillText(wrapKo(c, desc, IW - 54)[0], L + 54, yy + 30);
-    }
-
-    c.strokeStyle = "rgba(124,255,178,.12)"; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(L, y + 12); c.lineTo(L + IW, y + 12); c.stroke();
-    move(y + 58, R.dom, "주기능 · " + FN[R.dom], R.fn[R.dom] + "/3", T.line, true);
-    c.beginPath(); c.moveTo(L, y + 104); c.lineTo(L + IW, y + 104); c.stroke();
-    move(y + 150, R.aux, "보조기능 · " + FN[R.aux], R.fn[R.aux] + "/3",
-         "열등기능으로 가는 길은 여기를 거친다", false);
-    y += MOVES + GAP3;
-
-    // ── 약점 · 저항 · 태도
-    c.fillStyle = "rgba(255,107,74,.055)";
-    c.fillRect(L, y, IW, WEAK);
-    c.strokeStyle = "rgba(255,107,74,.30)"; c.lineWidth = 1;
-    c.strokeRect(L + .5, y + .5, IW - 1, WEAK - 1);
-
-    var colW = IW / 3;
-    [["약점 · 열등기능", INF ? ATT[R.infAtt] + "적 " + FN[R.inf] : "-", C.ember],
-     ["저항 · 보조기능", FN[R.aux], C.txt],
-     ["태도", ATT[R.domAtt] + "형", C.txt]].forEach(function(col, i){
-      var cxp = L + colW * i + colW / 2;
-      c.textAlign = "center";
-      c.font = fnt(500, 13, CF_NUM); c.fillStyle = C.txt3;
-      c.fillText(col[0], cxp, y + 32);
-      c.font = fnt(700, 24, CF_UI); c.fillStyle = col[2];
-      c.fillText(col[1], cxp, y + 64);
-      if(i){
-        c.strokeStyle = "rgba(255,107,74,.18)";
-        c.beginPath(); c.moveTo(L + colW * i, y + 14); c.lineTo(L + colW * i, y + WEAK - 14); c.stroke();
-      }
     });
+
+    c.strokeStyle = LINE; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(L, HEAD + 272); c.lineTo(RGT, HEAD + 272); c.stroke();
+
+    var cols = [["FLIGHT / 편명", "MT " + R.typeKey], ["DATE / 일자", fmtToday()], ["ATTITUDE / 태도", ATT[R.domAtt] + "형"], ["WEAKNESS / 약점", weak]];
+    var colW = (CWm - 160) / 4;
+    cols.forEach(function(col, i){ labelValue(c, L + colW * i, HEAD + 316, col[0], col[1], 13, 22, "left"); });
+    c.textAlign = "right"; c.font = fnt(600, 15, CF_NUM); c.fillStyle = MUTE;
+    c.fillText("SEQ 001", RGT, HEAD + 316);
     c.textAlign = "left";
-    y += WEAK + GAP4;
 
-    // ── 플레이버
+    c.strokeStyle = LINE; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(L, HEAD + 372); c.lineTo(RGT, HEAD + 372); c.stroke();
+
+    // 가방 아이콘
+    var bx = L, by2 = HEAD + 402;
+    c.strokeStyle = INK; c.lineWidth = 2.5;
+    rr(c, bx, by2 + 12, 52, 38, 6); c.stroke();
+    c.beginPath(); c.arc(bx + 26, by2 + 12, 12, Math.PI, 0); c.stroke();
+
     var flavor = cardOpt.decl ? d.flavor : (INF ? INF.desc : T.desc);
-    c.font = "italic 400 20px " + CF_UI;
-    c.fillStyle = C.txt2;
-    wrapKo(c, flavor, IW).slice(0, 2).forEach(function(ln, i){
-      c.fillText(ln, L, y + 22 + i * 29);
-    });
+    c.font = fnt(800, 26, CF_UI); c.fillStyle = INK;
+    c.fillText("나는 '" + destName + "' 유형이래", bx + 76, by2 + 22);
+    c.font = fnt(500, 17, CF_UI); c.fillStyle = MUTE;
+    c.fillText(wrapKo(c, flavor, CWm - 76 - 340)[0] || "", bx + 76, by2 + 51);
 
-    // ── 하단 크레딧
-    var by = y0 + CH - 40;
-    c.font = fnt(500, 14, CF_NUM); c.fillStyle = C.txt3;
-    c.fillText("MIND BOARDING PASS · " + R.typeKey, L, by);
-    c.textAlign = "right"; c.fillStyle = C.lumen;
-    c.fillText(SITE.replace(/^https?:\/\//, ""), x0 + CW - P, by);
+    c.textAlign = "right"; c.font = "italic 400 15px " + CF_UI; c.fillStyle = MUTE;
+    c.fillText("여행 취향 안내용 · 실제 항공권이 아닙니다", RGT, H - 30);
+    c.textAlign = "left";
+
+    // ── 오른쪽 스텁
+    var L2 = STUB + P2, RGT2 = W - P2, CW2 = RGT2 - L2;
+    c.font = fnt(700, 20, CF_NUM); c.fillStyle = MUTE;
+    c.fillText("마음 탑승권", L2, HEAD + 46);
+    c.font = fnt(800, 22, CF_UI); c.fillStyle = INK;
+    c.fillText(TP.noun, L2, HEAD + 82);
+    c.font = fnt(800, 30, CF_UI); c.fillStyle = INK;
+    c.fillText("NOW  →  " + destCode, L2, HEAD + 126);
+
+    c.strokeStyle = LINE; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(L2, HEAD + 148); c.lineTo(RGT2, HEAD + 148); c.stroke();
+
+    labelValue(c, L2, HEAD + 182, "FLIGHT", "MT " + R.typeKey, 12, 20, "left");
+    labelValue(c, L2 + CW2 / 2, HEAD + 182, "DATE", fmtToday(), 12, 20, "left");
+    labelValue(c, L2, HEAD + 240, "DOM", FN[R.dom], 12, 20, "left");
+    labelValue(c, L2 + CW2 / 2, HEAD + 240, "AUX", FN[R.aux], 12, 20, "left");
+
+    var qrSize = Math.min(CW2, 250), qrX = L2 + (CW2 - qrSize) / 2, qrY = HEAD + 296;
+    qrDraw(c, SITE, qrX, qrY, qrSize, INK, CREAM);
+
+    c.textAlign = "center";
+    c.font = fnt(800, 20, CF_UI); c.fillStyle = INK;
+    c.fillText("SCAN TO DISCOVER", L2 + CW2 / 2, qrY + qrSize + 34);
+    c.font = fnt(500, 16, CF_UI); c.fillStyle = MUTE;
+    c.fillText("내 마음의 여행 찾기", L2 + CW2 / 2, qrY + qrSize + 60);
     c.textAlign = "left";
   }
 
@@ -1693,10 +1582,6 @@
           '<div class="sheethead"><span class="tag on">공유 카드</span>' +
             '<button class="xclose" id="cardClose">닫기</button></div>' +
           '<div class="cardprev" id="cardprev"></div>' +
-          '<div class="seg" id="ratioSeg">' +
-            '<button data-r="feed" aria-pressed="true">피드 4:5</button>' +
-            '<button data-r="story" aria-pressed="false">스토리 9:16</button>' +
-          '</div>' +
           '<label class="chk"><input type="checkbox" id="incDecl" checked> 아래 문구를 내 선언문으로</label>' +
           '<div class="btnrow">' +
             '<button class="btn solid" id="cardShare">공유하기</button>' +
@@ -1708,15 +1593,6 @@
 
       sheet.onclick = function(e){ if(e.target === sheet) sheet.classList.remove("open"); };
       document.getElementById("cardClose").onclick = function(){ sheet.classList.remove("open"); };
-      Array.prototype.forEach.call(sheet.querySelectorAll("#ratioSeg button"), function(b){
-        b.onclick = function(){
-          cardOpt.ratio = b.dataset.r;
-          Array.prototype.forEach.call(sheet.querySelectorAll("#ratioSeg button"), function(x){
-            x.setAttribute("aria-pressed", String(x === b));
-          });
-          refreshCard();
-        };
-      });
       document.getElementById("incDecl").onchange = function(){
         cardOpt.decl = this.checked; refreshCard();
       };
