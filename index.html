@@ -660,6 +660,17 @@
             "가까워지고 싶지만 실망시킬까","인정받고 싶지만 나서기 부담"] }
   ];
 
+  /* 무의식 4문항의 보기별 성향 신호 — opts 배열과 같은 순서(0~5).
+     복수선택이라 문항당 여러 개가 겹칠 수 있어, 8개 객관식(문항당 최대 1점)보다
+     보기 하나당 배점을 낮게(0.2~0.4) 잡아 "참고 신호"로만 더해지게 한다.
+     엄밀한 심리검사가 아니라 재미 요소라는 전제는 그대로 유지. */
+  var WRITTEN_SIGNAL = {
+    persona:[ {T:.4}, {I:.4}, {F:.3,E:.2}, {S:.4}, {T:.2,I:.2}, {F:.2,I:.2} ],
+    shadow: [ {F:.4}, {T:.2,S:.2}, {F:.4}, {T:.4}, {S:.2,T:.2}, {N:.4} ],
+    gold:   [ {S:.3}, {E:.4}, {T:.3}, {E:.4}, {F:.2,N:.2}, {E:.2,S:.2} ],
+    tension:[ {I:.3}, {F:.3}, {S:.2,T:.2}, {N:.3}, {F:.3,I:.2}, {I:.3} ]
+  };
+
   var TYPES = {
     ET:{ name:"외향적 사고형", line:"바깥의 사실과 기준으로 세상을 정리한다", way:"바깥의 사실과 기준으로 세상을 정리하는",
          desc:"목표와 규칙을 세우고 그쪽으로 일과 사람을 움직이는 데 강합니다. 대신 자기 안에서 올라오는 감정은 뒤로 밀리기 쉽고, 쌓였다가 예상 못 한 순간에 터집니다." },
@@ -710,15 +721,18 @@
      "마이데이"(여행 코스 추천 앱)의 7기준 코드와 맞춥니다: see·eat·do·story·shot·easy·worth
      엄밀한 심리학적 대응이 아니라, 결과를 실제 행동(여행)으로 옮기기 위한 재미 요소입니다.
   ==================================================== */
+  /* IT/IF/IN이 예전엔 상위 2순위가 전부 {see,story}로 겹쳐서(순서만 다름)
+     마이데이 쪽 지역 점수가 같은 지역(제주 남부)으로 쏠렸다. 유형 설명과
+     어울리는 선 안에서 상위 2순위 조합이 서로 덜 겹치도록 다시 배치. */
   var TRAVELMAP = {
     ET:["easy","worth","do"],
-    IT:["story","see","worth"],
+    IT:["story","worth","see"],
     EF:["eat","shot","do"],
-    IF:["see","story","eat"],
+    IF:["see","easy","story"],
     ES:["do","eat","easy"],
     IS:["eat","easy","worth"],
     EN:["do","shot","story"],
-    IN:["see","story","shot"]
+    IN:["story","shot","see"]
   };
   var CRIT_LABEL = {
     see:"🌊 예쁜 풍경", eat:"🍊 맛있는 음식", do:"🏄 재미있는 체험", story:"📖 이야기",
@@ -773,16 +787,44 @@
       fn[k] += 1; src[k].push(i);
     });
 
-    var order = ["T","F","S","N"].sort(function(x, y){ return fn[y] - fn[x]; });
-    var dom = order[0];
-    var tied = (fn[order[1]] === fn[dom]) ? order[1] : null;
+    // 무의식 4문항(페르소나·그림자·황금그림자·대극의 긴장)도 참고 신호로 반영
+    WRITTEN.forEach(function(w){
+      var sel = state.pick[w.id] || [];
+      var signals = WRITTEN_SIGNAL[w.id] || [];
+      sel.forEach(function(n){
+        var sig = signals[n];
+        if(!sig) return;
+        Object.keys(sig).forEach(function(k){
+          if(k === "E") att += sig[k];
+          else if(k === "I") att -= sig[k];
+          else fn[k] += sig[k];
+        });
+      });
+    });
 
-    // 보조기능 — 주기능과 다른 범주(판단↔지각)에서 높은 쪽
+    /* 6문항 상호비교(T/F/S/N 라운드로빈) 구조상 동점이 전체 응답 조합의 절반에서
+       발생한다(64가지 중 32가지). Array.sort는 안정 정렬이라 동점이면 항상
+       ["T","F","S","N"] 원래 순서대로 걸려, 매번 같은 유형(T, 그리고 태도 동점 시 I)
+       쪽으로 결과가 쏠렸었다 — 실측 시 무작위 응답의 약 30%가 IT로 수렴.
+       응답할 때마다 결과가 바뀌면 안 되니, 답변 패턴 자체를 시드로 써서
+       "이 사람에게는 항상 같지만, 사람마다는 골고루 갈리는" 동점 처리로 바꾼다. */
+    var seed = 0;
+    QUESTIONS.forEach(function(q, i){ seed = (seed * 31 + ((state.ans[i] || 0) + 1)) >>> 0; });
+
+    var order = ["T","F","S","N"].sort(function(x, y){ return fn[y] - fn[x]; });
+    var topScore = fn[order[0]];
+    var domCands = ["T","F","S","N"].filter(function(k){ return fn[k] === topScore; });
+    var dom = domCands[seed % domCands.length];
+    var tied = domCands.length > 1 ? domCands.filter(function(k){ return k !== dom; })[0] : null;
+
+    // 보조기능 — 주기능과 다른 범주(판단↔지각)에서 높은 쪽, 동점이면 시드로 결정
     var other = JUDGING[dom] ? ["S","N"] : ["T","F"];
-    var aux = fn[other[0]] >= fn[other[1]] ? other[0] : other[1];
+    var aux = fn[other[0]] === fn[other[1]]
+      ? other[Math.floor(seed / 4) % 2]
+      : (fn[other[0]] > fn[other[1]] ? other[0] : other[1]);
 
     var attKey = att > 0 ? "E" : (att < 0 ? "I" : null);
-    var domAtt = attKey || "I";
+    var domAtt = attKey || (Math.floor(seed / 16) % 2 === 0 ? "E" : "I");
 
     return {
       att:att, attKey:attKey, fn:fn, src:src,
