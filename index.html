@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="마음탑승권">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&family=Nanum+Myeongjo:wght@400;700;800&family=Gaegu:wght@400;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media=&quot;all&quot;">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
@@ -1580,6 +1580,7 @@
   var CF_UI  = '"Pretendard Variable", Pretendard, "Gothic A1", sans-serif';
   var CF_NUM = '"Martian Mono", monospace';
   var CF_SERIF = '"Nanum Myeongjo", "Noto Serif KR", serif';
+  var CF_HAND = '"Gaegu", cursive';
   var cardOpt = { decl:true };
   var BOOKMARK_PALETTE = {
     ET:"#B9784F", IT:"#3E4C6B", EF:"#C97B6D", IF:"#6F5C82",
@@ -1642,139 +1643,165 @@
   }
 
   /* 책갈피 실루엣 — 위는 둥근 사각, 아래는 리본처럼 좌우로 뾰족하고 가운데가 V로 패인 모양 */
-  function bookmarkPath(c, x0, y0, x1, tailY, notchY, rTop){
-    var cx = (x0 + x1) / 2;
+  function mixColor(hex, t){
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    r = Math.round(r + (255 - r) * t); g = Math.round(g + (255 - g) * t); b = Math.round(b + (255 - b) * t);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+  function planeIcon(c, cx, cy, s, color){
+    var pts = [[22, 2], [15, 22], [11, 13], [2, 9]];
+    var x0 = 2, y0 = 2, w0 = 20;
+    c.save();
+    c.fillStyle = color;
     c.beginPath();
-    c.moveTo(x0 + rTop, y0);
-    c.lineTo(x1 - rTop, y0);
-    c.arcTo(x1, y0, x1, y0 + rTop, rTop);
-    c.lineTo(x1, tailY);
-    c.lineTo(cx, notchY);
-    c.lineTo(x0, tailY);
-    c.lineTo(x0, y0 + rTop);
-    c.arcTo(x0, y0, x0 + rTop, y0, rTop);
-    c.closePath();
+    pts.forEach(function(p, i){
+      var px = cx + (p[0] - x0 - w0 / 2) * (s / w0), py = cy + (p[1] - y0 - w0 / 2) * (s / w0);
+      if(i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    });
+    c.closePath(); c.fill();
+    c.restore();
+  }
+
+  function fillTextTracked(c, text, x, y, font, color, tracking){
+    c.save();
+    c.font = font; c.fillStyle = color; c.textAlign = "left";
+    var cx = x;
+    for(var i = 0; i < text.length; i++){
+      c.fillText(text[i], cx, y);
+      cx += c.measureText(text[i]).width + tracking;
+    }
+    c.restore();
+  }
+
+  function mountainScene(c, x0, y0, w, h, accent){
+    c.save();
+    c.beginPath(); c.rect(x0, y0, w, h); c.clip();
+
+    var sunR = h * 0.30, sunCx = x0 + w * 0.66, sunCy = y0 + h * 0.22;
+    var grad = c.createRadialGradient(sunCx, sunCy, 0, sunCx, sunCy, sunR);
+    grad.addColorStop(0, "rgba(233,163,133,.85)");
+    grad.addColorStop(1, "rgba(233,163,133,0)");
+    c.fillStyle = grad;
+    c.beginPath(); c.arc(sunCx, sunCy, sunR, 0, Math.PI * 2); c.fill();
+
+    var base = y0 + h + 20;
+    [{ t:.62, yOff:.34 }, { t:.36, yOff:.55 }, { t:.08, yOff:.76 }].forEach(function(L){
+      c.fillStyle = mixColor(accent, L.t);
+      var hy = y0 + h * L.yOff;
+      c.beginPath();
+      c.moveTo(x0 - 10, base);
+      c.lineTo(x0 - 10, hy + h * 0.10);
+      c.bezierCurveTo(x0 + w * 0.20, hy - h * 0.09, x0 + w * 0.36, hy + h * 0.09, x0 + w * 0.55, hy - h * 0.02);
+      c.bezierCurveTo(x0 + w * 0.74, hy - h * 0.13, x0 + w * 0.88, hy + h * 0.06, x0 + w + 10, hy + h * 0.02);
+      c.lineTo(x0 + w + 10, base);
+      c.closePath();
+      c.fill();
+    });
+
+    var px = x0 + w * 0.16, py = y0 + h * 0.14;
+    c.strokeStyle = mixColor(accent, .35); c.lineWidth = 2; c.setLineDash([1, 7]); c.lineCap = "round";
+    c.beginPath(); c.moveTo(px - 90, py + 40); c.lineTo(px, py); c.stroke();
+    c.setLineDash([]);
+    planeIcon(c, px, py, 30, mixColor(accent, .08));
+
+    c.restore();
   }
 
   function drawBookmark(c, W, H){
-    var PAPER = "#F6F1E7", CARD = "#FCFAF4", INK = "#2B2420", MUTE = "#8C8375";
+    var OUTER = "#E8EDE2", CARD = "#FBFAF3", INK = "#33352B", MUTE = "#8B8C7C";
     var d = cardData, R = d.R, T = d.T, INF = d.INF;
     var TP = TRAVEL_PROFILE[R.typeKey] || TRAVEL_PROFILE.IN;
     var accent = BOOKMARK_PALETTE[R.typeKey] || "#6E7F5C";
 
     c.clearRect(0, 0, W, H);
-    c.fillStyle = PAPER; c.fillRect(0, 0, W, H);
-    c.save(); c.globalAlpha = 0.09; c.fillStyle = accent; c.fillRect(0, 0, W, H); c.restore();
+    c.fillStyle = OUTER; c.fillRect(0, 0, W, H);
 
-    var bw = 640, bx0 = (W - bw) / 2, bx1 = bx0 + bw, cx = (bx0 + bx1) / 2;
-    var by0 = 78, tailY = H - 78, notchDepth = 66, notchY = tailY - notchDepth, rTop = 22;
-    var padIn = 58, iw0 = bx0 + padIn, iw1 = bx1 - padIn, iw = iw1 - iw0;
+    var x0 = 54, x1 = W - 54, cw = x1 - x0, y0 = 64, y1 = H - 64, rC = 44;
+    var foldY = y1 - 468;
 
-    // 그림자
+    // 카드 그림자 + 본체
     c.save();
-    c.shadowColor = "rgba(43,36,32,.20)"; c.shadowBlur = 46; c.shadowOffsetY = 20;
+    c.shadowColor = "rgba(40,38,28,.20)"; c.shadowBlur = 50; c.shadowOffsetY = 22;
     c.fillStyle = CARD;
-    bookmarkPath(c, bx0, by0, bx1, tailY, notchY, rTop); c.fill();
+    rr(c, x0, y0, cw, y1 - y0, rC); c.fill();
     c.restore();
 
-    // 얇은 색 테두리
+    // 접힘선 노치 + 점선
+    var notchR = 22;
+    c.fillStyle = OUTER;
+    c.beginPath(); c.arc(x0, foldY, notchR, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(x1, foldY, notchR, 0, Math.PI * 2); c.fill();
     c.save();
-    c.strokeStyle = accent; c.globalAlpha = .55; c.lineWidth = 2;
-    bookmarkPath(c, bx0, by0, bx1, tailY, notchY, rTop); c.stroke();
+    c.strokeStyle = "#DAD4C3"; c.lineWidth = 2; c.setLineDash([9, 7]);
+    c.beginPath(); c.moveTo(x0 + 40, foldY); c.lineTo(x1 - 40, foldY); c.stroke();
     c.restore();
 
-    // 구멍 + 실 고리
-    var holeY = by0 + 46;
+    var pad = 62, ix0 = x0 + pad, ix1 = x1 - pad, iw = ix1 - ix0;
+
+    // 좌상단 브랜드 라벨
+    fillTextTracked(c, "MIND", ix0, y0 + 92, fnt(700, 17, CF_UI), accent, 4);
+    fillTextTracked(c, "BOARDING", ix0, y0 + 120, fnt(700, 17, CF_UI), accent, 4);
+
+    // 우상단 · 비행 라벨
+    c.textAlign = "right"; c.font = fnt(600, 18, CF_UI); c.fillStyle = MUTE;
+    c.fillText("마음 여행", ix1 - 46, y0 + 106);
     c.save();
-    c.strokeStyle = accent; c.lineWidth = 3; c.lineCap = "round";
-    c.beginPath(); c.arc(cx, holeY - 15, 13, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
+    c.strokeStyle = MUTE; c.globalAlpha = .5; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(ix1 - 200, y0 + 100); c.lineTo(ix1 - 44, y0 + 100); c.stroke();
     c.restore();
-    c.save();
-    c.strokeStyle = MUTE; c.lineWidth = 2;
-    c.beginPath(); c.arc(cx, holeY, 7, 0, Math.PI * 2); c.stroke();
-    c.restore();
+    planeIcon(c, ix1 - 16, y0 + 100, 22, accent);
 
-    // 에디션 표기
-    c.textAlign = "center";
-    c.font = fnt(700, 15, CF_NUM); c.fillStyle = accent;
-    c.fillText("MIND EDITION   ·   NO. " + R.typeKey, cx, by0 + 100);
+    // 헤드라인 — 손글씨, 짧고 개인화된 한 줄
+    c.textAlign = "left";
+    c.font = "700 88px " + CF_HAND; c.fillStyle = accent;
+    var headLines = ["지금은,", TP.noun];
+    headLines.forEach(function(ln, i){ c.fillText(ln, ix0 - 4, y0 + 240 + i * 100); });
+    var afterHead = y0 + 240 + (headLines.length - 1) * 100;
 
-    // 제목 — 여행 페르소나
-    c.font = fnt(800, 42, CF_SERIF); c.fillStyle = INK;
-    var titleLines = wrapKo(c, TP.name + " " + TP.noun, iw);
-    var ty = by0 + 168;
-    titleLines.forEach(function(ln, i){ c.fillText(ln, cx, ty + i * 54); });
-    var afterTitle = ty + (titleLines.length - 1) * 54;
-
-    // 부제 — 내면 좌표 한 줄
-    c.font = "400 20px " + CF_SERIF; c.fillStyle = MUTE;
-    var subLines = wrapKo(c, T.line, iw);
-    var sy = afterTitle + 58;
-    subLines.forEach(function(ln, i){ c.fillText(ln, cx, sy + i * 30); });
-    var afterSub = sy + (subLines.length - 1) * 30;
-
-    // 구분선
-    var divY = afterSub + 46;
-    c.save();
-    c.strokeStyle = accent; c.globalAlpha = .45; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(cx - 42, divY); c.lineTo(cx + 42, divY); c.stroke();
-    c.restore();
-
-    // 인용구 — 나의 선언문 / 플레이버
+    // 부제 — 플레이버 한두 줄
     var flavor = cardOpt.decl ? d.flavor : (INF ? INF.desc : T.desc);
-    c.font = "italic 500 23px " + CF_SERIF; c.fillStyle = INK;
-    var quoteLines = wrapKo(c, "“" + flavor + "”", iw - 16);
-    var qy = divY + 62;
-    quoteLines.forEach(function(ln, i){ c.fillText(ln, cx, qy + i * 36); });
-    var afterQuote = qy + (quoteLines.length - 1) * 36;
+    c.font = "400 25px " + CF_UI; c.fillStyle = INK;
+    var subLines = wrapKo(c, flavor, iw).slice(0, 2);
+    var sy = afterHead + 62;
+    subLines.forEach(function(ln, i){ c.fillText(ln, ix0, sy + i * 36); });
 
-    // 구분선 + 여행 우선순위 3가지
-    var prioDivY = afterQuote + 74;
+    // 풍경 일러스트 — 접힘선 바로 위, 전체 폭
+    var sceneY0 = sy + subLines.length * 36 + 30, sceneY1 = foldY - 46;
+    if(sceneY1 - sceneY0 > 80) mountainScene(c, ix0, sceneY0, iw, sceneY1 - sceneY0, accent);
+
+    // ---- 접힘선 아래 ----
+    var rowY = foldY + 96;
+    c.textAlign = "left";
+    fillTextTracked(c, "FROM", ix0, rowY - 34, fnt(700, 14, CF_UI), MUTE, 3);
+    c.font = fnt(700, 32, CF_SERIF); c.fillStyle = INK;
+    c.fillText("지금, 여기", ix0, rowY);
+
+    var cx2 = x0 + cw * 0.5;
+    planeIcon(c, cx2, rowY - 14, 26, accent);
+
+    var toX = cx2 + 56;
+    fillTextTracked(c, "TO", toX, rowY - 34, fnt(700, 14, CF_UI), MUTE, 3);
+    c.font = fnt(700, 32, CF_SERIF); c.fillStyle = INK;
+    c.fillText(TP.noun, toX, rowY);
+
+    var divY = rowY + 46;
     c.save();
-    c.strokeStyle = accent; c.globalAlpha = .45; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(cx - 42, prioDivY); c.lineTo(cx + 42, prioDivY); c.stroke();
+    c.strokeStyle = "#DAD4C3"; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(ix0, divY); c.lineTo(ix1, divY); c.stroke();
     c.restore();
 
-    c.font = fnt(600, 15, CF_UI); c.fillStyle = MUTE;
-    c.fillText("이 여행에서 먼저 찾는 것", cx, prioDivY + 40);
+    c.font = "400 21px " + CF_UI; c.fillStyle = MUTE;
+    c.fillText("마음도, 여행이 필요합니다.", ix0, divY + 44);
 
-    var TM = TRAVELMAP[R.typeKey] || ["see", "story", "shot"];
-    var chipY = prioDivY + 96, chipGap = 30;
-    c.font = fnt(700, 20, CF_UI);
-    var chipWidths = TM.map(function(k){ return c.measureText(CRIT_LABEL[k]).width; });
-    var chipTotal = chipWidths.reduce(function(a, b){ return a + b; }, 0) + chipGap * (TM.length - 1);
-    var chipX = cx - chipTotal / 2;
-    TM.forEach(function(k, i){
-      c.textAlign = "left"; c.fillStyle = INK;
-      c.fillText(CRIT_LABEL[k], chipX, chipY);
-      chipX += chipWidths[i] + chipGap;
-    });
-    c.textAlign = "center";
-    var afterPrio = chipY + 20;
+    var qrSize = 148, qrX = ix1 - qrSize, qrY = divY + 78;
+    qrDraw(c, SITE, qrX, qrY, qrSize, INK, CARD);
+    c.textAlign = "center"; c.font = fnt(600, 15, CF_UI); c.fillStyle = MUTE;
+    c.fillText("마음 여행 시작하기", qrX + qrSize / 2, qrY + qrSize + 30);
 
-    // 하단 블록 — 여행 우선순위 아래로 이어서 배치, 여백은 최소한만
-    var qrSize = 138;
-    var bottomDivY = afterPrio + 74;
-    var qrCaptionY = bottomDivY + 34;
-    var qrY = qrCaptionY + 30;
-    var underCaptionY = qrY + qrSize + 34;
-    var colophonY = underCaptionY + 34;
-
-    c.save();
-    c.strokeStyle = accent; c.globalAlpha = .45; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(cx - 42, bottomDivY); c.lineTo(cx + 42, bottomDivY); c.stroke();
-    c.restore();
-
-    c.font = fnt(600, 15, CF_UI); c.fillStyle = MUTE;
-    c.fillText("이 마음이 시작되는 곳", cx, qrCaptionY);
-
-    qrDraw(c, SITE, cx - qrSize / 2, qrY, qrSize, INK, CARD);
-
-    c.font = fnt(700, 15, CF_NUM); c.fillStyle = accent;
-    c.fillText("다음 페이지로 →", cx, underCaptionY);
-
-    c.font = fnt(500, 14, CF_UI); c.fillStyle = MUTE;
-    c.fillText("MIND BOARDING PASS  ·  " + fmtToday(), cx, colophonY);
+    c.textAlign = "left"; c.font = fnt(500, 13, CF_NUM); c.fillStyle = MUTE;
+    c.fillText("MIND EDITION · NO. " + R.typeKey + "  ·  " + fmtToday(), ix0, qrY + qrSize / 2 + 5);
 
     c.textAlign = "left";
   }
@@ -1790,7 +1817,9 @@
       document.fonts.load('700 15px ' + CF_NUM),
       document.fonts.load('800 42px ' + CF_SERIF),
       document.fonts.load('400 20px ' + CF_SERIF),
-      document.fonts.load('italic 500 23px ' + CF_SERIF)
+      document.fonts.load('700 32px ' + CF_SERIF),
+      document.fonts.load('italic 500 23px ' + CF_SERIF),
+      document.fonts.load('700 88px ' + CF_HAND)
     ]).catch(function(){});
   }
 
