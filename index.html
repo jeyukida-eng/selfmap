@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="마음탑승권">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700;900&family=Martian+Mono:wght@400;500;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media=&quot;all&quot;">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
@@ -1579,7 +1579,12 @@
 
   var CF_UI  = '"Pretendard Variable", Pretendard, "Gothic A1", sans-serif';
   var CF_NUM = '"Martian Mono", monospace';
+  var CF_SERIF = '"Nanum Myeongjo", "Noto Serif KR", serif';
   var cardOpt = { decl:true };
+  var BOOKMARK_PALETTE = {
+    ET:"#B9784F", IT:"#3E4C6B", EF:"#C97B6D", IF:"#6F5C82",
+    ES:"#AD8A34", IS:"#6E7F5C", EN:"#BC6A38", IN:"#355E63"
+  };
   var cardData = null, cardBlob = null;
 
   function fnt(wt, size, fam){ return wt + " " + size + "px " + fam; }
@@ -1612,10 +1617,10 @@
   function drawCard(cv){
     var W = 1080, H = 1350;
     cv.width = W; cv.height = H;
-    drawTicket(cv.getContext("2d"), W, H);
+    drawBookmark(cv.getContext("2d"), W, H);
   }
 
-  /* ============ 탑승권 카드 — 실제 QR로 사이트 연결 ============ */
+  /* ============ 마음 책갈피 — 실제 QR로 사이트 연결 ============ */
 
   function qrDraw(c, text, x, y, size, dark, light){
     var qr = qrcode(0, "M");
@@ -1631,143 +1636,146 @@
     }
   }
 
-  function planeIcon(c, cx, cy, s, color){
-    var pts = [[22, 2], [15, 22], [11, 13], [2, 9]];
-    var x0 = 2, y0 = 2, w0 = 20;
-    c.save();
-    c.fillStyle = color;
-    c.beginPath();
-    pts.forEach(function(p, i){
-      var px = cx + (p[0] - x0 - w0 / 2) * (s / w0), py = cy + (p[1] - y0 - w0 / 2) * (s / w0);
-      if(i === 0) c.moveTo(px, py); else c.lineTo(px, py);
-    });
-    c.closePath(); c.fill();
-    c.restore();
-  }
-
-  function dashV(c, x, y1, y2, color){
-    c.save();
-    c.strokeStyle = color; c.lineWidth = 2; c.setLineDash([10, 8]);
-    c.beginPath(); c.moveTo(x, y1); c.lineTo(x, y2); c.stroke();
-    c.restore();
-  }
-
-  function dashH(c, x1, x2, y, color){
-    c.save();
-    c.strokeStyle = color; c.lineWidth = 2; c.setLineDash([10, 8]);
-    c.beginPath(); c.moveTo(x1, y); c.lineTo(x2, y); c.stroke();
-    c.restore();
-  }
-
   function fmtToday(){
     var d = new Date();
     return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0");
   }
 
-  function labelValue(c, x, y, label, value, labelSize, valueSize, align, valueColor){
-    c.textAlign = align || "left";
-    c.font = fnt(600, labelSize, CF_NUM); c.fillStyle = "#8891A1";
-    c.fillText(label, x, y);
-    c.font = fnt(800, valueSize, CF_UI); c.fillStyle = valueColor || "#16233F";
-    c.fillText(value, x, y + valueSize + 10);
-    c.textAlign = "left";
+  /* 책갈피 실루엣 — 위는 둥근 사각, 아래는 리본처럼 좌우로 뾰족하고 가운데가 V로 패인 모양 */
+  function bookmarkPath(c, x0, y0, x1, tailY, notchY, rTop){
+    var cx = (x0 + x1) / 2;
+    c.beginPath();
+    c.moveTo(x0 + rTop, y0);
+    c.lineTo(x1 - rTop, y0);
+    c.arcTo(x1, y0, x1, y0 + rTop, rTop);
+    c.lineTo(x1, tailY);
+    c.lineTo(cx, notchY);
+    c.lineTo(x0, tailY);
+    c.lineTo(x0, y0 + rTop);
+    c.arcTo(x0, y0, x0 + rTop, y0, rTop);
+    c.closePath();
   }
 
-  function drawTicket(c, W, H){
-    var NAVY = "#16233F", CREAM = "#FFFFFF", INK = "#16233F", MUTE = "#8891A1", LINE = "#E1E4EA";
-    var HEAD = 100, PAD = 64, L = PAD, RGT = W - PAD, CWm = RGT - L;
-
-    c.clearRect(0, 0, W, H);
-    c.fillStyle = CREAM; c.fillRect(0, 0, W, H);
-    c.fillStyle = NAVY; c.fillRect(0, 0, W, HEAD);
-
-    // 헤더
-    planeIcon(c, PAD - 8, HEAD / 2, 28, "#FFFFFF");
-    c.textAlign = "left"; c.font = fnt(800, 26, CF_UI); c.fillStyle = "#FFFFFF";
-    c.textBaseline = "middle";
-    c.fillText("마음 탑승권", PAD + 16, HEAD / 2);
-    c.textAlign = "right"; c.font = fnt(700, 18, CF_NUM);
-    c.fillText("BOARDING PASS 탑승권", RGT, HEAD / 2);
-    c.textBaseline = "alphabetic"; c.textAlign = "left";
-
+  function drawBookmark(c, W, H){
+    var PAPER = "#F6F1E7", CARD = "#FCFAF4", INK = "#2B2420", MUTE = "#8C8375";
     var d = cardData, R = d.R, T = d.T, INF = d.INF;
     var TP = TRAVEL_PROFILE[R.typeKey] || TRAVEL_PROFILE.IN;
-    var destCode = R.typeKey, destName = TP.noun;
-    var coord = ATT[R.domAtt] + FN[R.dom] + "형";
-    var weak = INF ? ATT[R.infAtt] + "적 " + FN[R.inf] : "-";
+    var accent = BOOKMARK_PALETTE[R.typeKey] || "#6E7F5C";
 
-    // 탑승객 · 유형
-    labelValue(c, L, HEAD + 70, "PASSENGER NAME / 탑승객", TP.name + " " + TP.noun, 14, 32, "left");
-    labelValue(c, RGT, HEAD + 70, "TYPE / 유형", R.typeKey, 14, 32, "right", INK);
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = PAPER; c.fillRect(0, 0, W, H);
+    c.save(); c.globalAlpha = 0.09; c.fillStyle = accent; c.fillRect(0, 0, W, H); c.restore();
 
-    c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L, HEAD + 150); c.lineTo(RGT, HEAD + 150); c.stroke();
+    var bw = 640, bx0 = (W - bw) / 2, bx1 = bx0 + bw, cx = (bx0 + bx1) / 2;
+    var by0 = 78, tailY = H - 78, notchDepth = 66, notchY = tailY - notchDepth, rTop = 22;
+    var padIn = 58, iw0 = bx0 + padIn, iw1 = bx1 - padIn, iw = iw1 - iw0;
 
-    // 출발 · 도착
-    labelValue(c, L, HEAD + 190, "FROM / 출발", "NOW   지금의 일상", 14, 26, "left");
-    labelValue(c, L + CWm * 0.5, HEAD + 190, "TO / 도착", coord, 14, 26, "left", INK);
+    // 그림자
+    c.save();
+    c.shadowColor = "rgba(43,36,32,.20)"; c.shadowBlur = 46; c.shadowOffsetY = 20;
+    c.fillStyle = CARD;
+    bookmarkPath(c, bx0, by0, bx1, tailY, notchY, rTop); c.fill();
+    c.restore();
 
-    c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L, HEAD + 260); c.lineTo(RGT, HEAD + 260); c.stroke();
+    // 얇은 색 테두리
+    c.save();
+    c.strokeStyle = accent; c.globalAlpha = .55; c.lineWidth = 2;
+    bookmarkPath(c, bx0, by0, bx1, tailY, notchY, rTop); c.stroke();
+    c.restore();
 
-    // 주기능 · 보조기능 박스
-    var boxGap = 24, boxW = (CWm - boxGap) / 2, boxH = 110, boxY = HEAD + 290;
-    [["DOM", "주기능", FN[R.dom], R.fn[R.dom] + "/3", L], ["AUX", "보조기능", FN[R.aux], R.fn[R.aux] + "/3", L + boxW + boxGap]].forEach(function(b){
-      c.strokeStyle = LINE; c.lineWidth = 1.5;
-      rr(c, b[4], boxY, boxW, boxH, 12); c.stroke();
-      c.textAlign = "center"; c.font = fnt(600, 13, CF_NUM); c.fillStyle = MUTE;
-      c.fillText(b[0] + " / " + b[1] + " · " + b[2], b[4] + boxW / 2, boxY + 30);
-      c.font = fnt(800, 32, CF_UI); c.fillStyle = INK;
-      c.fillText(b[3], b[4] + boxW / 2, boxY + 74);
-      c.textAlign = "left";
-    });
+    // 구멍 + 실 고리
+    var holeY = by0 + 46;
+    c.save();
+    c.strokeStyle = accent; c.lineWidth = 3; c.lineCap = "round";
+    c.beginPath(); c.arc(cx, holeY - 15, 13, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
+    c.restore();
+    c.save();
+    c.strokeStyle = MUTE; c.lineWidth = 2;
+    c.beginPath(); c.arc(cx, holeY, 7, 0, Math.PI * 2); c.stroke();
+    c.restore();
 
-    c.strokeStyle = LINE; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(L, boxY + boxH + 30); c.lineTo(RGT, boxY + boxH + 30); c.stroke();
+    // 에디션 표기
+    c.textAlign = "center";
+    c.font = fnt(700, 15, CF_NUM); c.fillStyle = accent;
+    c.fillText("MIND EDITION   ·   NO. " + R.typeKey, cx, by0 + 100);
 
-    // 태도 · 약점 / 편명 · 일자
-    var rowY = boxY + boxH + 70;
-    labelValue(c, L, rowY, "ATTITUDE / 태도", ATT[R.domAtt] + "형", 13, 24, "left");
-    labelValue(c, L + CWm * 0.5, rowY, "WEAKNESS / 약점", weak, 13, 24, "left");
-    var rowY2 = rowY + 70;
-    labelValue(c, L, rowY2, "FLIGHT / 편명", "MT " + R.typeKey, 12, 18, "left");
-    labelValue(c, L + CWm * 0.5, rowY2, "DATE / 일자", fmtToday(), 12, 18, "left");
+    // 제목 — 여행 페르소나
+    c.font = fnt(800, 42, CF_SERIF); c.fillStyle = INK;
+    var titleLines = wrapKo(c, TP.name + " " + TP.noun, iw);
+    var ty = by0 + 168;
+    titleLines.forEach(function(ln, i){ c.fillText(ln, cx, ty + i * 54); });
+    var afterTitle = ty + (titleLines.length - 1) * 54;
 
-    // 가방 아이콘 · 바이럴 문구
-    var bx = L, by2 = rowY2 + 62;
-    c.strokeStyle = INK; c.lineWidth = 2.5;
-    rr(c, bx, by2 + 12, 52, 38, 6); c.stroke();
-    c.beginPath(); c.arc(bx + 26, by2 + 12, 12, Math.PI, 0); c.stroke();
+    // 부제 — 내면 좌표 한 줄
+    c.font = "400 20px " + CF_SERIF; c.fillStyle = MUTE;
+    var subLines = wrapKo(c, T.line, iw);
+    var sy = afterTitle + 58;
+    subLines.forEach(function(ln, i){ c.fillText(ln, cx, sy + i * 30); });
+    var afterSub = sy + (subLines.length - 1) * 30;
 
+    // 구분선
+    var divY = afterSub + 46;
+    c.save();
+    c.strokeStyle = accent; c.globalAlpha = .45; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(cx - 42, divY); c.lineTo(cx + 42, divY); c.stroke();
+    c.restore();
+
+    // 인용구 — 나의 선언문 / 플레이버
     var flavor = cardOpt.decl ? d.flavor : (INF ? INF.desc : T.desc);
-    c.font = fnt(800, 27, CF_UI); c.fillStyle = INK;
-    c.fillText("나는 '" + destName + "' 유형이래", bx + 76, by2 + 22);
-    c.font = fnt(500, 17, CF_UI); c.fillStyle = MUTE;
-    c.fillText(wrapKo(c, flavor, CWm - 76)[0] || "", bx + 76, by2 + 51);
+    c.font = "italic 500 23px " + CF_SERIF; c.fillStyle = INK;
+    var quoteLines = wrapKo(c, "“" + flavor + "”", iw - 16);
+    var qy = divY + 62;
+    quoteLines.forEach(function(ln, i){ c.fillText(ln, cx, qy + i * 36); });
+    var afterQuote = qy + (quoteLines.length - 1) * 36;
 
-    c.textAlign = "right"; c.font = "italic 400 14px " + CF_UI; c.fillStyle = MUTE;
-    c.fillText("여행 취향 안내용 · 실제 항공권이 아닙니다", RGT, by2 + 92);
-    c.textAlign = "left";
+    // 구분선 + 여행 우선순위 3가지
+    var prioDivY = afterQuote + 74;
+    c.save();
+    c.strokeStyle = accent; c.globalAlpha = .45; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(cx - 42, prioDivY); c.lineTo(cx + 42, prioDivY); c.stroke();
+    c.restore();
 
-    // 절취선 + 펀치홀
-    var tearY = by2 + 130;
-    dashH(c, 0, W, tearY, LINE);
-    [0, W].forEach(function(cx){
-      c.fillStyle = CREAM; c.beginPath(); c.arc(cx, tearY, 15, 0, Math.PI * 2); c.fill();
+    c.font = fnt(600, 15, CF_UI); c.fillStyle = MUTE;
+    c.fillText("이 여행에서 먼저 찾는 것", cx, prioDivY + 40);
+
+    var TM = TRAVELMAP[R.typeKey] || ["see", "story", "shot"];
+    var chipY = prioDivY + 96, chipGap = 30;
+    c.font = fnt(700, 20, CF_UI);
+    var chipWidths = TM.map(function(k){ return c.measureText(CRIT_LABEL[k]).width; });
+    var chipTotal = chipWidths.reduce(function(a, b){ return a + b; }, 0) + chipGap * (TM.length - 1);
+    var chipX = cx - chipTotal / 2;
+    TM.forEach(function(k, i){
+      c.textAlign = "left"; c.fillStyle = INK;
+      c.fillText(CRIT_LABEL[k], chipX, chipY);
+      chipX += chipWidths[i] + chipGap;
     });
+    c.textAlign = "center";
+    var afterPrio = chipY + 20;
 
-    // 하단 — QR
-    c.textAlign = "center"; c.font = fnt(700, 22, CF_NUM); c.fillStyle = MUTE;
-    var qrLabelY = tearY + 46;
-    c.fillText("마음 탑승권 · NOW → " + destCode, W / 2, qrLabelY);
+    // 하단 블록 — 여행 우선순위 아래로 이어서 배치, 여백은 최소한만
+    var qrSize = 138;
+    var bottomDivY = afterPrio + 74;
+    var qrCaptionY = bottomDivY + 34;
+    var qrY = qrCaptionY + 30;
+    var underCaptionY = qrY + qrSize + 34;
+    var colophonY = underCaptionY + 34;
 
-    var qrSize = Math.min(360, H - qrLabelY - 130), qrX = (W - qrSize) / 2, qrY = qrLabelY + 26;
-    qrDraw(c, SITE, qrX, qrY, qrSize, INK, CREAM);
+    c.save();
+    c.strokeStyle = accent; c.globalAlpha = .45; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(cx - 42, bottomDivY); c.lineTo(cx + 42, bottomDivY); c.stroke();
+    c.restore();
 
-    c.font = fnt(800, 26, CF_UI); c.fillStyle = INK;
-    c.fillText("SCAN TO DISCOVER", W / 2, qrY + qrSize + 46);
-    c.font = fnt(500, 17, CF_UI); c.fillStyle = MUTE;
-    c.fillText("내 마음의 여행 찾기", W / 2, qrY + qrSize + 72);
+    c.font = fnt(600, 15, CF_UI); c.fillStyle = MUTE;
+    c.fillText("이 마음이 시작되는 곳", cx, qrCaptionY);
+
+    qrDraw(c, SITE, cx - qrSize / 2, qrY, qrSize, INK, CARD);
+
+    c.font = fnt(700, 15, CF_NUM); c.fillStyle = accent;
+    c.fillText("다음 페이지로 →", cx, underCaptionY);
+
+    c.font = fnt(500, 14, CF_UI); c.fillStyle = MUTE;
+    c.fillText("MIND BOARDING PASS  ·  " + fmtToday(), cx, colophonY);
+
     c.textAlign = "left";
   }
 
@@ -1778,7 +1786,11 @@
       document.fonts.load('800 38px ' + CF_UI),
       document.fonts.load('600 26px ' + CF_UI),
       document.fonts.load('400 30px ' + CF_UI),
-      document.fonts.load('500 19px ' + CF_NUM)
+      document.fonts.load('500 19px ' + CF_NUM),
+      document.fonts.load('700 15px ' + CF_NUM),
+      document.fonts.load('800 42px ' + CF_SERIF),
+      document.fonts.load('400 20px ' + CF_SERIF),
+      document.fonts.load('italic 500 23px ' + CF_SERIF)
     ]).catch(function(){});
   }
 
