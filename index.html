@@ -739,25 +739,25 @@
   var JUDGING = {T:1, F:1};
 
   var QA = [
-    {q:"사람들과 시간을 보내고 난 뒤 나는?",
-     a:"기운이 올라온다", b:"혼자 회복할 시간이 필요하다"},
-    {q:"관심이 주로 향하는 쪽은?",
-     a:"바깥에서 벌어지는 일", b:"그 일이 내 안에 남긴 것"}
+    {q:"사람들 만나고 집에 온 날, 나는?",
+     a:"오히려 기운이 난다", b:"혼자 있는 시간이 필요하다"},
+    {q:"나는 평소에 어디에 더 관심이 갈까?",
+     a:"밖에서 일어나는 일", b:"그 일이 내게 남긴 느낌"}
   ];
 
   var QF = [
-    {p:["T","F"], q:"누가 고민을 털어놓을 때 먼저 나오는 반응은?",
-     a:"원인이 뭔지 짚어보게 된다", b:"지금 마음이 어떤지 먼저 묻게 된다"},
-    {p:["T","S"], q:"처음 보는 기계를 다룰 때 나는?",
-     a:"작동 원리를 먼저 이해하려 한다", b:"일단 만져보면서 익힌다"},
-    {p:["T","N"], q:"계획을 세울 때 머릿속에 먼저 오는 건?",
-     a:"단계와 근거", b:"이게 나중에 뭐가 될지에 대한 그림"},
-    {p:["F","S"], q:"좋은 하루였다고 느끼는 건 주로?",
-     a:"누군가와 마음이 통했을 때", b:"몸이 편하고 먹은 게 맛있었을 때"},
-    {p:["F","N"], q:"책이나 영화에서 오래 남는 건?",
-     a:"인물이 느꼈을 감정", b:"그 이야기가 암시하는 것"},
-    {p:["S","N"], q:"뭔가를 설명할 때 내가 자주 쓰는 방식은?",
-     a:"실제 있었던 예를 든다", b:"비유로 바꿔서 말한다"}
+    {p:["T","F"], q:"친구가 고민을 털어놓으면, 나는 보통?",
+     a:"원인부터 짚어보게 된다", b:"지금 기분이 어떤지부터 물어보게 된다"},
+    {p:["T","S"], q:"처음 써보는 기계가 생기면, 나는?",
+     a:"어떻게 작동하는지부터 알고 싶다", b:"일단 만지면서 익히는 편이다"},
+    {p:["T","N"], q:"계획을 세울 때, 먼저 떠오르는 건?",
+     a:"순서와 이유", b:"이게 나중에 어떤 모습일지 그려보는 것"},
+    {p:["F","S"], q:"오늘 참 좋았다 싶은 날은, 대개?",
+     a:"누군가와 마음이 잘 통했을 때", b:"몸이 편하고 맛있는 걸 먹었을 때"},
+    {p:["F","N"], q:"책이나 영화를 보고 나서 오래 남는 건?",
+     a:"그 인물이 느꼈을 감정", b:"그 이야기가 하고 싶었던 말"},
+    {p:["S","N"], q:"뭔가를 설명할 때, 나는 주로?",
+     a:"실제 있었던 일을 예로 든다", b:"비유를 들어서 말한다"}
   ];
 
   var QUESTIONS = QA.map(function(x){ return {kind:"att", q:x.q, a:x.a, b:x.b}; })
@@ -766,28 +766,28 @@
   /* 무의식 4문항 — 선택(복수) + 직접 입력 */
   var WRITTEN = [
     { id:"persona", label:"페르소나", term:"사회적 가면", tone:"mint",
-      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이려 하나요?",
+      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이고 싶을까?",
       why:"융은 이 가면을 페르소나라고 불렀습니다. 나쁜 게 아니라 살아가는 데 필요한 것이지만, 그게 나 자신이라고 착각하면 문제가 됩니다.",
       opts:["실수 없는 사람","괜찮다고 말하는 사람",
             "분위기를 편하게 하는 사람","늘 열심히 하는 사람",
             "흔들리지 않는 사람","폐 끼치지 않는 사람"] },
 
     { id:"shadow", label:"그림자", term:"투사", tone:"ember",
-      q:"유독 거슬리고 참기 힘든 사람은 어떤 사람인가요?",
+      q:"나를 유독 거슬리게 하는 사람, 어떤 사람일까?",
       why:"내 안에 있지만 인정하지 않는 부분은 남에게 투사됩니다. 유난히 거슬리는 특징일수록 내 그림자일 가능성이 큽니다.",
       opts:["자기 얘기만 하는 사람","대충 하고도 당당한 사람",
             "계산적으로 움직이는 사람","감정을 그대로 쏟는 사람",
             "규칙을 무시하는 사람","확신에 차 단정하는 사람"] },
 
     { id:"gold", label:"황금 그림자", term:"못 산 가능성", tone:"mint",
-      q:"부럽거나 자꾸 눈이 가는 사람은 어떤 모습인가요?",
+      q:"부럽거나 자꾸 눈이 가는 사람, 어떤 모습일까?",
       why:"동경과 질투는 아직 내 것이라고 주장하지 못한 자질에 붙습니다. 융은 이걸 황금 그림자라고 했습니다.",
       opts:["자기 시간을 정해 사는 모습","눈치 안 보고 말하는 모습",
             "한 분야에서 인정받는 모습","사람들이 모여드는 모습",
             "여유가 있는 모습","실패해도 금방 터는 모습"] },
 
     { id:"tension", label:"대극의 긴장", term:"두 마음", tone:"ember",
-      q:"원하면서 동시에 두렵기도 한 것은 무엇인가요?",
+      q:"원하면서도 동시에 두려운 것, 뭐가 있을까?",
       why:"융은 두 대극이 부딪히는 긴장을 견딜 때 제3의 것이 태어난다고 했습니다. 한쪽을 없애는 게 답이 아닙니다.",
       opts:["혼자 하고 싶지만 수입이 걱정","솔직하고 싶지만 관계가 걱정",
             "쉬고 싶지만 뒤처질까 걱정","새로 시작하고 싶지만 아깝다",
@@ -906,20 +906,20 @@
     worth:{en:"Value",zh:"性价比",ja:"コスパ"}
   };
   var QUESTIONS_I18N = {
-    0:{en:{q:"After spending time with people, I...",a:"feel energized",b:"need time alone to recover"},zh:{q:"和别人相处一段时间后，我会……",a:"精神振奋起来",b:"需要独处的时间来恢复"},ja:{q:"人と時間を過ごした後、私は？",a:"元気が湧いてくる",b:"一人で回復する時間が必要になる"}},
-    1:{en:{q:"Where does my attention usually go first?",a:"What's happening out there",b:"What that leaves inside me"},zh:{q:"我的注意力通常主要投向哪里？",a:"外面正在发生的事",b:"那件事在我心里留下的东西"},ja:{q:"関心が主に向かうのはどちら？",a:"外で起きていること",b:"それが自分の内に残したもの"}},
-    2:{en:{q:"When someone opens up about a problem, my first reaction is...",a:"to figure out what's causing it",b:"to ask how they're feeling first"},zh:{q:"当有人向我倾诉烦恼时，我最先的反应是？",a:"先想弄清楚原因是什么",b:"先问对方现在心情怎么样"},ja:{q:"誰かが悩みを打ち明けたとき、最初に出る反応は？",a:"原因が何かを探ろうとする",b:"今の気持ちをまず尋ねる"}},
-    3:{en:{q:"When handling a machine I've never seen before, I...",a:"try to understand how it works first",b:"just start pressing buttons and learn by doing"},zh:{q:"面对第一次见到的机器时，我会……",a:"先想弄懂它的运作原理",b:"先动手摸索着熟悉它"},ja:{q:"初めて見る機械を扱うとき、私は？",a:"まず作動の仕組みを理解しようとする",b:"とりあえず触りながら覚える"}},
-    4:{en:{q:"When making a plan, what comes to mind first?",a:"The steps and the reasoning",b:"A picture of what this could become"},zh:{q:"制定计划时，脑海中最先浮现的是？",a:"步骤和依据",b:"这件事以后会变成什么样的画面"},ja:{q:"計画を立てるとき、頭に先に浮かぶのは？",a:"段階と根拠",b:"これが後にどうなるかというイメージ"}},
-    5:{en:{q:"I usually feel it was a good day when...",a:"I connected with someone, heart to heart",b:"my body felt at ease and the food was good"},zh:{q:"让我觉得这是美好一天的，主要是？",a:"与某人心意相通的时候",b:"身体舒适、吃到好吃东西的时候"},ja:{q:"良い一日だったと感じるのは主に？",a:"誰かと心が通じ合ったとき",b:"体が楽で、食べたものが美味しかったとき"}},
-    6:{en:{q:"What stays with me longest from a book or film?",a:"What the character must have felt",b:"What the story hints at"},zh:{q:"在书或电影中，长久留在我心里的是？",a:"人物当时的感受",b:"那个故事所暗示的东西"},ja:{q:"本や映画で長く心に残るのは？",a:"登場人物が感じたであろう感情",b:"その物語が示唆すること"}},
-    7:{en:{q:"When explaining something, I tend to...",a:"give a real example that actually happened",b:"put it into a metaphor"},zh:{q:"说明某件事时，我常用的方式是？",a:"举一个真实发生过的例子",b:"换成一个比喻来说"},ja:{q:"何かを説明するとき、私がよく使う方法は？",a:"実際にあった例を挙げる",b:"比喩に置き換えて話す"}}
+    0:{en:{q:"After hanging out with people, I...",a:"actually feel energized",b:"need some time alone"},zh:{q:"和人相处之后回到家，我通常",a:"反而更有精神",b:"需要独处的时间"},ja:{q:"人と会って帰ってきた日、私は",a:"むしろ元気になる",b:"一人の時間が必要になる"}},
+    1:{en:{q:"What usually catches my attention more?",a:"What's happening around me",b:"How it makes me feel inside"},zh:{q:"平时我更容易被什么吸引？",a:"外面发生的事情",b:"这件事留给我的感受"},ja:{q:"普段、より気になるのはどっち？",a:"外で起きていること",b:"それが自分の中に残した気持ち"}},
+    2:{en:{q:"When a friend opens up about something, I usually...",a:"try to figure out the cause first",b:"ask how they're feeling right now"},zh:{q:"朋友向我倾诉烦恼时，我通常",a:"先想弄清楚原因",b:"先问对方现在心情怎么样"},ja:{q:"友達が悩みを打ち明けてきたら、私は普段",a:"まず原因を考えてみる",b:"今の気持ちから聞いてみる"}},
+    3:{en:{q:"When I get my hands on a new gadget, I...",a:"want to understand how it works first",b:"just start pressing buttons to figure it out"},zh:{q:"遇到第一次用的机器，我会",a:"先想搞清楚它是怎么运作的",b:"直接上手摸索着用"},ja:{q:"初めて触る機械があったら、私は",a:"まず仕組みを理解したい",b:"とりあえず触りながら覚える"}},
+    4:{en:{q:"When making a plan, what comes to mind first?",a:"The steps and the reasons behind them",b:"A picture of how it'll all turn out"},zh:{q:"制定计划时，最先想到的是？",a:"步骤和理由",b:"想象一下最后会是什么样子"},ja:{q:"計画を立てるとき、最初に浮かぶのは？",a:"手順とその理由",b:"これが後でどうなるかのイメージ"}},
+    5:{en:{q:"A day that felt really good was usually when...",a:"I really connected with someone",b:"I was comfortable and ate something delicious"},zh:{q:"觉得今天过得真不错，通常是因为？",a:"和某个人心意相通的时候",b:"身体舒服又吃到好吃的东西的时候"},ja:{q:"今日はいい一日だったなと思うのは、大体",a:"誰かと心が通じ合えたとき",b:"体が楽で、美味しいものを食べたとき"}},
+    6:{en:{q:"After a book or movie, what stays with me longest?",a:"What the character must have felt",b:"What the story was really trying to say"},zh:{q:"看完书或电影后，最让我久久难忘的是？",a:"人物当时的感受",b:"这个故事想说的话"},ja:{q:"本や映画を見た後、長く心に残るのは？",a:"登場人物が感じたであろう感情",b:"その物語が伝えたかったこと"}},
+    7:{en:{q:"When explaining something, I usually...",a:"give a real example that actually happened",b:"use a metaphor to get the point across"},zh:{q:"跟别人解释事情时，我通常",a:"举一个真实发生过的例子",b:"用比喻来说明"},ja:{q:"何かを説明するとき、私は普段",a:"実際にあった話を例に出す",b:"たとえ話をして伝える"}}
   };
   var WRITTEN_I18N = {
-    "persona":{en:{label:"Persona",term:"Social Mask",q:"In front of others, who do you usually try to appear as?",why:"Jung called this mask the persona. It isn't a bad thing — it's necessary for getting through life — but trouble starts when we mistake it for our true self.",opts:["Someone who never makes mistakes","Someone who always says 'I'm fine'","Someone who puts everyone at ease","Someone who's always working hard","Someone unshakeable","Someone who never burdens others"]},zh:{label:"人格面具",term:"社交面具",q:"在别人面前，你通常想让自己看起来是什么样的人？",why:"荣格把这张面具称为'人格面具'。它并非坏事，是生活所必需的，但如果把它误认为真正的自己，问题就来了。",opts:["从不犯错的人","总说'我没事'的人","让气氛变轻松的人","总是很努力的人","不会动摇的人","不给别人添麻烦的人"]},ja:{label:"ペルソナ",term:"社会的仮面",q:"人前で、あなたは普段どんな人に見えようとしていますか？",why:"ユングはこの仮面をペルソナと呼びました。悪いものではなく、生きていく上で必要なものですが、それを本当の自分だと勘違いすると問題になります。",opts:["ミスをしない人","「大丈夫」と言う人","場の空気を和ませる人","いつも頑張っている人","動じない人","人に迷惑をかけない人"]}},
-    "shadow":{en:{label:"Shadow",term:"Projection",q:"What kind of person do you find especially irritating, someone you can barely stand?",why:"The parts of ourselves we won't admit to get projected onto other people. The more a trait irritates you, the more likely it's your own shadow.",opts:["Someone who only talks about themselves","Someone who does a sloppy job and acts proud of it","Someone who's calculating in everything they do","Someone who dumps their emotions on you raw","Someone who ignores the rules","Someone who states things with total certainty"]},zh:{label:"阴影",term:"投射",q:"有哪种人会让你特别烦躁、几乎难以忍受？",why:"存在于我们内心却不愿承认的部分，会被投射到别人身上。越是让你格外反感的特质，越有可能是你自己的阴影。",opts:["只顾说自己事情的人","敷衍了事却还理直气壮的人","做事精于算计的人","把情绪直接发泄出来的人","无视规则的人","断言一切、毫不怀疑的人"]},ja:{label:"シャドウ",term:"投影",q:"特に気に障って、我慢できない人はどんな人ですか？",why:"自分の中にあるのに認めたくない部分は、他人に投影されます。特に気に障る特徴ほど、自分のシャドウである可能性が高いのです。",opts:["自分の話しかしない人","いい加減なのに堂々としている人","打算高く動く人","感情をそのままぶつけてくる人","ルールを無視する人","確信たっぷりに言い切る人"]}},
-    "gold":{en:{label:"Golden Shadow",term:"The Unlived Possibility",q:"What does the person you envy, or whose eye you can't look away from, look like?",why:"Admiration and envy attach to qualities we haven't yet claimed as our own. Jung called this the golden shadow.",opts:["Living life on their own schedule","Speaking their mind without worrying what others think","Being recognized as an expert in their field","Being someone people naturally gather around","Having room to breathe","Bouncing back quickly after failure"]},zh:{label:"黄金阴影",term:"未曾活出的可能性",q:"让你羡慕、忍不住多看几眼的人，是什么样子？",why:"憧憬和嫉妒，往往依附在那些我们还没能承认属于自己的特质上。荣格称之为黄金阴影。",opts:["按自己的节奏生活的样子","不看别人脸色、想说就说的样子","在某个领域获得认可的样子","大家都愿意聚拢过去的样子","从容不迫的样子","即使失败也能很快抖落重来的样子"]},ja:{label:"黄金の影",term:"生きられなかった可能性",q:"羨ましくて、つい目が行ってしまう人はどんな姿をしていますか？",why:"憧れや嫉妬は、まだ自分のものだと言い切れていない資質にくっつきます。ユングはこれを黄金の影と呼びました。",opts:["自分のペースで生きている姿","人目を気にせず話す姿","ある分野で認められている姿","人が自然と集まってくる姿","余裕がある姿","失敗してもすぐに切り替えられる姿"]}},
-    "tension":{en:{label:"Tension of Opposites",term:"Two Minds",q:"What is something you want and fear at the same time?",why:"Jung said that when we can bear the tension where two opposites collide, a third thing is born. Eliminating one side isn't the answer.",opts:["I want to go it alone, but I worry about income","I want to be honest, but I worry about the relationship","I want to rest, but I worry about falling behind","I want to start fresh, but it feels wasteful to let go","I want to get closer, but I'm afraid of disappointing them","I want recognition, but stepping forward feels like too much"]},zh:{label:"对立的张力",term:"两颗心",q:"有什么事，是你既渴望又害怕的？",why:"荣格说，当我们能够承受两极相撞的张力时，第三种东西就会诞生。消灭其中一方并不是答案。",opts:["想一个人做，但担心收入","想说真心话，但担心关系","想休息，但担心被落下","想重新开始，但又觉得可惜","想靠近，但怕让对方失望","想被认可，但主动站出来有负担"]},ja:{label:"対極の緊張",term:"二つの心",q:"望んでいると同時に、怖くもあることは何ですか？",why:"ユングは、二つの対極がぶつかる緊張に耐えるとき、そこから第三のものが生まれると言いました。どちらかをなくすことが答えではありません。",opts:["一人でやりたいけれど収入が心配","正直でいたいけれど関係が心配","休みたいけれど取り残されそうで心配","新しく始めたいけれどもったいない","近づきたいけれど失望させてしまいそう","認められたいけれど前に出るのが負担"]}}
+    "persona":{en:{label:"Persona",term:"Social Mask",q:"In front of others, who do I usually want to seem like?",why:"Jung called this mask the persona. It isn't a bad thing — it's necessary for getting through life — but trouble starts when we mistake it for our true self.",opts:["Someone who never makes mistakes","Someone who always says 'I'm fine'","Someone who puts everyone at ease","Someone who's always working hard","Someone unshakeable","Someone who never burdens others"]},zh:{label:"人格面具",term:"社交面具",q:"在别人面前，我通常想让自己看起来是什么样的人？",why:"荣格把这张面具称为'人格面具'。它并非坏事，是生活所必需的，但如果把它误认为真正的自己，问题就来了。",opts:["从不犯错的人","总说'我没事'的人","让气氛变轻松的人","总是很努力的人","不会动摇的人","不给别人添麻烦的人"]},ja:{label:"ペルソナ",term:"社会的仮面",q:"人前で、私は普段どんな人に見られたいんだろう？",why:"ユングはこの仮面をペルソナと呼びました。悪いものではなく、生きていく上で必要なものですが、それを本当の自分だと勘違いすると問題になります。",opts:["ミスをしない人","「大丈夫」と言う人","場の空気を和ませる人","いつも頑張っている人","動じない人","人に迷惑をかけない人"]}},
+    "shadow":{en:{label:"Shadow",term:"Projection",q:"The kind of person who really gets on my nerves — who are they?",why:"The parts of ourselves we won't admit to get projected onto other people. The more a trait irritates you, the more likely it's your own shadow.",opts:["Someone who only talks about themselves","Someone who does a sloppy job and acts proud of it","Someone who's calculating in everything they do","Someone who dumps their emotions on you raw","Someone who ignores the rules","Someone who states things with total certainty"]},zh:{label:"阴影",term:"投射",q:"特别让我看不顺眼的人，会是什么样的人？",why:"存在于我们内心却不愿承认的部分，会被投射到别人身上。越是让你格外反感的特质，越有可能是你自己的阴影。",opts:["只顾说自己事情的人","敷衍了事却还理直气壮的人","做事精于算计的人","把情绪直接发泄出来的人","无视规则的人","断言一切、毫不怀疑的人"]},ja:{label:"シャドウ",term:"投影",q:"自分をやたら苛立たせる人って、どんな人だろう？",why:"自分の中にあるのに認めたくない部分は、他人に投影されます。特に気に障る特徴ほど、自分のシャドウである可能性が高いのです。",opts:["自分の話しかしない人","いい加減なのに堂々としている人","打算高く動く人","感情をそのままぶつけてくる人","ルールを無視する人","確信たっぷりに言い切る人"]}},
+    "gold":{en:{label:"Golden Shadow",term:"The Unlived Possibility",q:"The kind of person I envy or can't stop noticing — what are they like?",why:"Admiration and envy attach to qualities we haven't yet claimed as our own. Jung called this the golden shadow.",opts:["Living life on their own schedule","Speaking their mind without worrying what others think","Being recognized as an expert in their field","Being someone people naturally gather around","Having room to breathe","Bouncing back quickly after failure"]},zh:{label:"黄金阴影",term:"未曾活出的可能性",q:"让我羡慕或总是忍不住多看几眼的人，是什么样子？",why:"憧憬和嫉妒，往往依附在那些我们还没能承认属于自己的特质上。荣格称之为黄金阴影。",opts:["按自己的节奏生活的样子","不看别人脸色、想说就说的样子","在某个领域获得认可的样子","大家都愿意聚拢过去的样子","从容不迫的样子","即使失败也能很快抖落重来的样子"]},ja:{label:"黄金の影",term:"生きられなかった可能性",q:"羨ましくて、つい目がいってしまう人ってどんな人だろう？",why:"憧れや嫉妬は、まだ自分のものだと言い切れていない資質にくっつきます。ユングはこれを黄金の影と呼びました。",opts:["自分のペースで生きている姿","人目を気にせず話す姿","ある分野で認められている姿","人が自然と集まってくる姿","余裕がある姿","失敗してもすぐに切り替えられる姿"]}},
+    "tension":{en:{label:"Tension of Opposites",term:"Two Minds",q:"Something I want and fear at the same time — what could it be?",why:"Jung said that when we can bear the tension where two opposites collide, a third thing is born. Eliminating one side isn't the answer.",opts:["I want to go it alone, but I worry about income","I want to be honest, but I worry about the relationship","I want to rest, but I worry about falling behind","I want to start fresh, but it feels wasteful to let go","I want to get closer, but I'm afraid of disappointing them","I want recognition, but stepping forward feels like too much"]},zh:{label:"对立的张力",term:"两颗心",q:"既渴望又害怕的事，会是什么呢？",why:"荣格说，当我们能够承受两极相撞的张力时，第三种东西就会诞生。消灭其中一方并不是答案。",opts:["想一个人做，但担心收入","想说真心话，但担心关系","想休息，但担心被落下","想重新开始，但又觉得可惜","想靠近，但怕让对方失望","想被认可，但主动站出来有负担"]},ja:{label:"対極の緊張",term:"二つの心",q:"望んでいるのに、同時に怖くもあること、何だろう？",why:"ユングは、二つの対極がぶつかる緊張に耐えるとき、そこから第三のものが生まれると言いました。どちらかをなくすことが答えではありません。",opts:["一人でやりたいけれど収入が心配","正直でいたいけれど関係が心配","休みたいけれど取り残されそうで心配","新しく始めたいけれどもったいない","近づきたいけれど失望させてしまいそう","認められたいけれど前に出るのが負担"]}}
   };
   var TYPES_I18N = {
     "ET":{en:{name:"Extraverted Thinking type",line:"Organizes the world by outer facts and standards",way:"organizing the world by outer facts and standards",desc:"Strong at setting goals and rules, then moving both work and people toward them. But feelings rising up inside tend to get pushed aside, building up until they burst out at an unexpected moment."},zh:{name:"外向思维型",line:"用外在的事实和标准来整理世界",way:"以外在事实与标准整理世界的",desc:"擅长设定目标和规则，并据此推动工作和人前进。但内心涌起的情绪容易被搁置一旁，累积起来，在意想不到的时刻爆发。"},ja:{name:"外向思考型",line:"外の事実と基準で世界を整理する",way:"外の事実と基準で世界を整理する",desc:"目標とルールを立て、それに向かって仕事と人を動かすのが得意です。ただし自分の内側から湧き上がる感情は後回しにされやすく、溜まった末に思わぬ瞬間に噴き出します。"}},
