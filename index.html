@@ -833,14 +833,20 @@
     body[data-view="question"] .wrap{padding:14px 14px 0;height:calc(100dvh - 165px - env(safe-area-inset-bottom));min-height:0;display:flex;flex-direction:column;overflow:hidden}
     body[data-view="question"] #app{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
     body[data-view="question"] .screen{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-    body[data-view="question"] .screen .mid{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:20px 18px;border-radius:22px}
-    body[data-view="question"] .screen .foot{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px;padding-bottom:12px;flex-wrap:unset}
+    body[data-view="question"] .screen .mid{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:16px 16px;border-radius:22px;gap:10px}
+    body[data-view="question"] .screen .foot{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:10px;padding-bottom:10px;flex-wrap:unset}
     body[data-view="question"] .screen .foot .btn{width:100%;font-size:14px;padding:12px 10px;min-height:0}
-    body[data-view="question"] .screen .foot #skip{grid-column:1/-1;justify-self:center;margin-top:2px}
-    body[data-view="question"] .qtext{font-size:20px;line-height:1.58;letter-spacing:-.015em}
+    body[data-view="question"] .screen .foot #skip{grid-column:1/-1;justify-self:center;margin-top:0}
+    body[data-view="question"] .qhead{gap:8px}
+    body[data-view="question"] .qtext{font-size:18px;line-height:1.42;letter-spacing:-.01em}
     body[data-view="question"] .opt{padding:14px 14px 14px 50px;min-height:64px;line-height:1.58}
-    body[data-view="question"] .pick{padding:11px 12px 11px 35px;line-height:1.5}
-    body[data-view="question"] .question-hint{line-height:1.75}
+    body[data-view="question"] .why{font-size:12px}
+    body[data-view="question"] .picked{font-size:9px}
+    body[data-view="question"] .picks{gap:6px}
+    body[data-view="question"] .pick{padding:8px 10px 8px 30px;min-height:46px;font-size:13px;line-height:1.32}
+    body[data-view="question"] .pick::before{width:11px;height:11px}
+    body[data-view="question"] .more{font-size:12px;padding:4px 0}
+    body[data-view="question"] .question-hint{line-height:1.5}
 
     body[data-view="result"] .result-hero,
     body[data-view="result"] .destination-portal,
