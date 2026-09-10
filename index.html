@@ -161,9 +161,9 @@
   .picks{display:grid;gap:7px;grid-template-columns:1fr 1fr}
   @media(max-width:339px){.picks{grid-template-columns:1fr}}
   .pick{
-    position:relative;text-align:left;background:var(--deep);border:1px solid var(--hair);
+    position:relative;text-align:center;background:var(--deep);border:1px solid var(--hair);
     padding:12px 12px 12px 33px;font-size:13.5px;line-height:1.45;color:var(--txt-2);
-    min-height:58px;display:flex;align-items:center;
+    min-height:58px;display:flex;align-items:center;justify-content:center;
     transition:border-color .16s ease,color .16s ease,background .16s ease;
   }
   .pick::before{
@@ -828,11 +828,9 @@
     html,body{overflow-x:hidden}
     body[data-view="question"] .wrap,
     body[data-view="result"] .wrap,
-    body[data-view="route"] .wrap{padding:14px 14px 92px;min-height:calc(100dvh - 66px)}
-    body[data-view="question"] #app{display:flex;min-height:calc(100dvh - 172px)}
-    body[data-view="question"] .screen{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:calc(100dvh - 172px)}
-    body[data-view="question"] .screen .mid{flex:1;padding:20px 18px;border-radius:22px}
-    body[data-view="question"] .screen .foot{padding-top:14px}
+    body[data-view="route"] .wrap{padding:14px 14px calc(140px + env(safe-area-inset-bottom));min-height:calc(100dvh - 66px)}
+    body[data-view="question"] .screen .mid{padding:20px 18px;border-radius:22px}
+    body[data-view="question"] .screen .foot{padding-top:14px;padding-bottom:8px}
     body[data-view="question"] .qtext{font-size:20px;line-height:1.58;letter-spacing:-.015em}
     body[data-view="question"] .opt{padding:14px 14px 14px 50px;min-height:64px;line-height:1.58}
     body[data-view="question"] .pick{padding:11px 12px 11px 35px;line-height:1.5}
@@ -860,9 +858,7 @@
   @media (max-width: 380px){
     body[data-view="question"] .wrap,
     body[data-view="result"] .wrap,
-    body[data-view="route"] .wrap{padding:12px 12px 90px}
-    body[data-view="question"] .screen,
-    body[data-view="question"] #app{min-height:calc(100dvh - 166px)}
+    body[data-view="route"] .wrap{padding:12px 12px calc(132px + env(safe-area-inset-bottom))}
     body[data-view="question"] .screen .mid{padding:18px 16px}
     body[data-view="question"] .qtext{font-size:18.5px;line-height:1.56}
     .sheetbox .btnrow{grid-template-columns:1fr}
