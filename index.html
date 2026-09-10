@@ -819,6 +819,53 @@
   }
 </style>
 
+
+<style id="mobile-page-fit-fix">
+  @media (max-width: 600px){
+    html,body{overflow-x:hidden}
+    body[data-view="question"] .wrap,
+    body[data-view="result"] .wrap,
+    body[data-view="route"] .wrap{padding:14px 14px 92px;min-height:calc(100dvh - 66px)}
+    body[data-view="question"] #app{display:flex;min-height:calc(100dvh - 172px)}
+    body[data-view="question"] .screen{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:calc(100dvh - 172px)}
+    body[data-view="question"] .screen .mid{flex:1;padding:20px 18px;border-radius:22px}
+    body[data-view="question"] .screen .foot{padding-top:14px}
+    body[data-view="question"] .qtext{font-size:20px;line-height:1.58;letter-spacing:-.015em}
+    body[data-view="question"] .opt{padding:14px 14px 14px 50px;min-height:64px;line-height:1.58}
+    body[data-view="question"] .pick{padding:11px 12px 11px 35px;line-height:1.5}
+    body[data-view="question"] .question-hint{line-height:1.75}
+
+    body[data-view="result"] .result-hero,
+    body[data-view="result"] .destination-portal,
+    body[data-view="result"] .mind-details{padding-left:18px!important;padding-right:18px!important}
+    body[data-view="result"] .mind-details>.stack{padding-top:18px}
+    body[data-view="result"] .journey-name{font-size:27px;line-height:1.36;letter-spacing:-.03em}
+    body[data-view="result"] .journey-desc,
+    body[data-view="result"] .result-explain p,
+    body[data-view="result"] .quote,
+    body[data-view="result"] .note{line-height:1.8}
+
+    .sheet{padding:12px}
+    .sheetbox{width:100%;max-width:460px;max-height:calc(100dvh - 24px);overflow-y:auto;padding:18px 16px 20px;border-radius:22px}
+    .sheethead{align-items:center}
+    .cardprev{padding:14px;min-height:auto;border-radius:20px}
+    .cardprev img{width:100%;max-width:100%;height:auto;display:block;border-radius:18px}
+    .sheetbox .btnrow{grid-template-columns:1fr 1fr;gap:10px}
+    .sheetbox .note{font-size:13px;line-height:1.7;padding:0 2px}
+  }
+
+  @media (max-width: 380px){
+    body[data-view="question"] .wrap,
+    body[data-view="result"] .wrap,
+    body[data-view="route"] .wrap{padding:12px 12px 90px}
+    body[data-view="question"] .screen,
+    body[data-view="question"] #app{min-height:calc(100dvh - 166px)}
+    body[data-view="question"] .screen .mid{padding:18px 16px}
+    body[data-view="question"] .qtext{font-size:18.5px;line-height:1.56}
+    .sheetbox .btnrow{grid-template-columns:1fr}
+  }
+</style>
+
 </head>
 <body data-view="intro">
 
@@ -883,28 +930,28 @@
   /* 무의식 4문항 — 선택(복수) + 직접 입력 */
   var WRITTEN = [
     { id:"persona", label:"페르소나", term:"사회적 가면", tone:"mint",
-      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이고 싶을까?",
+      q:"사람들 앞에서 나는 주로 어떤 사람으로 보이려 하나요?",
       why:"융은 이 가면을 페르소나라고 불렀습니다. 나쁜 게 아니라 살아가는 데 필요한 것이지만, 그게 나 자신이라고 착각하면 문제가 됩니다.",
       opts:["실수 없는 사람","괜찮다고 말하는 사람",
             "분위기를 편하게 하는 사람","늘 열심히 하는 사람",
             "흔들리지 않는 사람","폐 끼치지 않는 사람"] },
 
     { id:"shadow", label:"그림자", term:"투사", tone:"ember",
-      q:"나를 유독 거슬리게 하는 사람, 어떤 사람일까?",
+      q:"유독 거슬리고 참기 힘든 사람은 어떤 사람인가요?",
       why:"내 안에 있지만 인정하지 않는 부분은 남에게 투사됩니다. 유난히 거슬리는 특징일수록 내 그림자일 가능성이 큽니다.",
       opts:["자기 얘기만 하는 사람","대충 하고도 당당한 사람",
             "계산적으로 움직이는 사람","감정을 그대로 쏟는 사람",
             "규칙을 무시하는 사람","확신에 차 단정하는 사람"] },
 
     { id:"gold", label:"황금 그림자", term:"못 산 가능성", tone:"mint",
-      q:"부럽거나 자꾸 눈이 가는 사람, 어떤 모습일까?",
+      q:"부럽거나 자꾸 눈이 가는 사람은 어떤 모습인가요?",
       why:"동경과 질투는 아직 내 것이라고 주장하지 못한 자질에 붙습니다. 융은 이걸 황금 그림자라고 했습니다.",
       opts:["자기 시간을 정해 사는 모습","눈치 안 보고 말하는 모습",
             "한 분야에서 인정받는 모습","사람들이 모여드는 모습",
             "여유가 있는 모습","실패해도 금방 터는 모습"] },
 
     { id:"tension", label:"대극의 긴장", term:"두 마음", tone:"ember",
-      q:"원하면서도 동시에 두려운 것, 뭐가 있을까?",
+      q:"원하면서 동시에 두렵기도 한 것은 무엇인가요?",
       why:"융은 두 대극이 부딪히는 긴장을 견딜 때 제3의 것이 태어난다고 했습니다. 한쪽을 없애는 게 답이 아닙니다.",
       opts:["혼자 하고 싶지만 수입이 걱정","솔직하고 싶지만 관계가 걱정",
             "쉬고 싶지만 뒤처질까 걱정","새로 시작하고 싶지만 아깝다",
@@ -1880,7 +1927,7 @@
   }
 
   function drawCard(cv){
-    var W = 1080, H = 1260;
+    var W = 1080, H = 1460;
     cv.width = W; cv.height = H;
     drawBookmark(cv.getContext("2d"), W, H);
   }
@@ -1990,13 +2037,28 @@
     return s + "…";
   }
 
-  function drawMindRow(c, label, value, x, y, maxW, accent, ink, mute){
+  function wrapCardValue(c, text, maxW, maxLines){
+    var lines = wrapKo(c, String(text || "—"), maxW).filter(Boolean);
+    if(!lines.length) lines = ["—"];
+    if(lines.length <= maxLines) return lines;
+    var keep = lines.slice(0, maxLines);
+    keep[maxLines - 1] = cardEllipsis(c, keep[maxLines - 1], maxW);
+    return keep;
+  }
+
+  function drawMindBlock(c, label, value, x, y, maxW, ink, mute){
+    c.save();
     c.textAlign = "left";
-    c.font = fnt(700, 12, CF_NUM); c.fillStyle = mute;
+    c.font = fnt(700, 12, CF_UI);
+    c.fillStyle = mute;
     c.fillText(label, x, y);
-    var labelW = c.measureText(label).width;
-    c.font = fnt(600, 17, CF_UI); c.fillStyle = ink;
-    c.fillText(cardEllipsis(c, value, maxW - labelW - 26), x + labelW + 22, y + 1);
+    c.font = fnt(600, 18, CF_UI);
+    c.fillStyle = ink;
+    var lineY = y + 28;
+    var lines = wrapCardValue(c, value, maxW, 2);
+    lines.forEach(function(line, i){ c.fillText(line, x, lineY + i * 24); });
+    c.restore();
+    return 70 + Math.max(0, (lines.length - 1) * 24);
   }
 
   function drawBookmark(c, W, H){
@@ -2013,37 +2075,37 @@
     bg.addColorStop(1, "#DCE6DB");
     c.fillStyle = bg; c.fillRect(0, 0, W, H);
 
-    var x0 = 44, x1 = W - 44, cw = x1 - x0, y0 = 34, y1 = H - 18, rC = 52;
-    var foldY = 760;
+    var x0 = 56, x1 = W - 56, cw = x1 - x0, y0 = 44, y1 = H - 34, rC = 54;
+    var foldY = 792;
 
     c.save();
-    c.shadowColor = "rgba(54,72,60,.18)"; c.shadowBlur = 40; c.shadowOffsetY = 14;
+    c.shadowColor = "rgba(54,72,60,.18)"; c.shadowBlur = 38; c.shadowOffsetY = 14;
     c.fillStyle = CARD;
     rr(c, x0, y0, cw, y1 - y0, rC); c.fill();
     c.restore();
 
-    var notchR = 18;
+    var notchR = 19;
     c.fillStyle = bg;
     c.beginPath(); c.arc(x0, foldY, notchR, 0, Math.PI * 2); c.fill();
     c.beginPath(); c.arc(x1, foldY, notchR, 0, Math.PI * 2); c.fill();
     c.save();
-    c.strokeStyle = "#D8D5C9"; c.lineWidth = 1.6; c.setLineDash([8, 7]);
-    c.beginPath(); c.moveTo(x0 + 34, foldY); c.lineTo(x1 - 34, foldY); c.stroke();
+    c.strokeStyle = "#D8D5C9"; c.lineWidth = 1.5; c.setLineDash([8, 7]);
+    c.beginPath(); c.moveTo(x0 + 38, foldY); c.lineTo(x1 - 38, foldY); c.stroke();
     c.restore();
 
-    var pad = 58, ix0 = x0 + pad, ix1 = x1 - pad, iw = ix1 - ix0;
+    var pad = 72, ix0 = x0 + pad, ix1 = x1 - pad, iw = ix1 - ix0;
 
     fillTextTracked(c, "MIND", ix0, y0 + 118, fnt(500, 18, CF_UI), INK, 6);
     fillTextTracked(c, "TRAVEL", ix0, y0 + 160, fnt(500, 18, CF_UI), INK, 6);
 
     c.textAlign = "right";
     c.font = fnt(500, 19, CF_UI); c.fillStyle = INK;
-    c.fillText("마음 여행", ix1 - 54, y0 + 128);
+    c.fillText("마음 여행", ix1 - 56, y0 + 126);
     c.save();
     c.strokeStyle = accent; c.globalAlpha = .6; c.lineWidth = 1.2;
-    c.beginPath(); c.moveTo(ix1 - 185, y0 + 120); c.lineTo(ix1 - 44, y0 + 120); c.stroke();
+    c.beginPath(); c.moveTo(ix1 - 188, y0 + 118); c.lineTo(ix1 - 46, y0 + 118); c.stroke();
     c.restore();
-    planeIcon(c, ix1 - 18, y0 + 120, 24, accent);
+    planeIcon(c, ix1 - 20, y0 + 118, 24, accent);
 
     c.textAlign = "left";
     c.font = "700 92px " + CF_HAND; c.fillStyle = accent;
@@ -2051,21 +2113,20 @@
     c.fillText("나에게로", ix0 - 2, y0 + 474);
 
     c.font = "400 28px " + CF_SERIF; c.fillStyle = INK;
-    c.fillText("오늘도, 잘 가고 있어요.", ix0, y0 + 580);
+    c.fillText("오늘도, 잘 가고 있어요.", ix0, y0 + 582);
 
-    var sceneX = x0 + cw * .50, sceneY = y0 + 330, sceneW = cw * .43, sceneH = 255;
+    var sceneX = x0 + cw * .50, sceneY = y0 + 332, sceneW = cw * .40, sceneH = 250;
     mountainScene(c, sceneX, sceneY, sceneW, sceneH, accent);
-    planeIcon(c, sceneX + 100, sceneY + 86, 28, "#90A891");
+    planeIcon(c, sceneX + 100, sceneY + 88, 28, "#90A891");
     c.save();
     c.strokeStyle = "rgba(144,168,145,.28)"; c.lineWidth = 3;
     c.beginPath(); c.moveTo(sceneX + 28, sceneY + 146); c.quadraticCurveTo(sceneX + 86, sceneY + 120, sceneX + 126, sceneY + 94); c.stroke();
     c.restore();
 
-    var leftW = 560;
-    var labelY = foldY + 94;
-    var textY = foldY + 150;
+    var leftW = 530;
+    var labelY = foldY + 98;
+    var textY = foldY + 152;
 
-    // FROM → TO는 카드의 핵심 문장으로 유지
     fillTextTracked(c, "FROM", ix0, labelY, fnt(500, 13, CF_UI), MUTE, 4);
     c.font = fnt(700, 29, CF_SERIF); c.fillStyle = INK;
     c.fillText("지금, 여기", ix0, textY);
@@ -2078,39 +2139,38 @@
     c.font = fnt(700, 29, CF_SERIF); c.fillStyle = INK;
     c.fillText("더 나은 나", toX, textY);
 
-    var shortLineY = textY + 42;
+    var shortLineY = textY + 44;
     c.save();
     c.strokeStyle = "#D8D5C9"; c.lineWidth = 1.3;
     c.beginPath(); c.moveTo(ix0, shortLineY); c.lineTo(ix0 + leftW, shortLineY); c.stroke();
     c.restore();
 
-    // 결과 카드에 실제 결과를 함께 담는다
     var typeLine = profText(R.typeKey, "name") + " " + TP.noun + " · " + R.typeKey;
-    var personaLine = cardMindValue("persona", "아직 적지 않음");
-    var shadowLine = cardMindValue("shadow", "아직 적지 않음");
-    var goldLine = cardMindValue("gold", "아직 적지 않음");
-    var tensionLine = cardMindValue("tension", "아직 적지 않음");
+    var personaLine = cardMindValue("persona", "아직 적지 않았어요");
+    var shadowLine = cardMindValue("shadow", "아직 적지 않았어요");
+    var goldLine = cardMindValue("gold", "아직 적지 않았어요");
+    var tensionLine = cardMindValue("tension", "아직 적지 않았어요");
 
-    var infoY = shortLineY + 43;
-    drawMindRow(c, "MY TRAVEL TYPE", typeLine, ix0, infoY, leftW, accent, INK, MUTE);
-    drawMindRow(c, "PERSONA", personaLine, ix0, infoY + 38, leftW, accent, INK, MUTE);
-    drawMindRow(c, "SHADOW", shadowLine, ix0, infoY + 76, leftW, accent, INK, MUTE);
-    drawMindRow(c, "GOLD SHADOW", goldLine, ix0, infoY + 114, leftW, accent, INK, MUTE);
-    drawMindRow(c, "TENSION", tensionLine, ix0, infoY + 152, leftW, accent, INK, MUTE);
+    var y = shortLineY + 42;
+    y += drawMindBlock(c, "내 여행 타입", typeLine, ix0, y, leftW, INK, MUTE);
+    y += drawMindBlock(c, "나의 페르소나", personaLine, ix0, y, leftW, INK, MUTE);
+    y += drawMindBlock(c, "나의 그림자", shadowLine, ix0, y, leftW, INK, MUTE);
+    y += drawMindBlock(c, "황금 그림자", goldLine, ix0, y, leftW, INK, MUTE);
+    y += drawMindBlock(c, "원하면서 두려운 것", tensionLine, ix0, y, leftW, INK, MUTE);
 
-    var vLineX = ix0 + 620;
+    var vLineX = ix0 + 622;
     c.save();
     c.strokeStyle = "#DDD9CE"; c.lineWidth = 1.3;
-    c.beginPath(); c.moveTo(vLineX, foldY + 54); c.lineTo(vLineX, y1 - 58); c.stroke();
+    c.beginPath(); c.moveTo(vLineX, foldY + 54); c.lineTo(vLineX, y1 - 72); c.stroke();
     c.restore();
 
-    var qrSize = 168, qrX = ix1 - qrSize - 2, qrY = foldY + 82;
+    var qrSize = 172, qrX = ix1 - qrSize - 4, qrY = foldY + 86;
     qrDraw(c, SITE, qrX, qrY, qrSize, "#111", CARD);
-    c.textAlign = "center"; c.font = fnt(600, 15, CF_UI); c.fillStyle = INK;
-    c.fillText("마음 여행 시작하기", qrX + qrSize / 2, qrY + qrSize + 38);
+    c.textAlign = "center"; c.font = fnt(600, 16, CF_UI); c.fillStyle = INK;
+    c.fillText("마음 여행 시작하기", qrX + qrSize / 2, qrY + qrSize + 42);
 
     c.textAlign = "left"; c.font = fnt(500, 11, CF_NUM); c.fillStyle = MUTE;
-    c.fillText("MY MIND JOURNEY · " + fmtToday(), ix0, y1 - 28);
+    c.fillText("MY MIND JOURNEY · " + fmtToday(), ix0, y1 - 34);
     c.textAlign = "left";
   }
 
