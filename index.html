@@ -834,7 +834,9 @@
     body[data-view="question"] #app{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
     body[data-view="question"] .screen{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
     body[data-view="question"] .screen .mid{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:20px 18px;border-radius:22px}
-    body[data-view="question"] .screen .foot{flex:none;padding-top:14px;padding-bottom:14px}
+    body[data-view="question"] .screen .foot{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px;padding-bottom:12px;flex-wrap:unset}
+    body[data-view="question"] .screen .foot .btn{width:100%;font-size:14px;padding:12px 10px;min-height:0}
+    body[data-view="question"] .screen .foot #skip{grid-column:1/-1;justify-self:center;margin-top:2px}
     body[data-view="question"] .qtext{font-size:20px;line-height:1.58;letter-spacing:-.015em}
     body[data-view="question"] .opt{padding:14px 14px 14px 50px;min-height:64px;line-height:1.58}
     body[data-view="question"] .pick{padding:11px 12px 11px 35px;line-height:1.5}
