@@ -828,11 +828,13 @@
     html,body{overflow-x:hidden}
     .intro-shell{padding:28px 22px 32px!important}
     .intro-copy{padding:0!important}
-    body[data-view="question"] .wrap,
     body[data-view="result"] .wrap,
     body[data-view="route"] .wrap{padding:14px 14px calc(140px + env(safe-area-inset-bottom));min-height:calc(100dvh - 66px)}
-    body[data-view="question"] .screen .mid{padding:20px 18px;border-radius:22px}
-    body[data-view="question"] .screen .foot{padding-top:14px;padding-bottom:8px}
+    body[data-view="question"] .wrap{padding:14px 14px 0;height:calc(100dvh - 165px - env(safe-area-inset-bottom));min-height:0;display:flex;flex-direction:column;overflow:hidden}
+    body[data-view="question"] #app{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+    body[data-view="question"] .screen{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+    body[data-view="question"] .screen .mid{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:20px 18px;border-radius:22px}
+    body[data-view="question"] .screen .foot{flex:none;padding-top:14px;padding-bottom:14px}
     body[data-view="question"] .qtext{font-size:20px;line-height:1.58;letter-spacing:-.015em}
     body[data-view="question"] .opt{padding:14px 14px 14px 50px;min-height:64px;line-height:1.58}
     body[data-view="question"] .pick{padding:11px 12px 11px 35px;line-height:1.5}
@@ -859,9 +861,9 @@
 
   @media (max-width: 380px){
     .intro-shell{padding:24px 18px 28px!important}
-    body[data-view="question"] .wrap,
     body[data-view="result"] .wrap,
     body[data-view="route"] .wrap{padding:12px 12px calc(132px + env(safe-area-inset-bottom))}
+    body[data-view="question"] .wrap{padding:12px 12px 0;height:calc(100dvh - 160px - env(safe-area-inset-bottom));min-height:0}
     body[data-view="question"] .screen .mid{padding:18px 16px}
     body[data-view="question"] .qtext{font-size:18.5px;line-height:1.56}
     .sheetbox .btnrow{grid-template-columns:1fr}
