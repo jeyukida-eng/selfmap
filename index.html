@@ -826,6 +826,8 @@
 <style id="mobile-page-fit-fix">
   @media (max-width: 600px){
     html,body{overflow-x:hidden}
+    .intro-shell{padding:28px 22px 32px!important}
+    .intro-copy{padding:0!important}
     body[data-view="question"] .wrap,
     body[data-view="result"] .wrap,
     body[data-view="route"] .wrap{padding:14px 14px calc(140px + env(safe-area-inset-bottom));min-height:calc(100dvh - 66px)}
@@ -856,6 +858,7 @@
   }
 
   @media (max-width: 380px){
+    .intro-shell{padding:24px 18px 28px!important}
     body[data-view="question"] .wrap,
     body[data-view="result"] .wrap,
     body[data-view="route"] .wrap{padding:12px 12px calc(132px + env(safe-area-inset-bottom))}
