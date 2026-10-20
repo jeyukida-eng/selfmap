@@ -117,7 +117,7 @@ HILL_WID_RATIO = 1.6
 # 수면
 OCEAN_EXTENT_RATIO = 0.25        # 근경 Ocean 크기 = site.water_size × 비율 (나머지는 평면)
 OCEAN_WIND = 4.2                 # m/s — 잔잔한 항구 (작은 파고)
-OCEAN_WAVE_SCALE = 0.55
+OCEAN_WAVE_SCALE = 0.25        # 파고 약 ±0.25 m (std ~0.07 m)
 OCEAN_CHOP = 0.9
 OCEAN_SEED = 7
 HORIZON_FAR = 25000.0            # 원경 평면 반경(수평선까지)
@@ -1070,14 +1070,15 @@ def build_dragon(d, Q, colls, mats):
         c = Vector((sgn * hw * 0.17, L * 0.97, mz0 + gap(0.97) + Hh * 0.30))
         r = bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=7, radius=Hh * 0.075)
         bmesh.ops.translate(bm, verts=r["verts"], vec=c)
-    # 턱수염: 아래턱 밑에서 뒤로 늘어지는 판 5개
+    # 턱수염: 아래턱 밑에서 뒤·아래로 말려 늘어지는 짧은 다발 5개 (끝이 앞으로 살짝 말림)
     for k in range(5):
-        xo = (k - 2) / 2 * hw * 0.35
+        xo = (k - 2) / 2 * hw * 0.40
         pth, rad = [], []
         for j in range(8):
             t = j / 7
-            pth.append(Vector((xo * (1 + 0.3 * t), L * (0.80 - 0.40 * t - 0.03 * abs(k - 2)), mz0 - gap(0.8) - Hh * (0.12 + 0.42 * t))))
-            rad.append(Hh * 0.05 * (1 - 0.8 * t) + 0.004)
+            pth.append(Vector((xo * (1 + 0.4 * t), L * (0.74 - 0.16 * t + 0.06 * t * t - 0.025 * abs(k - 2)),
+                               mz0 - gap(0.74) * 1.15 - Hh * (0.15 + 0.20 * t))))
+            rad.append(Hh * 0.04 * (1 - 0.75 * t) + 0.004)
         tube(pth, rad, 8)
     # 갈기: 목 뒤·옆 불꽃 판(삼각 지느러미)
     for k in range(6):
