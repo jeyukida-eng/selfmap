@@ -9,27 +9,15 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path[:0] = [os.path.join(ROOT, "modeling"), os.path.join(ROOT, "materials")]
+sys.path[:0] = [os.path.join(ROOT, "modeling"), os.path.join(ROOT, "materials"), os.path.join(ROOT, "design")]
 
 import bpy  # noqa: E402
-import numpy as np  # noqa: E402
 from mathutils import Vector  # noqa: E402
 import build_scene  # noqa: E402
+from gen_drawings import interp_flythrough  # 설계 충돌검사와 동일 경로  # noqa: E402
 import world  # noqa: E402
 
 DESIGN = os.path.join(ROOT, "design", "geobukseon_design.json")
-
-
-def catmull_rom(keys, t, field):
-    """균일하지 않은 시간 키프레임 위 Catmull-Rom 보간 (양 끝 반복)."""
-    ts = [k["t"] for k in keys]
-    i = max(0, min(len(keys) - 2, int(np.searchsorted(ts, t, side="right")) - 1))
-    p = [np.array(keys[max(0, min(len(keys) - 1, j))][field], float) for j in (i - 1, i, i + 1, i + 2)]
-    u = (t - ts[i]) / max(1e-6, ts[i + 1] - ts[i])
-    u = u * u * (3 - 2 * u) if i in (0, len(keys) - 2) else u  # 시작·끝 ease
-    u2, u3 = u * u, u * u * u
-    return 0.5 * ((2 * p[1]) + (-p[0] + p[2]) * u + (2 * p[0] - 5 * p[1] + 4 * p[2] - p[3]) * u2
-                  + (-p[0] + 3 * p[1] - 3 * p[2] + p[3]) * u3)
 
 
 def main():
@@ -64,11 +52,11 @@ def main():
         if os.path.exists(path):
             continue
         t = (f - 1) / fps
-        loc = Vector(catmull_rom(keys, t, "cam"))
-        tgt = Vector(catmull_rom(keys, t, "look_at"))
+        p = interp_flythrough(keys, t)
+        loc, tgt = Vector(p["cam"]), Vector(p["look_at"])
         cam.location = loc
         cam.rotation_euler = (tgt - loc).to_track_quat("-Z", "Y").to_euler()
-        cam_data.lens = float(catmull_rom(keys, t, "lens_mm"))
+        cam_data.lens = float(p["lens_mm"])
         scene.frame_set(f)
         scene.render.filepath = path
         t0 = time.time()
