@@ -4,3 +4,4 @@ geobukseon/modeling/*.blend
 geobukseon/modeling/*.blend1
 geobukseon/out/frames/
 __pycache__/
+geobukseon/out/logs_run_final.txt
