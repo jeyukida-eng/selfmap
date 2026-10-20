@@ -118,10 +118,13 @@
       "profile_exponent": 2.0, "profile_exponent_tag": "[가정]",
       "thickness": 0.10, "thickness_tag": "[가정]",
       "spikes": {
-        "spacing": 0.35, "height": 0.12, "exclude_ridge_lane": 0.60,
-        "base_radius": 0.018,
+        "spacing": 0.35, "height": 0.15, "exclude_ridge_lane": 0.60,
+        "base_radius": 0.035,
+        "placement": "hex_vertices",
+        "placement_options": ["hex_vertices", "grid"],
         "tag": "[추정]",
-        "note": "철첨(송곳). 십자 통로(용마루 길이방향 + 중앙 횡방향) 폭 안에는 배치 안 함."
+        "height_tag": "[추정]", "base_radius_tag": "[가정]", "placement_tag": "[추정]",
+        "note": "철첨(송곳). placement=hex_vertices: roof.hex_cell(맞변거리 0.5 m) 육각 격자 꼭짓점에 배치(재질 roof_shell 패턴과 동일 원점·스케일), 그 경우 spacing은 무시. grid는 spacing 정방 격자(구버전). 십자 통로(용마루 길이방향 + 중앙 횡방향) 폭 안에는 배치 안 함. round1 D2: 원경 잔털 방지 위해 base_radius 0.018→0.035, height 0.12→0.15 (S8 사진의 굵은 송곳 인상 기준, 정확 실측 없음)."
       },
       "hex_cell": 0.50, "hex_cell_tag": "[추정]",
       "hex_cell_note": "거북등 육각 무늬 셀 맞변거리(flat-to-flat). 재질 roof_shell의 절차 패턴 스케일.",
@@ -145,12 +148,13 @@
   },
 
   "ghost_face": {
-    "center": [0.0, 11.75, 1.30],
+    "center": [0.0, 11.83, 1.30],
     "width": 1.60,
     "height": 1.20,
-    "normal_tilt_deg": 38,
+    "normal_tilt_deg": -40,
+    "outward_normal": [0.0, 0.766, -0.643],
     "tag": "[추정]",
-    "note": "귀면(鬼面) 판: 이물비우(bow_transom) 경사면 위, 법선은 +Y에서 위로 38° 기울어짐(경사면 수직).",
+    "note": "귀면(鬼面) 판: 이물비우(bow_transom) 경사면 위, center는 z=1.30에서의 면 위(y=9.9+(1.30+1.0)/1.19=11.83). 이물비우는 상단이 앞으로 나온 경사면(수평 대비 50°) → 바깥 법선은 +Y에서 아래로 40° (normal_tilt_deg 음수=아래). 귀면 판은 면에 붙이고 두께는 바깥 법선 방향으로 0.05~0.1 m 돌출.",
     "source_ids": ["S3"]
   },
 
@@ -235,7 +239,7 @@
     "background_hills": {"direction_deg": 70, "distance": 900, "height": 120, "tag": "[가정]", "note": "선택 사항: 동북쪽 원경 섬 실루엣(통영 느낌)."}
   },
 
-  "sun": {"azimuth_deg": 230, "elevation_deg": 25, "tag": "[가정]", "note": "늦은 오후 남서쪽 해. 좌현(서)·선미 쪽이 순광."},
+  "sun": {"azimuth_deg": 260, "elevation_deg": 32, "tag": "[가정]", "note": "늦은 오후 서쪽 해(round1 D4: 230°/25° → 260°/32°, bow34 역광 완화). 좌현(서) 쪽 순광."},
 
   "views": [
     {"id": "bow34", "name": "Port bow 3/4 from quay (eye level)",
