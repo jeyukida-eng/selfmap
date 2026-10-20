@@ -51,6 +51,10 @@ PORT_FRAME_DEPTH = 0.05          # 포혈 테 돌출
 OAR_PORT_R = 0.09                # 노 구멍 반지름 (gen_drawings.py 표기와 동일)
 PORT_CAVITY_DEPTH = 0.25         # 포혈·노 구멍 뒤 어두운 막음 상자 깊이(바깥면 기준)
 PORT_CAVITY_OVER = 1.06          # 막음 상자 크기 = 구멍 × 비율(구멍 벽 뒤로 숨김)
+PATTERN_BAND_RELIEF = 0.015      # 방패판 상·하 철띠 돌출
+PATTERN_POST_RELIEF = 0.02       # 칸 경계 기둥 돌출
+PATTERN_BRACKET_T = 0.012        # 꺾쇠 두께(기둥 위 추가 돌출)
+PATTERN_BRACKET_W = 0.05         # 꺾쇠 팔 폭
 
 # 개판(지붕)
 WALKWAY_RAISE = 0.025            # 통로 판재가 지붕면 위로 뜨는 높이
@@ -68,7 +72,9 @@ DRAGON_SECTIONS_PREVIEW = 22
 DRAGON_SECTIONS_FINAL = 40
 DRAGON_RING = 20                 # 단면 링 버텍스 수
 DRAGON_MOUTH_U = 0.58            # 입꼬리 위치(길이 비율) — gen_drawings 실루엣의 입 노치 0.62L 부근
-DRAGON_HORN_LEN = 0.30           # 뿔 길이 = length × 비율 (≈0.5 m)
+DRAGON_HORN_LEN = 0.30           # 뿔 길이 = length × 비율 (JSON horns.length 없을 때)
+DRAGON_NECK_SINK = 0.6           # 목 밑동을 base 아래로 더 꽂는 길이(갑판까지)
+DRAGON_NECK_RINGS = 5            # 목 비늘 링 수
 
 # 귀면
 GHOST_RELIEF = 0.10              # 귀면 부조 최대 돌출(m)
@@ -88,6 +94,11 @@ YARD_OVER = 1.08                 # 활대 길이 = sail.w × 비율
 YARD_R_RATIO = 0.42              # 활대 반지름 = 돛대 반지름 × 비율
 FURL_DIAM = 0.35                 # 접은 돛 말린 지름 (gen_drawings 0.35)
 FURL_TIES = 7                    # 묶음 끈 수
+SAIL_BILLOW = 0.10               # 살 사이 패널 배부름 = 패널 높이 × 비율
+SAIL_CAMBER = 0.012              # 돛 전체 약한 곡률 = w × 비율
+SAIL_SAG = 0.03                  # 패널 아래로 처짐(m)
+BATTEN_OVER = 0.12               # 살이 돛천 밖으로 나오는 길이
+SHEET_ANCHOR_FRAC = 0.85         # 시트 모이는 점 = 돛 폭 방향 이 비율 위치 아래 지붕
 ROPE_R = 0.018                   # 삭구 반지름
 MOOR_R = 0.032                   # 계류줄 반지름
 ROPE_SAG = 0.035                 # 처짐 = 스팬 × 비율
@@ -375,12 +386,13 @@ def parent_keep(child, parent):
 # =====================================================================================================
 MAT_KEYS = ["hull_wood", "hull_waterline", "roof_shell", "iron_spike", "dragon_head", "ghost_face",
             "wall_panel", "oar_wood", "mast_wood", "sail_cloth", "rope", "flag_cloth", "water",
-            "stone", "ground"]
+            "stone", "ground", "iron_fitting", "bamboo"]
 _FALLBACK_COL = {"hull_wood": (0.12, 0.08, 0.05), "hull_waterline": (0.06, 0.06, 0.04), "roof_shell": (0.06, 0.03, 0.02),
                  "iron_spike": (0.08, 0.05, 0.04), "dragon_head": (0.1, 0.25, 0.15), "ghost_face": (0.4, 0.05, 0.03),
                  "wall_panel": (0.15, 0.05, 0.03), "oar_wood": (0.2, 0.15, 0.1), "mast_wood": (0.18, 0.12, 0.08),
                  "sail_cloth": (0.5, 0.45, 0.38), "rope": (0.3, 0.25, 0.18), "flag_cloth": (0.6, 0.1, 0.1),
-                 "water": (0.01, 0.03, 0.03), "stone": (0.35, 0.33, 0.3), "ground": (0.2, 0.2, 0.12)}
+                 "water": (0.01, 0.03, 0.03), "stone": (0.35, 0.33, 0.3), "ground": (0.2, 0.2, 0.12),
+                 "iron_fitting": (0.02, 0.019, 0.018), "bamboo": (0.35, 0.25, 0.12)}
 
 
 def _simple_mat(name, col, rough=0.6, metal=0.0):
@@ -424,6 +436,7 @@ def load_materials(d):
     mats["_dark"] = _simple_mat("mdl_dark_cavity", (0.006, 0.004, 0.003), 0.9)
     mats["_eye"] = _simple_mat("mdl_eye_gloss", (0.01, 0.008, 0.006), 0.15)
     mats["_ivory"] = _simple_mat("mdl_ivory", (0.55, 0.50, 0.40), 0.45)
+    mats["_mouth"] = _simple_mat("mdl_mouth_red", (0.30, 0.025, 0.018), 0.55)
     mats["_eye"]["note"] = "용두 눈알"
     return mats, used_real
 
@@ -584,16 +597,66 @@ def build_hull(d, Q, colls, mats):
 
     # 가룡 머리(돌출 갑판 밑 보 끝) — 측면 실루엣 디테일
     bm = bmesh.new()
-    y = wy1 - BEAM_END_SPACING / 2
-    while y > wy0:
-        half = max(wc["half"](y), H.sh(y))
-        z = H.sz(y) - dt - BEAM_END_SIZE / 2
-        for s in (-1, 1):
+    bhd = h.get("beam_heads")
+    if bhd:   # v2: JSON 위치·단면·돌출 (상장 벽 외면 + protrude_beyond_wall)
+        sw_, sh_ = bhd["section"]
+        for y in bhd["y"]:
+            half = max(wc["half"](min(max(y, wy0), wy1)), H.sh(y)) + bhd["protrude_beyond_wall"]
+            z = H.sz(y) - bhd["z_below_sheer"]
             inner = H.sh(y) - 0.3
-            add_box(bm, (s * (inner + half + 0.05) / 2, y, z), ((half + 0.05 - inner), BEAM_END_SIZE, BEAM_END_SIZE))
-        y -= BEAM_END_SPACING
+            for sg in (-1, 1):
+                add_box(bm, (sg * (inner + half) / 2, y, z), (half - inner, sw_, sh_))
+    else:
+        y = wy1 - BEAM_END_SPACING / 2
+        while y > wy0:
+            half = max(wc["half"](y), H.sh(y))
+            z = H.sz(y) - dt - BEAM_END_SIZE / 2
+            for sg in (-1, 1):
+                inner = H.sh(y) - 0.3
+                add_box(bm, (sg * (inner + half + 0.05) / 2, y, z), ((half + 0.05 - inner), BEAM_END_SIZE, BEAM_END_SIZE))
+            y -= BEAM_END_SPACING
     mesh_object("BeamEnds", bm, colls["Hull"], [mats["hull_wood"]], angle=30)
+    se = h.get("stern_extension")
+    if se:
+        build_stern_extension(se, Q, colls, mats)
     return H, hull, deck, wc
+
+
+def build_stern_extension(se, Q, colls, mats):
+    """선미 연장 난간재: (y,z) 2차 베지어 각재 rails 개 + 가로대."""
+    p0, c, p1 = (np.array(se[k], float) for k in ("start", "ctrl", "end"))
+    n = 32 if Q["cyl"] > 16 else 20
+    wdt, hgt = se["section"]
+
+    def bez(t):
+        return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * c + t ** 2 * p1
+
+    def tang(t):
+        v = 2 * (1 - t) * (c - p0) + 2 * t * (p1 - c)
+        return v / np.linalg.norm(v)
+    bm = bmesh.new()
+    for x in se["x"]:
+        rings = []
+        for k in range(n + 1):
+            t = k / n
+            yz, tg = bez(t), tang(t)
+            nz = np.array([-tg[1], tg[0]])            # (y,z) 면내 법선
+            if nz[1] < 0:
+                nz = -nz
+            sc_ = 1.0 - 0.25 * t                        # 끝으로 가며 가늘어짐
+            ring = []
+            for dx, dn in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                q = yz + nz * dn * hgt / 2 * sc_
+                ring.append(Vector((x + dx * wdt / 2 * sc_, q[0], q[1])))
+            rings.append(ring)
+        loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
+    xs = se["x"]
+    cs = se["crossbar_section"]
+    for t in se["crossbars_t"]:
+        yz = bez(t)
+        add_box(bm, ((xs[0] + xs[-1]) / 2, yz[0], yz[1]), (abs(xs[-1] - xs[0]) + wdt, cs[0], cs[1]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    mesh_object("SternExtension", bm, colls["Hull"], [mats["hull_wood"]], angle=35)
 
 
 # =====================================================================================================
@@ -606,7 +669,18 @@ def wall_perimeter(d, wc, step):
     y0, y1 = min(s["y"] for s in wst), max(s["y"] for s in wst)
     gw = PANEL_GROOVE_W / 2
     # 측면 y 목록: 패널 경계 y 에 홈 3점
-    seams = list(np.arange(y1 - pw, y0 + pw * 0.5, -pw))
+    gys = sorted((p["y"] for p in d["gun_ports"]["side"]), reverse=True)
+    if d["superstructure"]["wall"].get("panel_pattern") and len(gys) > 1:
+        # v2: 칸 = 포혈마다 1칸 → 경계 = 포혈 사이 중점 (+ 양끝으로 같은 간격 연장)
+        mids = [(a + b) / 2 for a, b in zip(gys, gys[1:])]
+        sp_ = abs(gys[0] - gys[1])
+        while mids[0] + sp_ < y1 - 0.3:
+            mids.insert(0, mids[0] + sp_)
+        while mids[-1] - sp_ > y0 + 0.3:
+            mids.append(mids[-1] - sp_)
+        seams = [m_ for m_ in mids if y0 + 0.2 < m_ < y1 - 0.2]
+    else:
+        seams = list(np.arange(y1 - pw, y0 + pw * 0.5, -pw))
     ys = [(y1, False)]
     for k, s in enumerate(seams):
         prev = y1 if k == 0 else seams[k - 1]
@@ -656,6 +730,67 @@ def wall_perimeter(d, wc, step):
     return per, (y0, y1)
 
 
+def oar_port_frames(d, H, wc):
+    """노 구멍 위치·방향: v2 는 선체 외판(현측) 위 port_z, v1 은 상장 벽. 반환 [(y, sgn, point, outward_normal)]."""
+    o = d["oars"]
+    out = []
+    for y in o["y"]:
+        in_wall = o["port_z"] > H.sz(y) + OAR_PORT_R
+        for sg in (-1, 1):
+            if in_wall:
+                hx, dh = wc["half"](y), wc["half"].deriv(y)
+                n = Vector((sg, -sg * dh, 0)).normalized()
+                pt = Vector((sg * hx, y, o["port_z"]))
+            else:
+                bh, sh, kz, sz = H.bh(y), H.sh(y), H.kz(y), H.sz(y)
+                chine, sheer = Vector((bh, kz)), Vector((sh, sz))
+                sv = sheer - chine
+                nrm2 = Vector((sv.y, -sv.x)).normalized()
+                if nrm2.x < 0:
+                    nrm2 = -nrm2
+                t = (o["port_z"] - kz) / (sz - kz)
+                for _ in range(4):   # 볼록(bulge) 포함한 z 가 port_z 가 되도록 보정
+                    q = chine + sv * t + nrm2 * (HULL_SIDE_BULGE * sv.length * math.sin(math.pi * t))
+                    t += (o["port_z"] - q.y) / sv.y
+                q = chine + sv * t + nrm2 * (HULL_SIDE_BULGE * sv.length * math.sin(math.pi * t))
+                pt = Vector((sg * q.x, y, q.y))
+                dsh = (H.sh(y + 0.01) - H.sh(y - 0.01)) / 0.02
+                n = Vector((sg * nrm2.x, -sg * dsh * 0.5, nrm2.y)).normalized()
+            out.append((y, sg, pt, n))
+    return out
+
+
+def cut_hull_oar_ports(d, H, wc, hull, Q, colls, mats):
+    """v2: 선체 외판에 노 구멍(Boolean) + 노 구멍 테 + 안쪽 어두운 관."""
+    ports = [p for p in oar_port_frames(d, H, wc) if not (d["oars"]["port_z"] > H.sz(p[0]) + OAR_PORT_R)]
+    if not ports:
+        return
+    seg = Q["cyl"]
+    pt_ = d["hull"]["plank_thickness"]
+    cut, frames, cav = bmesh.new(), bmesh.new(), bmesh.new()
+    for y, sg, c, n in ports:
+        add_cyl(cut, c - n * pt_ * 4, c + n * pt_ * 3, OAR_PORT_R, seg=seg)
+        add_cyl(frames, c - n * 0.01, c + n * PORT_FRAME_DEPTH, OAR_PORT_R * 1.7, seg=seg)
+        F = frame_from_z(n)
+        rr_ = OAR_PORT_R * PORT_CAVITY_OVER
+        ring = [Vector((rr_ * math.cos(2 * math.pi * k / seg), rr_ * math.sin(2 * math.pi * k / seg), 0)) for k in range(seg)]
+        fr_ = [cav.verts.new(c + F @ v - n * 0.01) for v in ring]
+        bk_ = [cav.verts.new(c + F @ v - n * PORT_CAVITY_DEPTH) for v in ring]
+        for k in range(seg):
+            cav.faces.new((fr_[k], bk_[k], bk_[(k + 1) % seg], fr_[(k + 1) % seg]))
+        cav.faces.new(bk_)
+    cutter = mesh_object("_cutter_oar", cut, colls["Hull"], smooth=False)
+    fr = mesh_object("OarPortFrames", frames, colls["Hull"], [mats["hull_wood"]], angle=30)
+    mesh_object("OarPortCavities", cav, colls["Hull"], [mats["_dark"]], smooth=False)
+    for ob in (hull, fr):
+        b = ob.modifiers.new("OarHoles", "BOOLEAN")
+        b.operation = "DIFFERENCE"
+        b.solver = "EXACT"
+        b.object = cutter
+        apply_modifiers(ob)
+    bpy.data.objects.remove(cutter)
+
+
 def build_wall(d, H, wc, Q, colls, mats):
     wall_d = d["superstructure"]["wall"]
     per, (y0, y1) = wall_perimeter(d, wc, Q["wall_step"])
@@ -669,7 +804,11 @@ def build_wall(d, H, wc, Q, colls, mats):
         cols.append([Vector((p.x, p.y, zb + (zt - zb) * k / WALL_VSEG)) for k in range(WALL_VSEG + 1)])
     # 링 = 세로 줄(열) → loft 의 '링' 은 열, closed 둘레
     bm = bmesh.new()
+    wv = bm.verts.layers.float.new("wall_v")      # 0 하단(sheer) → 1 상단 (matlib wall_panel 권장 속성)
     vv = [[bm.verts.new(p) for p in c] for c in cols]
+    for col_ in vv:
+        for k, v in enumerate(col_):
+            v[wv] = k / WALL_VSEG
     n = len(vv)
     for i in range(n):
         a, b = vv[i], vv[(i + 1) % n]
@@ -741,7 +880,8 @@ def build_wall(d, H, wc, Q, colls, mats):
         add_box(frames, cc - tx * o, (fw, sz, PORT_FRAME_DEPTH + 0.02), R)
     o = d["oars"]
     seg = Q["cyl"]
-    for y in o["y"]:
+    oar_in_wall = o["port_z"] > H.sz(o["y"][0]) + OAR_PORT_R   # v1: 노 구멍이 상장 벽에 있음 / v2: 선체 외판
+    for y in (o["y"] if oar_in_wall else []):
         for sgn in (-1, 1):
             base, R = side_frame(y, sgn)
             nrm = R.col[2]
@@ -751,11 +891,12 @@ def build_wall(d, H, wc, Q, colls, mats):
             cavity(c, R, [(rr_ * math.cos(2 * math.pi * k / seg), rr_ * math.sin(2 * math.pi * k / seg)) for k in range(seg)])
             # 노 구멍 테(링)
             add_cyl(frames, c - nrm * 0.0, c + nrm * PORT_FRAME_DEPTH, OAR_PORT_R * 1.7, seg=seg)
+    pattern = build_wall_pattern(d, H, wc, side_frame, (y0, y1), Q, colls, mats)
     cutter = mesh_object("_cutter", cut, colls["Superstructure"], smooth=False)
     mesh_object("PortCavities", cav, colls["Superstructure"], [mats["_dark"]], smooth=False)
     # 노 구멍 테는 가운데가 막힘 → 같은 cutter 로 뚫음
     fr = mesh_object("PortFrames", frames, colls["Superstructure"], [mats["hull_wood"]], angle=30)
-    for ob in (wall, fr):
+    for ob in [wall, fr] + ([pattern] if pattern else []):
         b = ob.modifiers.new("Holes", "BOOLEAN")
         b.operation = "DIFFERENCE"
         b.solver = "EXACT"
@@ -763,9 +904,12 @@ def build_wall(d, H, wc, Q, colls, mats):
         apply_modifiers(ob)
     bpy.data.objects.remove(cutter)
 
-    # --- 띠장(하단·상단 rail)
+    # --- 띠장(하단·상단 rail) / v2: 상·하 철띠(iron_band_width, iron_fitting)
+    wpat = wall_d.get("panel_pattern")
+    rail_h = wpat["iron_band_width"] if wpat else WALL_RAIL_H
+    rail_out = PATTERN_BAND_RELIEF if wpat else WALL_RAIL_OUT
     bm = bmesh.new()
-    for z_of, label in ((lambda y: H.sz(y), "bot"), (lambda y: wc["top_z"](y) - WALL_RAIL_H, "top")):
+    for z_of, label in ((lambda y: H.sz(y), "bot"), (lambda y: wc["top_z"](y) - rail_h, "top")):
         rings = []
         for x, y, nx, ny, dent in per[::1]:
             if dent:
@@ -774,15 +918,113 @@ def build_wall(d, H, wc, Q, colls, mats):
             zb = z_of(ye)
             n = Vector((nx, ny, 0))
             p = Vector((x, y, 0))
-            pin, pout = p - n * 0.02, p + n * WALL_RAIL_OUT
+            pin, pout = p - n * 0.02, p + n * rail_out
             rings.append([Vector((pin.x, pin.y, zb)), Vector((pout.x, pout.y, zb)),
-                          Vector((pout.x, pout.y, zb + WALL_RAIL_H)), Vector((pin.x, pin.y, zb + WALL_RAIL_H))])
+                          Vector((pout.x, pout.y, zb + rail_h)), Vector((pin.x, pin.y, zb + rail_h))])
         rings.append(rings[0])
         vv, _ = loft_grid(bm, rings, closed=True)
     bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-    mesh_object("WallRails", bm, colls["Superstructure"], [mats["hull_wood"]], angle=30)
+    mesh_object("WallBands" if wpat else "WallRails", bm, colls["Superstructure"],
+                [mats["iron_fitting"] if wpat else mats["hull_wood"]], angle=30)
     return wall, (y0, y1)
+
+
+def build_wall_pattern(d, H, wc, side_frame, yr, Q, colls, mats):
+    """v2 방패판 문양(실제 얕은 돌출): 칸마다 원형 판(중앙 포혈)+짙은 테, 칸 경계 기둥 + 검은 마름모 철장식,
+    기둥·철띠 모서리 꺾쇠(L). 반환: 포혈로 뚫어야 하는 원형판 오브젝트."""
+    wp = d["superstructure"]["wall"].get("panel_pattern")
+    if not wp:
+        return None
+    y0, y1 = yr
+    gys = sorted((p["y"] for p in d["gun_ports"]["side"]), reverse=True)
+    seg = max(24, Q["cyl"] * 2)
+    disc, ring, iron, posts = bmesh.new(), bmesh.new(), bmesh.new(), bmesh.new()
+    band = wp["iron_band_width"]
+
+    def local(c, R, pts2, z0, z1, bmx):
+        """로컬(x=접선, y=위) 다각형을 법선 방향 z0..z1 로 돌출."""
+        nrm = R.col[2]
+        lo = [bmx.verts.new(c + R @ Vector((px, py, 0)) + nrm * z0) for px, py in pts2]
+        hi = [bmx.verts.new(c + R @ Vector((px, py, 0)) + nrm * z1) for px, py in pts2]
+        n_ = len(pts2)
+        bmx.faces.new(list(reversed(lo)))
+        bmx.faces.new(hi)
+        for k in range(n_):
+            bmx.faces.new((lo[k], lo[(k + 1) % n_], hi[(k + 1) % n_], hi[k]))
+
+    def circle(r, n_):
+        return [(r * math.cos(2 * math.pi * k / n_), r * math.sin(2 * math.pi * k / n_)) for k in range(n_)]
+
+    gz = {p["y"]: p["z"] for p in d["gun_ports"]["side"]}
+    for gy in gys:
+        lo_, hi_ = H.sz(gy), wc["top_z"](gy)
+        dia = min(wp["roundel_diameter_max"], (hi_ - lo_) * wp["roundel_diameter_frac"])
+        rel = wp["roundel_relief"]
+        rw = wp["roundel_ring_width"]
+        for sg in (-1, 1):
+            base, R = side_frame(gy, sg)
+            c = Vector((base.x, base.y, gz[gy]))
+            local(c, R, circle(dia / 2 - rw * 0.5, seg), -0.01, rel, disc)
+            # 테: 바깥 반지름 dia/2, 안쪽 dia/2-rw (관형)
+            nrm = R.col[2]
+            ro, ri = dia / 2, dia / 2 - rw
+            outer_lo = [ring.verts.new(c + R @ Vector((x_, y_, 0)) - nrm * 0.01) for x_, y_ in circle(ro, seg)]
+            outer_hi = [ring.verts.new(c + R @ Vector((x_, y_, 0)) + nrm * (rel + 0.008)) for x_, y_ in circle(ro, seg)]
+            inner_hi = [ring.verts.new(c + R @ Vector((x_, y_, 0)) + nrm * (rel + 0.008)) for x_, y_ in circle(ri, seg)]
+            for k in range(seg):
+                k2 = (k + 1) % seg
+                ring.faces.new((outer_lo[k], outer_lo[k2], outer_hi[k2], outer_hi[k]))
+                ring.faces.new((outer_hi[k], outer_hi[k2], inner_hi[k2], inner_hi[k]))
+    # 칸 경계 = 포혈 사이 중점 (+양끝 연장) — wall_perimeter 의 줄눈과 같은 위치
+    mids = [(a + b) / 2 for a, b in zip(gys, gys[1:])]
+    if len(gys) > 1:
+        sp_ = abs(gys[0] - gys[1])
+        while mids[0] + sp_ < y1 - 0.3:
+            mids.insert(0, mids[0] + sp_)
+        while mids[-1] - sp_ > y0 + 0.3:
+            mids.append(mids[-1] - sp_)
+    pw_ = wp["post_width"]
+    cb = wp["corner_bracket_size"]
+    dm = wp["diamond_between"]
+    bt = PATTERN_BRACKET_T
+    for my in mids:
+        if not (y0 + 0.2 < my < y1 - 0.2):
+            continue
+        lo_, hi_ = H.sz(my), wc["top_z"](my)
+        hgt = hi_ - lo_ - 2 * band
+        mz = (lo_ + hi_) / 2
+        for sg in (-1, 1):
+            base, R = side_frame(my, sg)
+            c = Vector((base.x, base.y, mz))
+            # 기둥(나무, 얕은 돌출)
+            local(c, R, [(-pw_ / 2, -hgt / 2), (pw_ / 2, -hgt / 2), (pw_ / 2, hgt / 2), (-pw_ / 2, hgt / 2)],
+                  -0.01, PATTERN_POST_RELIEF, posts)
+            # 마름모 철장식 (기둥 위)
+            hh = (hi_ - lo_) * dm["h_frac"] / 2
+            ww = dm["w"] / 2
+            local(c, R, [(0, -hh), (ww, 0), (0, hh), (-ww, 0)], PATTERN_POST_RELIEF - 0.005,
+                  PATTERN_POST_RELIEF + dm["relief"], iron)
+            # 꺾쇠(L): 기둥 양옆 × 위·아래
+            for sy in (-1, 1):
+                yb = sy * hgt / 2
+                for sx in (-1, 1):
+                    xe = sx * pw_ / 2
+                    # 가로 팔(철띠 따라)
+                    xa, xb_ = sorted((xe, xe + sx * cb))
+                    ya_, yb_ = sorted((yb, yb - sy * PATTERN_BRACKET_W))
+                    local(c, R, [(xa, ya_), (xb_, ya_), (xb_, yb_), (xa, yb_)], -0.005, PATTERN_POST_RELIEF + bt, iron)
+                    # 세로 팔(기둥 모서리 따라)
+                    ya, yb2 = sorted((yb, yb - sy * cb))
+                    xi, xo = sorted((xe - sx * PATTERN_BRACKET_W * 0.5, xe + sx * PATTERN_BRACKET_W * 0.5))
+                    local(c, R, [(xi, ya), (xo, ya), (xo, yb2), (xi, yb2)], -0.005, PATTERN_POST_RELIEF + bt, iron)
+    for bmx in (disc, ring, iron, posts):
+        bmesh.ops.recalc_face_normals(bmx, faces=bmx.faces[:])
+    ob = mesh_object("WallRoundels", disc, colls["Superstructure"], [mats["hull_wood"]], angle=40)
+    mesh_object("WallRoundelRings", ring, colls["Superstructure"], [mats["iron_fitting"]], angle=40)
+    mesh_object("WallIronFittings", iron, colls["Superstructure"], [mats["iron_fitting"]], angle=40)
+    mesh_object("WallPosts", posts, colls["Superstructure"], [mats["hull_wood"]], angle=40)
+    return ob
 
 
 # =====================================================================================================
@@ -1063,6 +1305,64 @@ def _smooth_profile(keys, u):
     return Curve1D([k[0] for k in keys], [k[1] for k in keys])(u)
 
 
+def build_dragon_neck(dh, Q, colls, mats):
+    """v2 용두 목: base(밑동) → head_base 로 neck_lean 만큼 앞으로 기운 원기둥(반경 neck_radius), 비늘 링 몇 단.
+    밑동은 갑판까지 DRAGON_NECK_SINK 만큼 더 내려 꽂음(떠 보이지 않게)."""
+    b0, b1 = Vector(dh["base"]), Vector(dh["head_base"])
+    r = dh["neck_radius"]
+    ax_ = (b1 - b0).normalized()
+    p0 = b0 - ax_ * DRAGON_NECK_SINK
+    n = 24 if Q["cyl"] > 16 else 14
+    seg = 24
+    bm = bmesh.new()
+    rings = []
+    L_ = (b1 - p0).length
+    for k in range(n + 1):
+        t = k / n
+        c = p0.lerp(b1, t) + Vector((0, 0.06 * math.sin(math.pi * t), 0))   # 약한 S(앞으로 내민 가슴)
+        rr = r * (1.08 - 0.15 * t)
+        F = frame_from_z(ax_, Vector((0, 1, 0)))
+        rings.append([c + F @ Vector((rr * math.cos(2 * math.pi * j / seg), rr * math.sin(2 * math.pi * j / seg) * 1.08, 0))
+                      for j in range(seg)])
+    loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
+    # 비늘 링(얕은 둔덕 띠) + 앞쪽 배비늘 판
+    for k in range(DRAGON_NECK_RINGS):
+        t = (k + 1) / (DRAGON_NECK_RINGS + 1)
+        c = p0.lerp(b1, t) + Vector((0, 0.06 * math.sin(math.pi * t), 0))
+        rr = r * (1.08 - 0.15 * t)
+        F = frame_from_z(ax_, Vector((0, 1, 0)))
+        rr_list = []
+        for j in range(5):
+            a_ = 2 * math.pi * j / 5
+            rr_list.append([c + F @ Vector(((rr + 0.015 + 0.02 * math.cos(a_)) * math.cos(2 * math.pi * i / seg),
+                                            (rr + 0.015 + 0.02 * math.cos(a_)) * math.sin(2 * math.pi * i / seg) * 1.08,
+                                            0.03 * math.sin(a_))) for i in range(seg)])
+        rr_list.append(rr_list[0])
+        loft_grid(bm, rr_list, closed=True)
+    # 목 뒤 갈기(불꽃 판 줄)
+    for k in range(5):
+        t = 0.2 + 0.15 * k
+        c = p0.lerp(b1, t)
+        root = c - Vector((0, r * 0.9, 0))
+        tip = root + Vector((0, -0.28, 0.12))
+        th = Vector((0.015, 0, 0))
+        a = root + ax_ * 0.12
+        b = root - ax_ * 0.12
+        vs = [bm.verts.new(q) for q in (a - th, b - th, tip - th, a + th, b + th, tip + th)]
+        bm.faces.new((vs[0], vs[1], vs[2]))
+        bm.faces.new((vs[5], vs[4], vs[3]))
+        bm.faces.new((vs[0], vs[3], vs[4], vs[1]))
+        bm.faces.new((vs[1], vs[4], vs[5], vs[2]))
+        bm.faces.new((vs[2], vs[5], vs[3], vs[0]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    ob = mesh_object("DragonNeck", bm, colls["Details"], [mats["dragon_head"]], angle=70)
+    sub = ob.modifiers.new("Subdiv", "SUBSURF")
+    sub.levels = 1
+    sub.render_levels = Q["subdiv"]
+    del L_
+    return ob
+
+
 def build_dragon(d, Q, colls, mats):
     """용두. 로컬 +Y=주둥이, +Z=위, 원점=base, 피치는 오브젝트 회전.
     측면 실루엣은 gen_drawings.dragon_polygon_side() 의 윤곽(단위 L,H)에 맞춘 위/아래 윤곽선으로 구성,
@@ -1088,9 +1388,11 @@ def build_dragon(d, Q, colls, mats):
     nk_top = [(-0.3, 0.45), (0.0, 0.45), (0.2, 0.60), (0.35, 0.52), (0.5, 0.56), (0.66, 0.40)]
     nk_bot = [(-0.3, -0.50), (0.0, -0.45), (0.3, -0.37), (0.55, -0.30), (0.66, -0.24)]
     nk_w = [(-0.3, 0.92), (0.0, 0.92), (0.22, 0.84), (0.42, 1.0), (0.56, 1.0), (0.66, 0.86)]
+    has_neck = "head_base" in dh
+    u_start = -0.12 if has_neck else -0.3          # v2: 목은 별도 원기둥 → 머리 뒤끝만 살짝 겹침
     rings = []
     for i in range(nsec + 1):
-        u = -0.3 + 0.96 * i / nsec
+        u = u_start + (0.66 - u_start) * i / nsec
         rings.append(ring_tb(u, P(nk_top, u) * Hh, P(nk_bot, u) * Hh, P(nk_w, u) * hw, 2.3))
     loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
     # 위턱 (u 0.5..1.0): 아랫면 = 입선 + gap
@@ -1127,14 +1429,21 @@ def build_dragon(d, Q, colls, mats):
         return w * (1 - t ** 2.3) ** (1 / 2.3)
 
     # 뿔 2: 머리 위 뒤쪽에서 뒤·위·바깥으로 크게 휘어짐 (길이 ≈ DRAGON_HORN_LEN × L)
-    hl = DRAGON_HORN_LEN * L
-    for sgn in (-1, 1):
-        root = Vector((sgn * hw * 0.42, L * 0.40, Hh * 0.50))
+    hj = dh.get("horns", {})
+    hl = hj.get("length", DRAGON_HORN_LEN * L)
+    ha = math.radians(hj.get("angle_deg", 35))      # 수평 뒤쪽에서 위로 든 각
+    nh = hj.get("count", 2)
+    for hk in range(nh):
+        sgn = -1 if hk % 2 == 0 else 1
+        root = Vector((sgn * hw * 0.42, L * 0.36, Hh * 0.50))
         pth, rad = [], []
         for k in range(12):
             t = k / 11
-            pth.append(root + Vector((sgn * hl * 0.30 * t, -hl * (0.85 * t + 0.10 * t * t), hl * (0.62 * t - 0.25 * t * t))))
-            rad.append(Hh * 0.085 * (1 - 0.88 * t) + 0.004)
+            # 뒤(-Y)·위로 ha 각, 끝으로 갈수록 더 위로 휘고 바깥으로 벌어짐
+            back = hl * t * math.cos(ha) * (1 - 0.15 * t)
+            up = hl * t * math.sin(ha) + hl * 0.25 * t * t
+            pth.append(root + Vector((sgn * hl * 0.32 * t, -back, up)))
+            rad.append(Hh * 0.09 * (1 - 0.9 * t) + 0.004)
         tube(pth, rad, 12)
         b = pth[5]
         pth2, rad2 = [], []
@@ -1185,8 +1494,10 @@ def build_dragon(d, Q, colls, mats):
             bm.faces.new((vs[1], vs[4], vs[5], vs[2]))
             bm.faces.new((vs[2], vs[5], vs[3], vs[0]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-    base = Vector(dh["base"])
+    base = Vector(dh.get("head_base", dh["base"]))
     rot = Matrix.Rotation(math.radians(dh["pitch_deg"]), 4, "X")
+    if has_neck:
+        build_dragon_neck(dh, Q, colls, mats)
     head = mesh_object("DragonHead", bm, colls["Details"], [mats["dragon_head"]], angle=70)
     head.matrix_world = Matrix.Translation(base) @ rot
     sub = head.modifiers.new("Subdiv", "SUBSURF")
@@ -1200,6 +1511,22 @@ def build_dragon(d, Q, colls, mats):
         r = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=Hh * 0.09)
         bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((sgn * (surf_x(eu, ez) - Hh * 0.03), L * eu, ez)))
     eyes = mesh_object("DragonEyes", bm, colls["Details"], [mats["_eye"]], angle=80)
+    bm = bmesh.new()   # 흰 눈 테 (눈알 둘레 토러스)
+    for sgn in (-1, 1):
+        c0 = Vector((sgn * (surf_x(eu, ez) - Hh * 0.03), L * eu, ez))
+        nrm_e = Vector((sgn, 0.25, 0.1)).normalized()
+        F = frame_from_z(nrm_e)
+        rr = []
+        for j in range(5):
+            a_ = 2 * math.pi * j / 5
+            rr.append([c0 + F @ Vector((math.cos(2 * math.pi * k / 20) * (Hh * 0.095 + 0.018 * math.cos(a_)),
+                                         math.sin(2 * math.pi * k / 20) * (Hh * 0.095 + 0.018 * math.cos(a_)),
+                                         Hh * 0.035 + 0.018 * math.sin(a_))) for k in range(20)])
+        rr.append(rr[0])
+        loft_grid(bm, rr, closed=True)
+    ering = mesh_object("DragonEyeRings", bm, colls["Details"], [mats["_ivory"]], angle=80)
+    ering.matrix_world = head.matrix_world.copy()
+    parent_keep(ering, head)
     eyes.matrix_world = head.matrix_world.copy()
     parent_keep(eyes, head)
     # 이빨 + 송곳니
@@ -1221,11 +1548,20 @@ def build_dragon(d, Q, colls, mats):
     r = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=1.0)
     bmesh.ops.scale(bm, vec=Vector((hw * 0.62, L * 0.26, max(mo * 0.5, 0.05))), verts=r["verts"])
     bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((0, L * 0.74, mz0)))
-    mouth = mesh_object("DragonMouth", bm, colls["Details"], [mats["_dark"]])
+    mouth = mesh_object("DragonMouth", bm, colls["Details"], [mats["_mouth"]])
+    bm = bmesh.new()   # 목구멍(포혈) — 입 안쪽 깊은 어둠
+    r = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=max(mo * 0.32, 0.04))
+    bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((0, L * 0.50, mz0)))
+    throat = mesh_object("DragonThroat", bm, colls["Details"], [mats["_dark"]])
+    throat.matrix_world = head.matrix_world.copy()
+    parent_keep(throat, head)
     mouth.matrix_world = head.matrix_world.copy()
     parent_keep(mouth, head)
     # 수염: 윗입술 옆 표면점(+0.04 m)에서 시작 → 바깥(±X)·뒤·아래로 (얼굴 앞을 지나지 않음)
-    for sgn in (-1, 1):
+    wk = dh.get("whiskers", {})
+    wl = wk.get("length", 0.30 * L * 1.6)
+    for wi in range(wk.get("count", 2)):
+        sgn = -1 if wi % 2 == 0 else 1
         u0 = 0.90
         z0 = mz0 + gap(u0) + 0.05 * Hh
         start = Vector((sgn * (P(up_w, u0) * hw + 0.04), L * u0, z0))
@@ -1233,10 +1569,10 @@ def build_dragon(d, Q, colls, mats):
         for k in range(16):
             t = k / 15
             # 입가에서 바깥으로 뻗었다가 아래로 늘어져 끝이 살짝 말림
-            pts.append(start + Vector((sgn * (0.30 * L * math.sin(0.5 * math.pi * t)), -L * 0.10 * t + L * 0.06 * math.sin(math.pi * t),
-                                       -Hh * (0.55 * t * t) + Hh * 0.08 * math.sin(math.pi * t))))
+            pts.append(start + Vector((sgn * (0.55 * wl * math.sin(0.5 * math.pi * t)), -0.25 * wl * t + 0.12 * wl * math.sin(math.pi * t),
+                                       -0.75 * wl * t * t + 0.12 * wl * math.sin(math.pi * t))))
         pts = [head.matrix_world @ p for p in pts]
-        wob = rope_curve(f"DragonWhisker_{'L' if sgn < 0 else 'R'}", pts, 0.012, colls["Details"], mats["dragon_head"])
+        wob = rope_curve(f"DragonWhisker_{wi}", pts, 0.014, colls["Details"], mats["dragon_head"])
         parent_keep(wob, head)
     return head
 
@@ -1337,7 +1673,7 @@ def build_ghost_face(d, H, Q, colls, mats):
 # =====================================================================================================
 # 노
 # =====================================================================================================
-def build_oars(d, wc, Q, colls, mats):
+def build_oars(d, H, wc, Q, colls, mats):
     o = d["oars"]
     Lt = o["length"]
     li = Lt * o["inboard_fraction"]
@@ -1371,23 +1707,101 @@ def build_oars(d, wc, Q, colls, mats):
     me.materials.append(mats["oar_wood"])
     a = math.radians(o["angle_deg"])
     obs = []
-    for i, y in enumerate(o["y"]):
-        for sgn in (-1, 1):
-            hx = wc["half"](y)
-            out_h = lo * math.cos(a)
-            dirv = Vector((sgn * out_h, -OAR_AFT_SWEEP, -lo * math.sin(a))).normalized()
-            F = frame_from_z(dirv, Vector((0, 0, 1)))
-            # 날 너비축(로컬 X) = 수평 접선 → 날 면이 대략 위/아래를 향함
-            ob = bpy.data.objects.new(f"Oar_{'P' if sgn < 0 else 'S'}{i:02d}", me)
-            ob.matrix_world = Matrix.Translation((sgn * hx, y, o["port_z"])) @ F.to_4x4()
-            colls["Details"].objects.link(ob)
-            obs.append(ob)
+    for (y, sgn, pt, n_) in oar_port_frames(d, H, wc):
+        i = o["y"].index(y)
+        out_h = lo * math.cos(a)
+        dirv = Vector((sgn * out_h, -OAR_AFT_SWEEP, -lo * math.sin(a))).normalized()
+        F = frame_from_z(dirv, Vector((0, 0, 1)))
+        ob = bpy.data.objects.new(f"Oar_{'P' if sgn < 0 else 'S'}{i:02d}", me)
+        ob.matrix_world = Matrix.Translation(pt) @ F.to_4x4()
+        colls["Details"].objects.link(ob)
+        obs.append(ob)
     return obs
 
 
 # =====================================================================================================
 # 돛대·돛·삭구·깃발
 # =====================================================================================================
+def build_raised_sail(i, m, mo, R, Q, colls, mats):
+    """세운 대살 돛(batten lug): gen_drawings.sail_rect() 와 같은 사각형.
+    폭 방향 u=(sin yaw, cos yaw), 돛대 축에서 a=-mast_offset_frac·w … a+w, z=bottom_z … bottom_z+h.
+    돛천 = 살 사이 패널(살마다 약한 배부름), 살 = bamboo 원기둥(로컬 Z=길이, linked duplicate), 시트 줄 부채꼴."""
+    sl = m["sail"]
+    w, h = sl["w"], sl["h"]
+    yaw = math.radians(sl.get("yaw_deg", 90))
+    u = Vector((math.sin(yaw), math.cos(yaw), 0))
+    nrm = Vector((u.y, -u.x, 0))                       # 돛 면 법선(수평)
+    nb = max(2, sl.get("battens", 10))
+    bd = sl.get("batten_diameter", 0.07)
+    a = -sl.get("mast_offset_frac", 0.5) * w
+    z0 = sl["bottom_z"]
+    if m.get("lowered"):
+        return
+    r_m = m["diameter"] / 2
+    off = nrm * (r_m + bd / 2 + 0.02)                 # 돛대 앞면에 붙음(관통 방지)
+    base = Vector((0, m["y"], 0)) + off
+    nu = 24 if Q["cyl"] > 16 else 14
+    nv = 6 if Q["cyl"] > 16 else 4
+    bm = bmesh.new()
+    rows = []
+    for k in range(nb - 1):
+        for j in range(nv + (1 if k == nb - 2 else 0)):
+            v = j / nv
+            zz = z0 + h * (k + v) / (nb - 1)
+            row = []
+            for q in range(nu + 1):
+                t = q / nu
+                billow = SAIL_BILLOW * (h / (nb - 1)) * math.sin(math.pi * v) * (0.35 + 0.65 * math.sin(math.pi * t))
+                camber = SAIL_CAMBER * w * math.sin(math.pi * t) * (0.6 + 0.4 * (zz - z0) / h)
+                row.append(base + u * (a + w * t) + nrm * (billow + camber) + Vector((0, 0, zz - SAIL_SAG * v * (1 - v))))
+            rows.append(row)
+    loft_grid(bm, rows)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    sail = mesh_object(f"Sail{i}", bm, colls["Rigging"], [mats["sail_cloth"]], angle=70)
+    parent_keep(sail, mo)
+    # 살(대나무): 한 메시, 살마다 오브젝트 (로컬 Z = 살 길이)
+    seg = 10 if Q["cyl"] <= 16 else 14
+    bmb = bmesh.new()
+    add_cyl(bmb, (0, 0, -BATTEN_OVER), (0, 0, w + BATTEN_OVER), bd / 2, seg=seg)
+    bme = bpy.data.meshes.new(f"Batten{i}")
+    auto_smooth(bmb, 50)
+    bmb.to_mesh(bme)
+    bmb.free()
+    bme.materials.append(mats["bamboo"])
+    F = frame_from_z(u, Vector((0, 0, 1)))
+    ends = []
+    for k in range(nb):
+        zz = z0 + h * k / (nb - 1)
+        camber = SAIL_CAMBER * w * 0.0
+        p0 = base + u * a + nrm * (bd * 0.6 + camber) + Vector((0, 0, zz))
+        bo = bpy.data.objects.new(f"Sail{i}_Batten{k:02d}", bme)
+        bo.matrix_world = Matrix.Translation(p0) @ F.to_4x4()
+        colls["Rigging"].objects.link(bo)
+        parent_keep(bo, mo)
+        ends.append((p0 + u * w, zz))
+    # 할야드: 맨 위 살(활대 역할) 돛대 쪽 → 돛대 끝
+    top = Vector((0, m["y"], m["base_z"] + m["height"] - 0.1))
+    ytop = base + Vector((0, 0, z0 + h))
+    rope_curve(f"Halyard{i}", [top, ytop], ROPE_R, colls["Rigging"], mats["rope"])
+    # 시트: 짝수 번째 살 뒤끝 → 지붕 위 한 점(부채꼴)
+    tx = base + u * (a + w * SHEET_ANCHOR_FRAC)
+    hx = R.c["half"](tx.y)
+    xx = max(-hx * 0.9, min(hx * 0.9, tx.x))
+    zr = R.c["eave_z"](tx.y) + (R.c["ridge_z"](tx.y) - R.c["eave_z"](tx.y)) * \
+        max(0.0, 1 - abs(xx / hx) ** R.p) ** (1 / R.p)
+    anchor = Vector((xx, tx.y, zr + 0.05))
+    for k, (pe, zz) in enumerate(ends):
+        if k % 2 == 1 or k == nb - 1:
+            continue
+        rope_curve(f"Sheet{i}_{k:02d}", catenary_points(pe, anchor, (pe - anchor).length * ROPE_SAG * 0.6, 12),
+                   ROPE_R * 0.8, colls["Rigging"], mats["rope"])
+    # 돛 앞 끝(러프)을 돛대에 매는 고리 줄(몇 개)
+    for k in range(0, nb, 3):
+        zz = z0 + h * k / (nb - 1)
+        rope_curve(f"Parrel{i}_{k:02d}", [Vector((0, m["y"], zz)) - off * 0.2, base + Vector((0, 0, zz)) + u * 0.0],
+                   ROPE_R * 0.9, colls["Rigging"], mats["rope"])
+
+
 def build_rigging(d, H, wc, R, Q, colls, mats):
     seg = Q["cyl"]
     masts = []
@@ -1416,6 +1830,10 @@ def build_rigging(d, H, wc, R, Q, colls, mats):
         add_cyl(bm, (0, 0, zr - 0.25), (0, 0, zr + 0.18), r0 * 1.9, r0 * 1.5, seg=seg)
         collar = mesh_object(f"Mast{i}_Partner", bm, colls["Rigging"], [mats["hull_wood"]], angle=50)
         collar.matrix_world = Matrix.Translation((0, m["y"], m["base_z"]))
+        if m["sail"].get("state") == "raised":
+            build_raised_sail(i, m, mo, R, Q, colls, mats)
+            masts.append((mo, m, None, None))
+            continue
         # 활대(로컬 Z 결 → X 방향으로 눕힘)
         sw = m["sail"]["w"]
         yl = sw * YARD_OVER
@@ -1474,6 +1892,8 @@ def build_rigging(d, H, wc, R, Q, colls, mats):
     wall_st = d["superstructure"]["wall"]["stations"]
     wy0, wy1 = min(s["y"] for s in wall_st), max(s["y"] for s in wall_st)
     for i, (mo, m, zy, yfwd) in enumerate(masts):
+        if zy is None:     # 세운 돛: 삭구는 build_raised_sail 에서
+            continue
         top = mo.matrix_world @ Vector((0, 0, m["height"] - 0.15))
         yardc = mo.matrix_world @ Vector((0, yfwd, zy + 0.05))
         rope_curve(f"Halyard{i}", [top + Vector((0, 0.1, 0)), yardc], ROPE_R * 0.8, colls["Rigging"], mats["rope"])
@@ -1969,7 +2389,7 @@ def build_cameras(d, colls, sc):
         cd = bpy.data.cameras.new("CAM_" + v["id"])
         cd.lens = v["lens_mm"]
         cd.sensor_width = v.get("sensor_mm", 36)
-        cd.sensor_fit = "HORIZONTAL"
+        cd.sensor_fit = v.get("sensor_fit", "HORIZONTAL")
         cd.shift_x = v.get("shift_x", 0.0)
         cd.shift_y = v.get("shift_y", 0.0)
         cd.clip_start = 0.1
@@ -1981,6 +2401,9 @@ def build_cameras(d, colls, sc):
         ob.rotation_mode = "XYZ"
         ob.rotation_euler = (la - c).to_track_quat("-Z", "Y").to_euler()
         ob["look_at"] = list(la)
+        if "ref_aspect" in v:
+            ob["ref_aspect"] = float(v["ref_aspect"])     # 렌더 스크립트가 해상도 비율 결정에 사용
+            cd["ref_aspect"] = float(v["ref_aspect"])
         cams[v["id"]] = ob
     sc.camera = cams.get("bow34") or next(iter(cams.values()))
     return cams
@@ -1995,11 +2418,12 @@ def build(design_path=DEFAULT_DESIGN, quality="preview"):
     sc, colls = new_scene()
     mats, real = load_materials(d)
     H, hull, deck, wc = build_hull(d, Q, colls, mats)
+    cut_hull_oar_ports(d, H, wc, hull, Q, colls, mats)
     build_wall(d, H, wc, Q, colls, mats)
     R, roof, nsp = build_roof(d, Q, colls, mats)
     build_dragon(d, Q, colls, mats)
     build_ghost_face(d, H, Q, colls, mats)
-    build_oars(d, wc, Q, colls, mats)
+    build_oars(d, H, wc, Q, colls, mats)
     build_rigging(d, H, wc, R, Q, colls, mats)
     build_rudder_props(d, H, wc, Q, colls, mats)
     build_site(d, Q, colls, mats)

@@ -1,5 +1,5 @@
 """모델링 자체 확인용 저샘플 렌더: views 4개 카메라 → modeling/check_<id>.png
-실행: /opt/bvenv/bin/python modeling/quick_check.py [--blend modeling/geobukseon.blend | --build] [--samples 32] [--res 640x360] [--views bow34,side]
+실행: /opt/bvenv/bin/python modeling/quick_check.py [--blend modeling/geobukseon.blend | --build] [--samples 32] [--res auto|WxH] [--views bow34,side]
 """
 import argparse
 import os
@@ -17,7 +17,8 @@ def main():
     ap.add_argument("--build", action="store_true", help="blend 대신 build_scene.build() 로 새로 구성")
     ap.add_argument("--quality", default="preview")
     ap.add_argument("--samples", type=int, default=32)
-    ap.add_argument("--res", default="640x360")
+    ap.add_argument("--res", default="auto", help="WxH 또는 auto(카메라 ref_aspect, 긴 변 --long)")
+    ap.add_argument("--long", type=int, default=640)
     ap.add_argument("--views", default="")
     ap.add_argument("--prefix", default="check_")
     a = ap.parse_args()
@@ -28,13 +29,11 @@ def main():
     else:
         bpy.ops.wm.open_mainfile(filepath=os.path.abspath(a.blend))
         sc = bpy.context.scene
-    w, h = (int(v) for v in a.res.lower().split("x"))
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
     sc.cycles.samples = a.samples
     sc.cycles.use_adaptive_sampling = True
     sc.cycles.use_denoising = True
-    sc.render.resolution_x, sc.render.resolution_y = w, h
     sc.render.resolution_percentage = 100
     sc.render.image_settings.file_format = "PNG"
     want = [v for v in a.views.split(",") if v]
@@ -47,6 +46,12 @@ def main():
         if want and vid not in want:
             continue
         sc.camera = cam
+        if a.res == "auto":
+            asp = float(cam.get("ref_aspect", 16 / 9))
+            w, h = (a.long, round(a.long / asp)) if asp >= 1 else (round(a.long * asp), a.long)
+        else:
+            w, h = (int(v) for v in a.res.lower().split("x"))
+        sc.render.resolution_x, sc.render.resolution_y = w, h
         out = os.path.join(HERE, f"{a.prefix}{vid}.png")
         sc.render.filepath = out
         t = time.time()
@@ -54,7 +59,7 @@ def main():
         dt = time.time() - t
         total += dt
         print(f"[quick_check] {vid}: {dt:.1f} s -> {out}")
-    print(f"[quick_check] total render {total:.1f} s ({a.samples} spp, {w}x{h})")
+    print(f"[quick_check] total render {total:.1f} s ({a.samples} spp, res {a.res})")
 
 
 if __name__ == "__main__":
