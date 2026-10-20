@@ -1,7 +1,7 @@
 # materials/ — 절차적 재질·하늘·렌더 설정 (Blender 5.2)
 
 - `matlib.py` — `build_all(hex_cell=0.9, hex_line_w=0.035, roof_arc_attr="roof_s", rebuild=True, dragon_style="wood", ghost_style="black", wall_style="natural") -> dict`
-- `world.py` — `setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0, dust=1.6, auto_exposure=True, exposure_bias=0.8, sun_angle_deg=1.5, clouds=0.35)`, `setup_render(scene, engine, quality, res=(1920,1080))`
+- `world.py` — `setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0, dust=1.6, auto_exposure=True, exposure_bias=0.8, sun_angle_deg=1.5, clouds=0.35, fill_mult=1.6)`, `setup_render(scene, engine, quality, res=(1920,1080))`
 - `preview_matlib.py` — 견본 렌더 `/opt/bvenv/bin/python materials/preview_matlib.py` → `matlib_preview.png`(Cycles), `matlib_preview_eevee.png`
 
 이미지 텍스처와 UV는 쓰지 않는다. 패턴 좌표는 Object 좌표(m 단위, **오브젝트 스케일이 1로 적용된 상태를 가정**)나 Generated 좌표(바운딩박스 0..1)를 쓴다. 물때·먼지는 월드 Position.z(수선 z=0)와 월드 Normal을 기준으로 한다.
@@ -38,6 +38,14 @@
 | 용두 | bow34(55-110,150-200) / aerial | (0.028,0.024,0.025) / (0.057,0.026,0.027) | dragon_wood 0.034,0.026,0.023 |
 | 돛 | bow34(220-300,60-140) / aerial | (0.67,0.49,0.32) / (0.50,0.24,0.08) | sail 0.42,0.29,0.16 |
 | 철물·철첨 | 시각 판정(흑색) | — | iron 0.020,0.019,0.018 |
+
+## 라운드2 보정 (A1/L1/T1–T3)
+- 목재(hull_wood·wall_panel) 중심을 sRGB(140,68,30)으로 맞춤(선형 0.20–0.33, 0.046–0.078, 0.010–0.017). 풍화·물때·AO 오염은 30% 줄임.
+- 돛 sRGB(205,165,115), Translucent 0.2. AO와 칸별 음영을 없애고 직조 노이즈(400/m, bump 0.05), 활대 간격 처짐 음영(±6%), 얼룩 10%를 넣음.
+- 개판 sRGB(95,95,102) 회청 슬레이트(선형 0.098–0.135, 파랑 +15%).
+- T2: hull_wood에 나무못(판 중심선, 0.6m 간격, 지름 약 3cm, 행마다 엇갈림). wall_panel `natural`에 패판 경계 중앙 높이의 나비형 흑철 패치(폭 0.35m, Metallic 0.7).
+- T1: water를 Principled 1개(투과 0.8 + 몸체 0.2, 거품은 값 혼합)로 재구성. Cycles의 'closures 68>64' 경고가 사라짐.
+- L1: 하늘 보조광 `fill_mult=1.6`. 확산·간접 광선에만 하늘 세기를 ×1.6 하고, 카메라에 보이는 하늘과 반사는 그대로 둠. EEVEE는 Light Path가 제한적이라 프로브 반사에도 적용될 수 있음.
 
 ## world.py
 - 하늘: `MULTIPLE_SCATTERING`('NISHITA'를 대체). `sun_rotation`에는 방위각을 그대로 넣는다(북 0°, 동 90°).
