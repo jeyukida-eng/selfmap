@@ -1,1 +1,5 @@
 00:28.303  cycles           | WARNING CUEW initialization failed: Error opening the library
+[still] bow34 1600x1200 sun=310/25 675s -> /home/user/selfmap/geobukseon/out/still_bow34.png
+[still] side 1600x848 sun=115/35 498s -> /home/user/selfmap/geobukseon/out/still_side.png
+[still] stern34 1066x1600 sun=135/42 560s -> /home/user/selfmap/geobukseon/out/still_stern34.png
+[still] aerial 1200x1600 sun=30/38 559s -> /home/user/selfmap/geobukseon/out/still_aerial.png
