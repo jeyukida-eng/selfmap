@@ -47,7 +47,10 @@ PANEL_GROOVE_D = 0.02            # 줄눈 깊이
 WALL_RAIL_H = 0.14               # 벽 하단·상단 띠장(rail) 높이
 WALL_RAIL_OUT = 0.05             # 띠장 돌출
 PORT_FRAME_RATIO = 0.18          # 포혈 테 폭 = 포혈 크기 × 비율
-PORT_FRAME_DEPTH = 0.05          # 포혈 테 돌출
+PORT_FRAME_DEPTH = 0.04          # 포혈(사각) 테 돌출 — 선수·선미 막음벽 포혈
+ROUND_PORT_RATIO = 0.625         # 원형 문양판 안 둥근 포혈 지름 = gun_ports.size × 비율 (0.32 → 0.20 m)
+ROUND_PORT_RING_W = 0.03         # 둥근 포혈 철테 폭
+ROUND_PORT_RING_T = 0.012        # 철테 돌출(문양판 위)
 OAR_PORT_R = 0.09                # 노 구멍 반지름 (gen_drawings.py 표기와 동일)
 PORT_CAVITY_DEPTH = 0.25         # 포혈·노 구멍 뒤 어두운 막음 상자 깊이(바깥면 기준)
 PORT_CAVITY_OVER = 1.06          # 막음 상자 크기 = 구멍 × 비율(구멍 벽 뒤로 숨김)
@@ -85,8 +88,9 @@ JAW_DROP = 1.6                   # 아래턱이 내려가는 양 = gap × 비율
 FANG_LEN = 0.15                  # 흰 송곳니 길이(m)
 
 # 귀면
-GHOST_RELIEF = 0.10              # 귀면 부조 최대 돌출(m)
-GHOST_BACKING = 0.06             # 귀면 판 두께
+GHOST_RELIEF = 0.065             # 귀면 부조 최대 돌출(m) (부조 함수 최대 ≈1)
+GHOST_BACKING = 0.035            # 귀면 판 두께 (JSON note: 돌출 0.05~0.1 m — 판+부조 최대 ≈0.1)
+GHOST_EYE_BULGE = 0.05           # 흰 눈알 돔 깊이
 
 # 노
 OAR_AFT_SWEEP = 0.6              # 노 끝의 선미 방향 후퇴량(m) — gen_drawings.py 평면/측면도와 동일
@@ -854,17 +858,18 @@ def build_wall(d, H, wc, Q, colls, mats):
         return Vector((sgn * hx, y, 0)), R
 
     ports = []
+    round_side = bool(wall_d.get("panel_pattern"))
     for p in g["side"]:
         for sgn in (-1, 1):
             base, R = side_frame(p["y"], sgn)
-            ports.append((Vector((base.x, base.y, p["z"])), R))
+            ports.append((Vector((base.x, base.y, p["z"])), R, round_side))
     for key, ny in (("bow", 1), ("stern", -1)):
         for p in g.get(key, []):
             n = Vector((0, ny, 0))
             t = Vector((0, 0, 1)).cross(n).normalized()
             R = Matrix((t, Vector((0, 0, 1)), n)).transposed()
             yy = y1 if ny > 0 else y0
-            ports.append((Vector((p["x"], yy, p["z"])), R))
+            ports.append((Vector((p["x"], yy, p["z"])), R, False))
     fw = sz * PORT_FRAME_RATIO
     cav = bmesh.new()
 
@@ -879,12 +884,35 @@ def build_wall(d, H, wc, Q, colls, mats):
             cav.faces.new((front[k], back[k], back[(k + 1) % n_], front[(k + 1) % n_]))
         cav.faces.new(back)
 
-    for c, R in ports:
+    round_ring = bmesh.new()
+    seg_r = max(20, Q["cyl"] + 4)
+    for c, R, is_round in ports:
+        nrm = R.col[2]
+        if is_round:
+            # 원형 문양판 중앙의 작은 둥근 포혈 + 얇은 철테 (문양판 표면 위)
+            rh_ = sz * ROUND_PORT_RATIO / 2
+            add_cyl(cut, c - nrm * thick * 3, c + nrm * thick * 3, rh_, seg=seg_r)
+            rr_ = rh_ * PORT_CAVITY_OVER
+            cavity(c, R, [(rr_ * math.cos(2 * math.pi * k / seg_r), rr_ * math.sin(2 * math.pi * k / seg_r))
+                          for k in range(seg_r)])
+            relief = wall_d["panel_pattern"]["roundel_relief"]
+            F = R
+            ro, ri = rh_ + ROUND_PORT_RING_W, rh_
+            ring_pts = [(math.cos(2 * math.pi * k / seg_r), math.sin(2 * math.pi * k / seg_r)) for k in range(seg_r)]
+            lo_o = [round_ring.verts.new(c + F @ Vector((ro * x_, ro * y_, 0)) + nrm * (relief - 0.005)) for x_, y_ in ring_pts]
+            hi_o = [round_ring.verts.new(c + F @ Vector((ro * x_, ro * y_, 0)) + nrm * (relief + ROUND_PORT_RING_T)) for x_, y_ in ring_pts]
+            hi_i = [round_ring.verts.new(c + F @ Vector((ri * x_, ri * y_, 0)) + nrm * (relief + ROUND_PORT_RING_T)) for x_, y_ in ring_pts]
+            lo_i = [round_ring.verts.new(c + F @ Vector((ri * x_, ri * y_, 0)) - nrm * thick) for x_, y_ in ring_pts]
+            for k in range(seg_r):
+                k2 = (k + 1) % seg_r
+                round_ring.faces.new((lo_o[k], lo_o[k2], hi_o[k2], hi_o[k]))
+                round_ring.faces.new((hi_o[k], hi_o[k2], hi_i[k2], hi_i[k]))
+                round_ring.faces.new((hi_i[k], hi_i[k2], lo_i[k2], lo_i[k]))
+            continue
         add_box(cut, c, (sz, sz, thick * 6), R)
         hs_ = sz / 2 * PORT_CAVITY_OVER
         cavity(c, R, [(-hs_, -hs_), (hs_, -hs_), (hs_, hs_), (-hs_, hs_)])
-        # 테(4변)
-        nrm = R.col[2]
+        # 테(4변) — 원형 문양 없는 선수·선미 포혈만, 얇게
         cc = c + nrm * (PORT_FRAME_DEPTH / 2)
         tx, up = R.col[0], R.col[1]
         o = sz / 2 + fw / 2
@@ -907,6 +935,10 @@ def build_wall(d, H, wc, Q, colls, mats):
             add_cyl(frames, c - nrm * 0.0, c + nrm * PORT_FRAME_DEPTH, OAR_PORT_R * 1.7, seg=seg)
     pattern = build_wall_pattern(d, H, wc, side_frame, (y0, y1), Q, colls, mats)
     cutter = mesh_object("_cutter", cut, colls["Superstructure"], smooth=False)
+    if round_ring.verts:
+        mesh_object("PortRings", round_ring, colls["Superstructure"], [mats["iron_fitting"]], angle=40)
+    else:
+        round_ring.free()
     mesh_object("PortCavities", cav, colls["Superstructure"], [mats["_dark"]], smooth=False)
     # 노 구멍 테는 가운데가 막힘 → 같은 cutter 로 뚫음
     fr = mesh_object("PortFrames", frames, colls["Superstructure"], [mats["hull_wood"]], angle=30)
@@ -1696,6 +1728,32 @@ def build_ghost_face(d, H, Q, colls, mats):
     M = Matrix((xax, n, upslope)).transposed()   # local x→X, local +Y→n, local Z→upslope
     ob.matrix_world = Matrix.Translation(Vector((gf["center"][0], yc, zc)) + n * 0.005) @ M.to_4x4()
     ob["placed_center"] = (gf["center"][0], yc, zc)
+    # 보조 메시: 흰 눈알(돔)·검은 눈동자·흰 이빨/송곳니 — matlib ghost_face 그림 위치(Generated)에 맞춤
+    def lp(u, v, lift=0.0):
+        return Vector(((u - 0.5) * W, GHOST_BACKING + GHOST_RELIEF * relief(u, v) + lift, (v - 0.5) * Hf))
+    bm = bmesh.new()
+    pup = bmesh.new()
+    for cx in (0.3, 0.7):
+        r = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=1.0)
+        bmesh.ops.scale(bm, vec=Vector((0.11 * W, GHOST_EYE_BULGE, 0.085 * Hf)), verts=r["verts"])
+        bmesh.ops.translate(bm, verts=r["verts"], vec=lp(cx, 0.64, -GHOST_EYE_BULGE * 0.35))
+        r = bmesh.ops.create_uvsphere(pup, u_segments=12, v_segments=8, radius=1.0)
+        bmesh.ops.scale(pup, vec=Vector((0.045 * W, GHOST_EYE_BULGE * 0.5, 0.045 * Hf)), verts=r["verts"])
+        bmesh.ops.translate(pup, verts=r["verts"], vec=lp(cx, 0.64, GHOST_EYE_BULGE * 0.55))
+    # 위 이빨 줄(아래로) + 아래 이빨(위로) + 송곳니 2 (위로 크게)
+    for k in range(9):
+        u = 0.5 + (k - 4) * 0.065
+        for top, sgn_ in ((0.335, -1), (0.205, 1)):
+            p0 = lp(u, top, -0.005)
+            add_cyl(bm, p0, p0 + Vector((0, 0.01, sgn_ * 0.055 * Hf)), 0.018, 0.002, seg=6)
+    for cx in (0.26, 0.74):
+        p0 = lp(cx, 0.20, -0.005)
+        add_cyl(bm, p0, p0 + Vector((0, 0.02, 0.17 * Hf)), 0.035, 0.003, seg=8)
+    ivo = mesh_object("GhostFaceIvory", bm, colls["Details"], [mats["_ivory"]], angle=70)
+    pu = mesh_object("GhostFacePupils", pup, colls["Details"], [mats["_eye"]], angle=70)
+    for o_ in (ivo, pu):
+        o_.matrix_world = ob.matrix_world.copy()
+        parent_keep(o_, ob)
     ob["normal_tilt_deg_geometry"] = math.degrees(math.atan2(n.z, n.y))
     return ob
 
@@ -1823,13 +1881,20 @@ def build_raised_sail(i, m, mo, R, Q, colls, mats):
     ya = min(m["y"] - SHEET_AFT, free_end.y - SHEET_AFT * 0.5)
     xa, za = roof_z(free_end.x * 0.6 + nrm.x * SHEET_SIDE, ya)
     anchor = Vector((xa, ya, za + 0.08))
+
+    def push_side(X, need):
+        dd = (X - base).dot(nrm)
+        return X + nrm * (need - dd) if dd < need else X
+    anchor = push_side(anchor, SHEET_SIDE)
+    xa, za = roof_z(anchor.x, anchor.y)
+    anchor = Vector((xa, anchor.y, za + 0.08))
     groups = [ends[g::SHEET_GROUPS] for g in range(SHEET_GROUPS)]
     for g, grp in enumerate(groups):
         if not grp:
             continue
         zc = sum(zz for _, zz in grp) / len(grp)
         crow = free_end.lerp(anchor, SHEET_CROW_T) + Vector((0, 0, (zc - free_end.z) * (1 - SHEET_CROW_T)))
-        crow += nrm * SHEET_SIDE * 0.5
+        crow = push_side(crow, SHEET_SIDE * 0.6)
         for k, (pe, zz) in enumerate(grp):
             rope_curve(f"Sheet{i}_{g}_{k:02d}", catenary_points(pe + nrm * bd, crow, 0.05, 10), SHEET_R,
                        colls["Rigging"], mats["rope"])

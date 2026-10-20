@@ -13,12 +13,13 @@ import bpy
 
 # 참고 사진(refs/ref_*.jpg, 전쟁기념관 복원선) 고유색 샘플 → 선형 albedo 기준값 (README 표 참고)
 REF = {
-    "hull_dark": (0.080, 0.034, 0.015), "hull_light": (0.215, 0.098, 0.040),     # 적갈~꿀색 소나무
-    "board_dark": (0.115, 0.044, 0.018), "board_light": (0.245, 0.098, 0.036),   # 방패판 판재
-    "roof_dark": (0.040, 0.037, 0.035), "roof_light": (0.068, 0.062, 0.057),     # 회흑 육각판
+    "hull_dark": (0.200, 0.046, 0.010), "hull_light": (0.330, 0.078, 0.017),   # 중심 sRGB(140,68,30)     # 적갈~꿀색 소나무
+    "board_dark": (0.210, 0.048, 0.010), "board_light": (0.320, 0.075, 0.016),   # 방패판 판재
+    "roof_dark": (0.098, 0.098, 0.113), "roof_light": (0.135, 0.135, 0.155),   # sRGB(95,95,102) 회청     # 회흑 육각판
     "iron": (0.020, 0.019, 0.018),                                               # 흑철
     "dragon_wood": (0.034, 0.026, 0.023),                                        # 흑갈 목조
-    "sail": (0.42, 0.29, 0.16), "bamboo": (0.36, 0.24, 0.095),
+    "sail": (0.610, 0.376, 0.171),   # sRGB(205,165,115)
+    "bamboo": (0.36, 0.24, 0.095),
 }
 
 MAT_NAMES = [
@@ -249,7 +250,7 @@ def _new_mat(name):
 # 공용 서브그래프
 # ----------------------------------------------------------------------------------------------
 def _wood(g, P, dark, light, plank_w=0.30, seg=6.0, grain_axis="Y", grey=0.35, seed=0.0,
-          seam_dark=0.6, seam_w=0.010, grain_k=0.45):
+          seam_dark=0.6, seam_w=0.010, grain_k=0.45, peg_spacing=0.0):
     """판재 나뭇결. grain_axis = 결 방향(판재 장축). 판재는 grain_axis 와 수직한 축으로 쌓인다.
     반환: (color, rough_var 0..1, height)"""
     x, y, z = g.sep(P)
@@ -301,6 +302,15 @@ def _wood(g, P, dark, light, plank_w=0.30, seg=6.0, grain_axis="Y", grey=0.35, s
     # 이음선 어둡게
     col = g.mix(g.m("MULTIPLY", seam, seam_dark), col, (0.015, 0.012, 0.01))
     height = g.m("SUBTRACT", g.m("MULTIPLY", grain, 0.25), g.m("MULTIPLY", seam, 1.0))
+    if peg_spacing > 0:
+        # 나무못: 판 중심선 위 peg_spacing 간격 지름 ~3cm 점 (행마다 반간격 엇갈림)
+        pu = g.m("MULTIPLY", g.m("SUBTRACT", fa, 0.5), plank_w)
+        pv = g.m("MULTIPLY", g.m("SUBTRACT", g.m("FRACT", g.m("ADD", g.m("DIVIDE", along, peg_spacing),
+                                                               g.m("MULTIPLY", row_r, 0.5))), 0.5), peg_spacing)
+        pd = g.v("LENGTH", g.comb(pu, pv, 0.0))
+        peg = g.smooth(pd, 0.017, 0.012)
+        col = g.mix(g.m("MULTIPLY", peg, 0.75), col, g.mix(1.0, col, (0.35, 0.3, 0.28), "MULTIPLY"))
+        height = g.m("SUBTRACT", height, g.m("MULTIPLY", peg, 0.3))
     rvar = g.m("ADD", g.m("MULTIPLY", grain, 0.5), g.m("MULTIPLY", wmask, 0.5))
     return col, rvar, height
 
@@ -363,10 +373,10 @@ def mat_hull_wood(name="hull_wood"):
     g = G(mat)
     P = g.obj()
     col, rv, h = _wood(g, P, REF["hull_dark"], REF["hull_light"], plank_w=0.32, seg=7.5,
-                       grain_axis="Y", grey=0.18, seed=1.0, grain_k=0.75)
-    col = _ao_dirt(g, col)
+                       grain_axis="Y", grey=0.10, seed=1.0, grain_k=0.6, peg_spacing=0.6)
+    col = _ao_dirt(g, col, amount=0.42)
     rough = g.lin(rv, 0.0, 1.0, 0.40, 0.65)
-    col, rough, _ = _waterline(g, col, rough, strength=0.9)
+    col, rough, _ = _waterline(g, col, rough, strength=0.63)
     nrm = g.bump(h, 0.25, 0.012)
     # 니스(오일) 약한 광택: Coat
     b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.4,
@@ -472,7 +482,7 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.035, arc_attr="roof
     # 도장 벗겨짐
     chip_n = g.nfac(P, 1.6, 8.0, 0.72, dist=0.2)
     chips = g.smooth(chip_n, 0.70, 0.72)
-    col = g.mix(g.m("MULTIPLY", chips, 0.5), col, g.mix(cr, (0.10, 0.06, 0.035), (0.16, 0.09, 0.05)))
+    col = g.mix(g.m("MULTIPLY", chips, 0.5), col, g.mix(cr, (0.075, 0.072, 0.072), (0.11, 0.105, 0.105)))
     # 먼지(위를 향한 면, 50% 감소)
     dust = g.m("MULTIPLY", g.smooth(nz, 0.3, 0.95), g.smooth(g.nfac(P, 1.5, 5.0, 0.6), 0.45, 0.8))
     col = g.mix(g.m("MULTIPLY", dust, 0.15), col, (0.15, 0.14, 0.13))
@@ -741,7 +751,7 @@ def mat_wall_panel(name="wall_panel", panel_w=0.9, v_attr="wall_v", style="natur
     across = g.m("ADD", x, y)
     Pr = g.comb(across, z, g.m("SUBTRACT", x, y))
     col, rv, h = _wood(g, Pr, REF["board_dark"], REF["board_light"], plank_w=0.28, seg=50.0,
-                       grain_axis="Y", grey=0.15, seed=5.0, seam_w=0.008, seam_dark=0.6, grain_k=0.7)
+                       grain_axis="Y", grey=0.08, seed=5.0, seam_w=0.008, seam_dark=0.6, grain_k=0.55)
     wood = col
     if style == "natural":
         # 사진 기준: 꿀색~적갈 원목 + 패판 경계 흑선(철띠는 모델러가 iron_fitting 형상으로)
@@ -749,11 +759,23 @@ def mat_wall_panel(name="wall_panel", panel_w=0.9, v_attr="wall_v", style="natur
         pd = g.m("MULTIPLY", g.m("MINIMUM", fp, g.m("SUBTRACT", 1.0, fp)), panel_w)
         vline = g.smooth(pd, 0.012, 0.008)
         col = g.mix(g.m("MULTIPLY", vline, 0.8), col, (0.02, 0.012, 0.008))
-        col = _ao_dirt(g, col, amount=0.7, dist=0.3)
-        col, rough, _ = _waterline(g, col, g.lin(rv, 0, 1, 0.38, 0.62), strength=0.6)
-        nrm = g.bump(g.m("SUBTRACT", h, g.m("MULTIPLY", vline, 0.6)), 0.25, 0.01)
+        # 나비형 흑철 패치: 패판 경계(0.9m 주기) 중앙 높이, 폭 0.35m
+        at = g.node("ShaderNodeAttribute", attribute_name=v_attr, attribute_type="GEOMETRY")
+        va = g.o(at, "Factor")
+        _, _, gz = g.sep(g.gen())
+        v = g.mixf(g.m("GREATER_THAN", va, 1e-4), gz, va)
+        du = g.m("MULTIPLY", g.m("SUBTRACT", g.m("FRACT", g.m("ADD", g.m("DIVIDE", across, panel_w), 0.5)), 0.5), panel_w)
+        dv = g.m("MULTIPLY", g.m("SUBTRACT", v, 0.5), 1.35)
+        adu, adv = g.m("ABSOLUTE", du), g.m("ABSOLUTE", dv)
+        bow = g.m("MULTIPLY", g.smooth(adu, 0.175, 0.165),
+                  g.smooth(g.m("SUBTRACT", adv, g.m("ADD", 0.03, g.m("MULTIPLY", adu, 0.7))), 0.005, -0.005))
+        col = g.mix(bow, col, REF["iron"])
+        col = _ao_dirt(g, col, amount=0.5, dist=0.3)
+        col, rough, _ = _waterline(g, col, g.lin(rv, 0, 1, 0.38, 0.62), strength=0.42)
+        rough = g.mixf(bow, rough, 0.4)
+        nrm = g.bump(g.m("ADD", g.m("SUBTRACT", h, g.m("MULTIPLY", vline, 0.6)), g.m("MULTIPLY", bow, 0.5)), 0.25, 0.01)
         b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.4,
-                         Coat_Weight=0.25, Coat_Roughness=0.35)
+                         Metallic=g.m("MULTIPLY", bow, 0.7), Coat_Weight=0.25, Coat_Roughness=0.35)
         g.output(g.o(b, "BSDF"))
         return mat
     paint = (0.075, 0.019, 0.014)
@@ -824,8 +846,9 @@ def _cloth_weave(g, P, period=0.012):
     return g.m("MULTIPLY", g.m("ADD", w1, w2), 0.5)
 
 
-def mat_sail_cloth(name="sail_cloth"):
-    """마포 돛: 미색~회갈, 세로 폭(0.55m) 이음 솔기, 얼룩, 은은한 투과(역광)."""
+def mat_sail_cloth(name="sail_cloth", batten_spacing=0.6):
+    """마포 돛: 황갈(REF sail), 세로 폭 솔기, 얼룩 10%, 직조 노이즈(400/m) 범프 0.05, 활대 사이 완만한 처짐 음영,
+    투과(Translucent) 0.2. 칸별 타원(AO) 음영 없음."""
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
@@ -834,22 +857,21 @@ def mat_sail_cloth(name="sail_cloth"):
     pw = 0.55
     pidx = g.m("FLOOR", g.m("DIVIDE", across, pw))
     pr = g.o(g.white(pidx, dims="1D"), "Value")
-    base = g.mix(pr, g.mix(1.0, REF["sail"], (0.72, 0.72, 0.72), "MULTIPLY"), REF["sail"])
+    base = g.mix(pr, g.mix(1.0, REF["sail"], (0.88, 0.86, 0.84), "MULTIPLY"), REF["sail"])
     stain = g.nfac(P, 0.9, 5.0, 0.65, dist=0.5)
-    base = g.mix(g.m("MULTIPLY", g.smooth(stain, 0.4, 0.8), 0.6), base, (0.14, 0.10, 0.06))
-    streak = g.nfac(g.comb(g.m("MULTIPLY", across, 3.0), g.m("MULTIPLY", z, 0.15), 0.0), 3.0, 3.0)
-    base = g.mix(g.m("MULTIPLY", g.smooth(streak, 0.55, 0.8), 0.5), base, (0.18, 0.15, 0.11))
+    base = g.mix(g.m("MULTIPLY", g.smooth(stain, 0.45, 0.8), 0.10), base, (0.25, 0.17, 0.09))
     fa = g.m("FRACT", g.m("DIVIDE", across, pw))
-    seam = g.smooth(g.m("MULTIPLY", g.m("MINIMUM", fa, g.m("SUBTRACT", 1.0, fa)), pw), 0.012, 0.004)
-    base = g.mix(g.m("MULTIPLY", seam, 0.6), base, (0.12, 0.10, 0.07))
-    weave = _cloth_weave(g, P)
-    base = g.mix(g.m("MULTIPLY", weave, 0.25), base, g.mix(1.0, base, (0.7, 0.7, 0.7), "MULTIPLY"))
-    base = _ao_dirt(g, base, amount=0.4, dist=0.3)
-    nrm = g.bump(g.m("ADD", g.m("MULTIPLY", weave, 0.3), g.m("MULTIPLY", seam, 0.6)), 0.15, 0.003)
-    b = g.principled(Base_Color=base, Roughness=0.92, Normal=nrm, Sheen_Weight=0.3,
+    seam = g.smooth(g.m("MULTIPLY", g.m("MINIMUM", fa, g.m("SUBTRACT", 1.0, fa)), pw), 0.010, 0.004)
+    base = g.mix(g.m("MULTIPLY", seam, 0.4), base, g.mix(1.0, base, (0.6, 0.55, 0.5), "MULTIPLY"))
+    # 활대 사이 처짐: z 주기 = batten_spacing, 진폭 작게(색 ±6%)
+    sag = g.m("SINE", g.m("MULTIPLY", z, 6.2832 / batten_spacing))
+    base = g.mix(g.m("MULTIPLY", g.m("ADD", sag, 1.0), 0.06), base, g.mix(1.0, base, (0.6, 0.6, 0.6), "MULTIPLY"))
+    weave = g.nfac(P, 400.0, 2.0, 0.5)
+    nrm = g.bump(g.m("ADD", weave, g.m("MULTIPLY", seam, 2.0)), 0.05, 0.002)
+    b = g.principled(Base_Color=base, Roughness=0.9, Normal=nrm, Sheen_Weight=0.2,
                      Sheen_Roughness=0.6, Specular_IOR_Level=0.25)
-    tr = g.node("ShaderNodeBsdfTranslucent", {"Color": g.mix(1.0, base, (0.9, 0.8, 0.6), "MULTIPLY"), "Normal": nrm})
-    mx = g.node("ShaderNodeMixShader", {"Fac": 0.22})
+    tr = g.node("ShaderNodeBsdfTranslucent", {"Color": base, "Normal": nrm})
+    mx = g.node("ShaderNodeMixShader", {"Fac": 0.2})
     g.nt.links.new(g.o(b, "BSDF"), mx.inputs[1])
     g.nt.links.new(g.o(tr, "BSDF"), mx.inputs[2])
     g.output(g.o(mx, "Shader"))
@@ -934,7 +956,7 @@ def mat_water(name="water", foam_attr="hull_dist", foam_width=0.6):
     foam = g.smooth(g.m("ADD", band, g.m("MULTIPLY", g.m("SUBTRACT", fn, 0.5), 0.9)), 0.6, 0.85)
     foam = g.m("MULTIPLY", foam, has)
     # 셰이더 (Cycles: Principled 1개 — 투과 0.8 + 청록 확산 몸체 0.2, 거품은 값 수준 혼합 → 클로저 최소)
-    body = g.mix(g.smooth(n1, 0.3, 0.7), (0.012, 0.045, 0.042), (0.020, 0.062, 0.055))
+    body = g.mix(g.smooth(n1, 0.3, 0.7), (0.10, 0.27, 0.26), (0.14, 0.33, 0.31))
     foam_c = (0.62, 0.66, 0.66)
     ccol = g.mix(foam, body, foam_c)
     trans = g.m("MULTIPLY", g.m("SUBTRACT", 1.0, foam), 0.8)

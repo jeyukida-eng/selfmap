@@ -64,8 +64,10 @@ def _sock(sockets, key):
 
 def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
                 air=1.0, dust=1.6, ozone=1.0, altitude=0.0,
-                auto_exposure=True, exposure_bias=0.8, sun_angle_deg=1.5, clouds=0.35, cloud_seed=3.0):
-    """clouds: 0=없음 ~1=많음 (절차적 2D 구름층, 비용 거의 없음).
+                auto_exposure=True, exposure_bias=0.8, sun_angle_deg=1.5, clouds=0.35, cloud_seed=3.0,
+                fill_mult=1.6):
+    """fill_mult: 하늘이 '조명'으로 쓰일 때의 배율(그늘면 보조광, 카메라에 보이는 하늘 밝기는 불변).
+    clouds: 0=없음 ~1=많음 (절차적 2D 구름층, 비용 거의 없음).
     머티리얼 안의 이름 'AERIAL_HAZE' RGB 노드(matlib 대기원근용)에 수평선 연무 휘도를 써 넣는다."""
     """물리 하늘 + 방향이 일치하는 Sun 라이트를 만든다(멱등). 반환: (world, sun_object)."""
     w = bpy.data.worlds.get(WORLD_NAME) or bpy.data.worlds.new(WORLD_NAME)
@@ -209,7 +211,25 @@ def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
     nt.links.new(_sock(mix3.outputs, "Result"), _sock(mix2.inputs, "B"))
     bg = nt.nodes.new("ShaderNodeBackground")
     bg.location = (-100, 0)
-    _sock(bg.inputs, "Strength").default_value = strength
+    # 그늘면 보조광: 카메라에 보이는 하늘은 strength 그대로, 조명(비카메라 광선)으로는 ×fill_mult
+    # S = s·(1 + (f−1)·(1−camera)·(1−glossy))  — 확산/간접광에만 보조광, 반사·카메라 하늘은 그대로
+    def M(op, a, b, x):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = op
+        n.location = (x, 300)
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = v
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    nc = M("SUBTRACT", 1.0, _sock(lp.outputs, "Is Camera Ray"), -500)
+    ng = M("SUBTRACT", 1.0, _sock(lp.outputs, "Is Glossy Ray"), -500)
+    k = M("MULTIPLY", nc, ng, -420)
+    k2 = M("MULTIPLY", k, fill_mult - 1.0, -340)
+    k3 = M("ADD", k2, 1.0, -260)
+    fm_out = M("MULTIPLY", k3, strength, -180)
+    nt.links.new(fm_out, _sock(bg.inputs, "Strength"))
     nt.links.new(_sock(mix2.outputs, "Result"), _sock(bg.inputs, "Color"))
     out = nt.nodes.new("ShaderNodeOutputWorld")
     out.location = (100, 0)
