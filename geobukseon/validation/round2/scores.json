@@ -1,5 +1,5 @@
 {
- "round": 2,
+ "round": "round2",
  "mode": "reference photos (indoor museum replica: background/lighting excluded)",
  "weights": {
   "silhouette": 0.25,
@@ -325,6 +325,17 @@
     "mean_dE_albedo": 9.6,
     "mean_dE_display": 21.5
    },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -8.5,
+     "detail": 16.0,
+     "material": 18.0,
+     "lighting": 5.0,
+     "composition": -8.0,
+     "environment": 12.0,
+     "weighted_total": 6.2
+    }
+   },
    "delta_vs_prev": {
     "silhouette": -8.5,
     "detail": 16.0,
@@ -574,6 +585,17 @@
     "mean_dE_albedo": 31.8,
     "mean_dE_display": 45.5
    },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -9.9,
+     "detail": 7.8,
+     "material": -18.8,
+     "lighting": -22.0,
+     "composition": -7.6,
+     "environment": 18.0,
+     "weighted_total": -5.0
+    }
+   },
    "delta_vs_prev": {
     "silhouette": -9.9,
     "detail": 7.8,
@@ -821,6 +843,17 @@
     },
     "mean_dE_albedo": 18.8,
     "mean_dE_display": 11.4
+   },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -12.0,
+     "detail": 24.2,
+     "material": 5.5,
+     "lighting": 0.0,
+     "composition": -16.6,
+     "environment": 15.0,
+     "weighted_total": 3.5
+    }
    },
    "delta_vs_prev": {
     "silhouette": -12.0,
@@ -1120,6 +1153,17 @@
     "mean_dE_albedo": 14.3,
     "mean_dE_display": 28.2
    },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -4.2,
+     "detail": 22.2,
+     "material": 21.1,
+     "lighting": 0.0,
+     "composition": -8.8,
+     "environment": 15.0,
+     "weighted_total": 9.0
+    }
+   },
    "delta_vs_prev": {
     "silhouette": -4.2,
     "detail": 22.2,
@@ -1133,6 +1177,9 @@
  },
  "notes": "[정량]=마스크 IoU·bbox·엣지밀도·ΔE 계산, [주관]=렌더 육안 평가(assessment.json). 같은 축에 둘 다 있으면 평균. 참고 사진은 실내 전시 복원선이라 lighting·environment 는 [주관](항구/물 사실감)만.",
  "overall_weighted_total": 63.4,
+ "overall_delta_vs": {
+  "round1": 3.4
+ },
  "overall_delta_vs_prev": 3.4,
- "delta_caveat": "round1 은 참고 사진 없이 설계 투영만으로 채점, 카메라도 설계 v1(안벽 구도). round2 은 사진 기준·카메라 v2 — Δ 는 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님."
+ "delta_caveat": "round1 은 참고 사진 없이 설계 투영만으로 채점(카메라 설계 v1) — 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님."
 }

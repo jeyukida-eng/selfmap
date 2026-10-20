@@ -1,5 +1,6 @@
 """검증 비교: 렌더 vs 참고사진(있으면) 또는 설계 JSON 투영 → round<N>/compare_<id>.png, contact_sheet.png, scores.json, fixlist.md
-실행: /opt/bvenv/bin/python validation/compare.py --round 2
+실행: /opt/bvenv/bin/python validation/compare.py --round 2 | --round round2_final [--prev round1,round2] [--final]
+ --final(이름이 *_final 이면 자동): fixlist.md 대신 residual.md(assessment.json 'residual'), 콘택트시트는 참고|렌더 2열.
 
 입력: round<N>/render_<id>.png, mask_<id>.png, render_meta.json (render_views.py 산출)
       round<N>/assessment.json (선택) — 사람이/에이전트가 렌더를 직접 보고 쓴 [주관] 점수·근거·수정목록.
@@ -22,6 +23,7 @@ import argparse
 import json
 import math
 import os
+import re
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -419,6 +421,10 @@ def design_checks(d):
     return out
 
 
+def _d(a, b, nd=1):
+    return round(a - b, nd) if a is not None and b is not None else None
+
+
 def composite_score(*vals):
     vals = [v for v in vals if v is not None and not (isinstance(v, float) and math.isnan(v))]
     return round(sum(vals) / len(vals), 1) if vals else None
@@ -493,9 +499,13 @@ def swatch_strip(cc, w):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--round", type=int, required=True)
+    ap.add_argument("--round", required=True, help="정수 N → round<N>, 또는 디렉터리 이름")
+    ap.add_argument("--prev", default="", help="Δ 비교 대상 라운드 디렉터리들(쉼표). 기본: 직전 라운드")
+    ap.add_argument("--final", action="store_true")
     a = ap.parse_args()
-    rd = os.path.join(HERE, f"round{a.round}")
+    rname = f"round{a.round}" if str(a.round).isdigit() else str(a.round)
+    final = a.final or rname.endswith("_final")
+    rd = os.path.join(HERE, rname)
     with open(DESIGN, encoding="utf-8") as f:
         d = json.load(f)
     with open(os.path.join(rd, "render_meta.json")) as f:
@@ -505,11 +515,21 @@ def main():
     if os.path.exists(asp):
         with open(asp, encoding="utf-8") as f:
             assess = json.load(f)
-    prev = None
-    pp = os.path.join(HERE, f"round{a.round - 1}", "scores.json")
-    if os.path.exists(pp):
-        with open(pp, encoding="utf-8") as f:
-            prev = json.load(f)
+    if a.prev:
+        prev_names = [x for x in a.prev.split(",") if x]
+    else:
+        m = re.match(r"round(\d+)", rname)
+        k = int(m.group(1)) if m else 0
+        prev_names = [f"round{k}"] if rname != f"round{k}" else [f"round{k - 1}"]
+        if final and k > 1:
+            prev_names = [f"round{k - 1}", f"round{k}"]
+    prevs = {}
+    for pn in prev_names:
+        pp = os.path.join(HERE, pn, "scores.json")
+        if os.path.exists(pp):
+            with open(pp, encoding="utf-8") as f:
+                prevs[pn] = json.load(f)
+    prev_last = list(prevs)[-1] if prevs else None
 
     polys, lines = design_geometry(d)
     order = [v["id"] for v in d["views"] if v["id"] in meta["views"]]
@@ -605,7 +625,7 @@ def main():
             for i, t in enumerate(T):
                 panel.paste(t, ((i % 3) * tw, (i // 3) * th))
             panel.paste(sw, (0, th * 2))
-            row_tiles = (T[0], T[1], T[4])
+            row_tiles = (T[0], T[1]) if final else (T[0], T[1], T[4])
         else:
             quant["silhouette"] = round(sil_design, 1)
             T = [tile(ren, f"RENDER {vid}"), tile(over, "RENDER + DESIGN WIRE"), tile(ddiff, f"vs DESIGN IoU {res['design_iou']['body']:.3f}")]
@@ -626,12 +646,23 @@ def main():
         sheet_rows.append(row)
         results[vid] = res
 
-    SW = max(r.width for r in sheet_rows)
+    if final and len(sheet_rows) > 1:  # 참고|렌더 쌍을 2열 격자로
+        pairs = [sheet_rows[i:i + 2] for i in range(0, len(sheet_rows), 2)]
+        merged = []
+        for pr in pairs:
+            m = Image.new("RGB", (sum(r.width for r in pr) + 10 * (len(pr) - 1), rh))
+            x = 0
+            for r in pr:
+                m.paste(r, (x, 0))
+                x += r.width + 10
+            merged.append(m)
+        sheet_rows = merged
+    SW = max(max(r.width for r in sheet_rows), 1200)
     mode = "reference photos (indoor museum replica: background/lighting excluded)" if any(r["mode"] == "reference" for r in results.values()) \
         else "design-based (no reference photos)"
     sheet = Image.new("RGB", (SW, sum(r.height for r in sheet_rows) + 34), (0, 0, 0))
-    ImageDraw.Draw(sheet).text((8, 6), f"Round {a.round} | {mode} | columns: reference / render / render-vs-ref-mask",
-                               fill=(255, 255, 255), font=font(18))
+    ImageDraw.Draw(sheet).text((8, 6), f"{rname} | {mode} | columns: " + ("reference / render" if final else "reference / render / render-vs-ref-mask"),
+                               fill=(255, 255, 255), font=font(15))
     y = 34
     for r in sheet_rows:
         sheet.paste(r, (0, y))
@@ -639,7 +670,7 @@ def main():
     sheet.save(os.path.join(rd, "contact_sheet.png"))
 
     # ---- 점수 ----
-    scores = {"round": a.round, "mode": mode, "weights": WEIGHTS,
+    scores = {"round": rname, "mode": mode, "weights": WEIGHTS,
               "render": {k: meta.get(k) for k in ("engine", "samples", "res", "long_side", "quality")},
               "render_time_sec": {v: meta["views"][v]["render_sec"] for v in order},
               "design_checks": design_checks(d), "views": {},
@@ -678,35 +709,56 @@ def main():
         for k in ("ref_iou", "ref_bbox", "bbox_iou_vs_ref", "edge_density", "color"):
             if k in r:
                 ent[k] = r[k]
-        if prev and vid in prev.get("views", {}):
-            pv = prev["views"][vid]
-            ent["delta_vs_prev"] = {ax: (round(axes[ax]["score"] - pv["axes"][ax]["score"], 1)
-                                         if axes[ax]["score"] is not None and pv["axes"].get(ax, {}).get("score") is not None else None)
-                                    for ax in AXES}
-            ent["delta_vs_prev"]["weighted_total"] = round(tot - pv["weighted_total"], 1) if tot is not None and pv.get("weighted_total") is not None else None
+        ent["delta_vs"] = {}
+        for pn, pr in prevs.items():
+            if vid not in pr.get("views", {}):
+                continue
+            pv = pr["views"][vid]
+            dd = {ax: (round(axes[ax]["score"] - pv["axes"][ax]["score"], 1)
+                       if axes[ax]["score"] is not None and pv["axes"].get(ax, {}).get("score") is not None else None)
+                  for ax in AXES}
+            dd["weighted_total"] = round(tot - pv["weighted_total"], 1) if tot is not None and pv.get("weighted_total") is not None else None
+            if "color" in pv and "color" in ent:
+                dd["mean_dE_albedo"] = _d(ent["color"]["mean_dE_albedo"], pv["color"]["mean_dE_albedo"])
+                dd["mean_dE_display"] = _d(ent["color"]["mean_dE_display"], pv["color"]["mean_dE_display"])
+            if "ref_iou" in pv and "ref_iou" in ent:
+                dd["ref_iou_body"] = _d(ent["ref_iou"]["body"], pv["ref_iou"]["body"], 4)
+            ent["delta_vs"][pn] = dd
+        if prev_last and prev_last in ent["delta_vs"]:
+            ent["delta_vs_prev"] = ent["delta_vs"][prev_last]
         scores["views"][vid] = ent
     vals = [t for t in tots if t is not None]
     scores["overall_weighted_total"] = round(sum(vals) / len(vals), 1) if vals else None
-    if prev:
-        scores["overall_delta_vs_prev"] = round(scores["overall_weighted_total"] - prev["overall_weighted_total"], 1) \
-            if scores["overall_weighted_total"] is not None and prev.get("overall_weighted_total") is not None else None
-        scores["delta_caveat"] = (f"round{a.round - 1} 은 참고 사진 없이 설계 투영만으로 채점, 카메라도 설계 v1(안벽 구도). "
-                                  f"round{a.round} 은 사진 기준·카메라 v2 — Δ 는 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님.")
+    scores["overall_delta_vs"] = {pn: _d(scores["overall_weighted_total"], pr.get("overall_weighted_total")) for pn, pr in prevs.items()}
+    if prev_last:
+        scores["overall_delta_vs_prev"] = scores["overall_delta_vs"][prev_last]
+    cav = []
+    for pn, pr in prevs.items():
+        if str(pr.get("mode", "")).startswith("design"):
+            cav.append(f"{pn} 은 참고 사진 없이 설계 투영만으로 채점(카메라 설계 v1) — 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님.")
+        else:
+            cav.append(f"{pn} 은 같은 참고 사진·지표·가중치 — 직접 비교 가능.")
+    scores["delta_caveat"] = " ".join(cav)
     with open(os.path.join(rd, "scores.json"), "w", encoding="utf-8") as f:
         json.dump(scores, f, ensure_ascii=False, indent=1)
 
-    # ---- fixlist.md ----
-    L = [f"# Round {a.round} 수정목록", "",
-         f"모드: {mode}. 총점(가중 평균) **{scores['overall_weighted_total']}** / 100"
-         + (f" (Δ {scores['overall_delta_vs_prev']:+} vs round{a.round - 1})" if prev and scores.get('overall_delta_vs_prev') is not None else "") + ". "
-         "형식: `[ID] [담당] [우선순위] 문제 → 수정 지시 → 기대 효과`. 렌더 시간 대비 효과 큰 순.", "",
-         "| 뷰 | " + " | ".join(AXES) + " | 총점 | Δ총점 |", "|---|" + "---|" * (len(AXES) + 2)]
+    # ---- fixlist.md / residual.md ----
+    dtxt = ", ".join(f"Δ {v:+} vs {k}" for k, v in scores["overall_delta_vs"].items() if v is not None)
+    L = [f"# {rname} " + ("남은 약점 (마무리 후 과제)" if final else "수정목록"), "",
+         f"모드: {mode}. 총점(가중 평균) **{scores['overall_weighted_total']}** / 100" + (f" ({dtxt})" if dtxt else "") + ". "
+         + ("점수 확정용 — 수정 재배분 없음." if final else "형식: `[ID] [담당] [우선순위] 문제 → 수정 지시 → 기대 효과`. 렌더 시간 대비 효과 큰 순."), "",
+         "| 뷰 | " + " | ".join(AXES) + " | 총점 | " + " | ".join(f"Δ {k}" for k in prevs) + " |",
+         "|---|" + "---|" * (len(AXES) + 1 + len(prevs))]
     for vid in order:
         e = scores["views"][vid]
-        dl = e.get("delta_vs_prev", {})
+        dl = e.get("delta_vs", {}).get(prev_last, {}) if prev_last else {}
         L.append(f"| {vid} | " + " | ".join(
             f"{e['axes'][k]['score']}" + (f" ({dl[k]:+})" if dl.get(k) is not None else "") for k in AXES)
-            + f" | {e['weighted_total']} | {dl.get('weighted_total', '-') if dl.get('weighted_total') is None else format(dl['weighted_total'], '+')} |")
+            + f" | {e['weighted_total']} | " + " | ".join(
+                (format(e['delta_vs'][pn]['weighted_total'], '+') if pn in e.get('delta_vs', {}) and e['delta_vs'][pn].get('weighted_total') is not None else "-")
+                for pn in prevs) + " |")
+    if prev_last:
+        L.append(f"\n(축별 괄호 = {prev_last} 대비 Δ)")
     L.append("")
     if any("ref_iou" in results[v] for v in order):
         L.append("정량: " + "; ".join(
@@ -714,25 +766,37 @@ def main():
             f"edge {results[v]['edge_density']['ratio']} / ΔE albedo {results[v]['color']['mean_dE_albedo']} display {results[v]['color']['mean_dE_display']}"
             for v in order if "ref_iou" in results[v]))
         L.append("")
-    if prev:
+    if prevs:
         L += ["> " + scores["delta_caveat"], ""]
     for note in (assess or {}).get("summary", []):
         L.append(f"- {note}")
     if (assess or {}).get("summary"):
         L.append("")
-    items = (assess or {}).get("fixlist", [])
-    for prio in ("P1", "P2", "P3"):
-        sel = [it for it in items if it["prio"] == prio]
-        if not sel:
-            continue
-        L += [f"## {prio}", ""]
-        for it in sel:
-            L.append(f"- **[{it['id']}] [담당: {it['owner']}] [{prio}]** {it['problem']}  \n"
-                     f"  → {it['fix']}  \n  → 기대 효과: {it['effect']}")
-        L.append("")
-    if not items:
-        L.append("(assessment.json 없음 — [주관] 평가 후 compare.py 재실행)")
-    with open(os.path.join(rd, "fixlist.md"), "w", encoding="utf-8") as f:
+    if final:
+        items = (assess or {}).get("residual", [])
+        if items:
+            L += ["## 남은 약점 (영향 큰 순)", ""]
+            for i, it in enumerate(items, 1):
+                L.append(f"{i}. **[{it['id']}] [담당: {it['owner']}]** {it['problem']}  \n   → 마무리 후 과제: {it['next']}")
+            L.append("")
+        else:
+            L.append("(assessment.json 'residual' 없음)")
+        outname = "residual.md"
+    else:
+        items = (assess or {}).get("fixlist", [])
+        for prio in ("P1", "P2", "P3"):
+            sel = [it for it in items if it["prio"] == prio]
+            if not sel:
+                continue
+            L += [f"## {prio}", ""]
+            for it in sel:
+                L.append(f"- **[{it['id']}] [담당: {it['owner']}] [{prio}]** {it['problem']}  \n"
+                         f"  → {it['fix']}  \n  → 기대 효과: {it['effect']}")
+            L.append("")
+        if not items:
+            L.append("(assessment.json 없음 — [주관] 평가 후 compare.py 재실행)")
+        outname = "fixlist.md"
+    with open(os.path.join(rd, outname), "w", encoding="utf-8") as f:
         f.write("\n".join(L) + "\n")
     for vid in order:
         r = results[vid]

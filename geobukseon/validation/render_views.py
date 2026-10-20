@@ -1,8 +1,9 @@
 """검증 렌더: design views 4개 카메라로 최종 렌더 + 클래스 마스크 렌더 → validation/round<N>/render_<id>.png, mask_<id>.png, render_meta.json
-실행: /opt/bvenv/bin/python validation/render_views.py --round 2 [--engine CYCLES] [--samples 64] [--long 960] [--res 960x540] [--quality preview] [--views bow34,side]
+실행: /opt/bvenv/bin/python validation/render_views.py --round 2|round2_final [--engine CYCLES] [--samples 64] [--long 960] [--res 960x540] [--quality preview] [--views bow34,side]
 
 해상도: 카메라 custom property `ref_aspect`(= 참고 사진 가로/세로)가 있으면 긴 변 --long(기본 960) 으로 그 비율,
-없으면 --res. 최종 렌더 시 Diffuse Color(알베도) 패스도 albedo_<id>.npy(float16, 선형 RGB)로 저장 → compare.py 고유색 비교.
+없으면 --res. 뷰에 'sun': {azimuth_deg, elevation_deg} 가 있으면 그 뷰 렌더 직전 world.setup_world 재호출(SUN_Key 재사용).
+--round 는 정수(→ round<N>/) 또는 디렉터리 이름(예: round2_final). 최종 렌더 시 Diffuse Color(알베도) 패스도 albedo_<id>.npy(float16, 선형 RGB)로 저장 → compare.py 고유색 비교.
 
 마스크 렌더(mask_<id>.png): 같은 카메라, 1 spp, 재질 오버라이드(Object Info Color → Emission),
 Site 컬렉션(부두·물·땅·산)은 holdout → 알파=0. 즉 '물 위로 보이고 부두에 가려지지 않은' 배 부분만 남는다.
@@ -206,7 +207,7 @@ def setup_mask(sc):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--round", type=int, required=True)
+    ap.add_argument("--round", required=True, help="정수 N → round<N>, 또는 디렉터리 이름")
     ap.add_argument("--engine", default="CYCLES", choices=["CYCLES", "EEVEE"])
     ap.add_argument("--samples", type=int, default=64)
     ap.add_argument("--res", default="960x540", help="ref_aspect 없는 카메라용")
@@ -217,7 +218,8 @@ def main():
     ap.add_argument("--no-mask", action="store_true")
     a = ap.parse_args()
     w, h = (int(v) for v in a.res.lower().split("x"))
-    outdir = os.path.join(HERE, f"round{a.round}")
+    rname = f"round{a.round}" if str(a.round).isdigit() else str(a.round)
+    outdir = os.path.join(HERE, rname)
     os.makedirs(outdir, exist_ok=True)
 
     import build_scene
@@ -227,10 +229,22 @@ def main():
     setup_beauty(sc, a.engine, a.samples, w, h)
     want = [v for v in a.views.split(",") if v] or ORDER
     with open(DESIGN, encoding="utf-8") as f:
-        views = [v["id"] for v in json.load(f)["views"]]
+        dsg = json.load(f)
+    vdict = {v["id"]: v for v in dsg["views"]}
+    views = [v["id"] for v in dsg["views"]]
+    sys.path.insert(0, os.path.join(ROOT, "materials"))
+    import world
+
+    def apply_sun(vid, keep_view=None):
+        sun = vdict[vid].get("sun") or {"azimuth_deg": dsg["sun"]["azimuth_deg"], "elevation_deg": dsg["sun"]["elevation_deg"]}
+        world.setup_world(sc, sun["azimuth_deg"], sun["elevation_deg"])
+        if keep_view:  # 마스크 렌더: 노출/뷰 변환 고정
+            for k, v in keep_view.items():
+                setattr(sc.view_settings, k, v)
+        return [sun["azimuth_deg"], sun["elevation_deg"]]
     views = [v for v in views if v in want]
 
-    meta = {"round": a.round, "engine": sc.render.engine, "samples": a.samples, "res": [w, h], "long_side": a.long,
+    meta = {"round": rname, "engine": sc.render.engine, "samples": a.samples, "res": [w, h], "long_side": a.long,
             "quality": a.quality, "build_sec": round(t_build, 1), "views": {}}
     metap = os.path.join(outdir, "render_meta.json")
     if os.path.exists(metap):  # 일부 뷰만 재렌더 시 기존 기록 보존
@@ -246,10 +260,11 @@ def main():
         res_of[vid] = (vw, vh)
         sc.render.resolution_x, sc.render.resolution_y = vw, vh
         sc.render.filepath = os.path.join(outdir, f"render_{vid}.png")
+        sun_used = apply_sun(vid)
         t = time.time()
         bpy.ops.render.render(write_still=True)
         dt = time.time() - t
-        meta["views"][vid] = {"render_sec": round(dt, 1), **cam_meta(sc, cam)}
+        meta["views"][vid] = {"render_sec": round(dt, 1), "sun": sun_used, "exposure": round(sc.view_settings.exposure, 3), **cam_meta(sc, cam)}
         if fo is not None:
             meta["views"][vid]["albedo"] = save_albedo(fo, outdir, vid, vw, vh)
         print(f"[render_views] {vid}: {dt:.1f} s -> {sc.render.filepath}", flush=True)
@@ -260,6 +275,7 @@ def main():
         for vid in views:
             sc.camera = sc.objects["CAM_" + vid]
             sc.render.resolution_x, sc.render.resolution_y = res_of[vid]
+            apply_sun(vid, keep_view={"view_transform": "Standard", "exposure": 0.0, "gamma": 1.0})
             sc.render.filepath = os.path.join(outdir, f"mask_{vid}.png")
             t = time.time()
             bpy.ops.render.render(write_still=True)

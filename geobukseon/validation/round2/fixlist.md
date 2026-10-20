@@ -1,17 +1,19 @@
-# Round 2 수정목록
+# round2 수정목록
 
 모드: reference photos (indoor museum replica: background/lighting excluded). 총점(가중 평균) **63.4** / 100 (Δ +3.4 vs round1). 형식: `[ID] [담당] [우선순위] 문제 → 수정 지시 → 기대 효과`. 렌더 시간 대비 효과 큰 순.
 
-| 뷰 | silhouette | detail | material | lighting | composition | environment | 총점 | Δ총점 |
+| 뷰 | silhouette | detail | material | lighting | composition | environment | 총점 | Δ round1 |
 |---|---|---|---|---|---|---|---|---|
 | bow34 | 69.5 (-8.5) | 71.0 (+16.0) | 63.0 (+18.0) | 45.0 (+5.0) | 70.8 (-8.0) | 62.0 (+12.0) | 65.1 | +6.2 |
 | side | 67.9 (-9.9) | 62.8 (+7.8) | 31.2 (-18.8) | 38.0 (-22.0) | 59.6 (-7.6) | 58.0 (+18.0) | 54.2 | -5.0 |
 | stern34 | 72.2 (-12.0) | 82.2 (+24.2) | 57.5 (+5.5) | 62.0 (+0.0) | 62.4 (-16.6) | 60.0 (+15.0) | 67.4 | +3.5 |
 | aerial | 78.2 (-4.2) | 67.2 (+22.2) | 61.1 (+21.1) | 50.0 (+0.0) | 70.2 (-8.8) | 65.0 (+15.0) | 67.0 | +9.0 |
 
+(축별 괄호 = round1 대비 Δ)
+
 정량: bow34 refIoU 0.570 / designIoU 0.932 / edge 1.25 / ΔE albedo 9.6 display 21.5; side refIoU 0.610 / designIoU 0.897 / edge 1.481 / ΔE albedo 31.8 display 45.5; stern34 refIoU 0.693 / designIoU 0.959 / edge 1.006 / ΔE albedo 18.8 display 11.4; aerial refIoU 0.772 / designIoU 0.970 / edge 1.379 / ΔE albedo 14.3 display 28.2
 
-> round1 은 참고 사진 없이 설계 투영만으로 채점, 카메라도 설계 v1(안벽 구도). round2 은 사진 기준·카메라 v2 — Δ 는 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님.
+> round1 은 참고 사진 없이 설계 투영만으로 채점(카메라 설계 v1) — 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님.
 
 - 고유색 [정량]: 렌더 알베도(DiffCol)와 사진 추정 알베도(흰 벽 WB, 0.8 가정)의 ΔE 는 bow34 7–14(목재), side/aerial 목재 16–29(채도 C* −13 ~ −26), 돛 L* −6 ~ −40, 개판 L* −12 ~ −27(사진은 차가운 회청 슬레이트). → 목재 채도·돛/개판 명도가 낮음.
 - 보이는 색 [정량]: 렌더 beauty 의 배 영역 색은 WB 사진 대비 ΔE 21–47, ΔL* −7 ~ −48, ΔC* −13 ~ −41 (stern34 순광면만 ΔE 11). 관찰대로 '어두운 저채도 갈색' 확인 — 원인의 대부분은 알베도보다 조명(보이는 면이 그늘: sun 200°/35° 에서 bow34 좌현·선수, side 우현, aerial 선수면이 음영)과 노출.

@@ -1,0 +1,1246 @@
+{
+ "round": "round2_final",
+ "mode": "reference photos (indoor museum replica: background/lighting excluded)",
+ "weights": {
+  "silhouette": 0.25,
+  "detail": 0.2,
+  "material": 0.2,
+  "lighting": 0.1,
+  "composition": 0.1,
+  "environment": 0.15
+ },
+ "render": {
+  "engine": "CYCLES",
+  "samples": 64,
+  "res": [
+   960,
+   540
+  ],
+  "long_side": 960,
+  "quality": "preview"
+ },
+ "render_time_sec": {
+  "bow34": 162.8,
+  "side": 119.4,
+  "stern34": 132.4,
+  "aerial": 126.8
+ },
+ "design_checks": {
+  "ghost_face": {
+   "json_center_y": 11.83,
+   "transom_surface_y_at_center_z": 11.833,
+   "gap_m": 0.003,
+   "transom_rake_from_horizontal_deg": 50.0,
+   "transom_outward_normal_tilt_deg(+up)": -40.0,
+   "json_normal_tilt_deg": -40,
+   "consistent": true
+  }
+ },
+ "views": {
+  "bow34": {
+   "axes": {
+    "silhouette": {
+     "score": 70.4,
+     "quant": 68.8,
+     "subjective": 72,
+     "basis": "[정량] ref IoU 0.569, design IoU 0.932 | [주관] 용두 목이 테이퍼·S자로 바뀌어 파이프 느낌 해소. 다만 매끈한 바다뱀형이고 사진의 굵게 조각된 검은 목·큰 머리보다 가늘고 작음(용두 refIoU 0.33)."
+    },
+    "detail": {
+     "score": 64.2,
+     "quant": 58.4,
+     "subjective": 70,
+     "basis": "[정량] edge density ratio 1.711 | [주관] 원형 포혈·나비형 철물·아딧줄 다발·나무못 반영. 원형 문양 검은 테가 끊긴 C자 호로 보이고, 선체 옆 닻 걸이가 Z자 막대처럼 떠 보임."
+    },
+    "material": {
+     "score": 59.8,
+     "quant": 61.5,
+     "subjective": 58,
+     "basis": "[정량] mean ΔE albedo 15.4 / display 26.5 | [주관] 목재가 결 변화 거의 없는 균일한 채도 높은 주황(칠한 플라스틱 느낌), 개판은 밝고 깨끗한 회색 — 사진의 오래된 꿀색~적갈 원목·검회 슬레이트보다 새것 같음."
+    },
+    "lighting": {
+     "score": 72.0,
+     "quant": null,
+     "subjective": 72,
+     "basis": "[주관] 측광으로 좌현·선수가 밝게 읽히고 그림자 방향 자연스러움. 하늘·구름 양호."
+    },
+    "composition": {
+     "score": 70.8,
+     "quant": 69.5,
+     "subjective": 72,
+     "basis": "[정량] bbox IoU vs ref 0.72 | [주관] 사진 구도와 일치(bbox IoU 0.72), 돛·깃발 프레임 안."
+    },
+    "environment": {
+     "score": 64.0,
+     "quant": null,
+     "subjective": 64,
+     "basis": "[주관] 물 반사·투명감 양호, 흘수선 이끼 띠. 접촉 거품은 약함."
+    }
+   },
+   "weighted_total": 66.3,
+   "quant": {
+    "silhouette_design": 86.8,
+    "silhouette_ref": 56.9,
+    "silhouette": 68.8,
+    "composition": 69.5,
+    "detail": 58.4,
+    "material": 61.5
+   },
+   "design_iou": {
+    "body": 0.9321,
+    "hull": 0.7936,
+    "superstructure": 0.8027,
+    "dragon": 0.7174
+   },
+   "framing": {
+    "render_bbox": [
+     39,
+     244,
+     943,
+     622
+    ],
+    "cropped_by_frame": false,
+    "width_fill": 0.942
+   },
+   "projection_check_px": 0.0,
+   "ref_iou": {
+    "body": 0.5689,
+    "dragon": 0.3298
+   },
+   "ref_bbox": [
+    71,
+    264,
+    959,
+    719
+   ],
+   "bbox_iou_vs_ref": 0.72,
+   "edge_density": {
+    "render_body": 0.27,
+    "ref_body": 0.1578,
+    "ratio": 1.711
+   },
+   "color": {
+    "white_patch_lin": [
+     0.665,
+     0.658,
+     0.687
+    ],
+    "classes": {
+     "hull": {
+      "render_px": 73413,
+      "ref_albedo_est": {
+       "srgb": [
+        62,
+        31,
+        22
+       ],
+       "L": 16.1,
+       "C": 19.0,
+       "h_deg": 42.8
+      },
+      "render_albedo": {
+       "srgb": [
+        119,
+        60,
+        29
+       ],
+       "L": 32.6,
+       "C": 38.1,
+       "h_deg": 52.3
+      },
+      "dE_albedo": 25.6,
+      "dL_albedo": 16.5,
+      "dC_albedo": 19.1,
+      "render_display": {
+       "srgb": [
+        121,
+        61,
+        28
+       ],
+       "L": 32.9,
+       "C": 39.1,
+       "h_deg": 53.1
+      },
+      "ref_display_wb": {
+       "srgb": [
+        57,
+        28,
+        19
+       ],
+       "L": 14.2,
+       "C": 17.9,
+       "h_deg": 42.7
+      },
+      "dE_display": 28.7,
+      "dL_display": 18.7,
+      "dC_display": 21.2
+     },
+     "wall": {
+      "render_px": 45571,
+      "ref_albedo_est": {
+       "srgb": [
+        82,
+        44,
+        27
+       ],
+       "L": 22.7,
+       "C": 24.0,
+       "h_deg": 49.9
+      },
+      "render_albedo": {
+       "srgb": [
+        114,
+        57,
+        26
+       ],
+       "L": 31.0,
+       "C": 37.4,
+       "h_deg": 52.8
+      },
+      "dE_albedo": 15.8,
+      "dL_albedo": 8.2,
+      "dC_albedo": 13.4,
+      "render_display": {
+       "srgb": [
+        170,
+        98,
+        64
+       ],
+       "L": 49.1,
+       "C": 40.9,
+       "h_deg": 50.7
+      },
+      "ref_display_wb": {
+       "srgb": [
+        75,
+        40,
+        24
+       ],
+       "L": 20.5,
+       "C": 22.6,
+       "h_deg": 49.9
+      },
+      "dE_display": 33.9,
+      "dL_display": 28.6,
+      "dC_display": 18.3
+     },
+     "sail": {
+      "render_px": 51677,
+      "ref_albedo_est": {
+       "srgb": [
+        179,
+        155,
+        126
+       ],
+       "L": 65.5,
+       "C": 18.8,
+       "h_deg": 76.1
+      },
+      "render_albedo": {
+       "srgb": [
+        196,
+        158,
+        112
+       ],
+       "L": 67.7,
+       "C": 30.4,
+       "h_deg": 75.3
+      },
+      "dE_albedo": 11.8,
+      "dL_albedo": 2.2,
+      "dC_albedo": 11.6,
+      "render_display": {
+       "srgb": [
+        212,
+        184,
+        156
+       ],
+       "L": 76.5,
+       "C": 18.8,
+       "h_deg": 72.1
+      },
+      "ref_display_wb": {
+       "srgb": [
+        165,
+        143,
+        116
+       ],
+       "L": 60.8,
+       "C": 17.7,
+       "h_deg": 76.1
+      },
+      "dE_display": 15.8,
+      "dL_display": 15.7,
+      "dC_display": 1.1
+     },
+     "dragon": {
+      "render_px": 11529,
+      "ref_albedo_est": {
+       "srgb": [
+        44,
+        41,
+        41
+       ],
+       "L": 17.1,
+       "C": 1.5,
+       "h_deg": 16.8
+      },
+      "render_albedo": {
+       "srgb": [
+        63,
+        52,
+        45
+       ],
+       "L": 22.7,
+       "C": 7.3,
+       "h_deg": 59.8
+      },
+      "dE_albedo": 8.5,
+      "dL_albedo": 5.7,
+      "dC_albedo": 5.9,
+      "render_display": {
+       "srgb": [
+        112,
+        89,
+        75
+       ],
+       "L": 39.7,
+       "C": 13.7,
+       "h_deg": 58.4
+      },
+      "ref_display_wb": {
+       "srgb": [
+        40,
+        37,
+        37
+       ],
+       "L": 15.2,
+       "C": 1.4,
+       "h_deg": 16.8
+      },
+      "dE_display": 27.7,
+      "dL_display": 24.6,
+      "dC_display": 12.4
+     }
+    },
+    "mean_dE_albedo": 15.4,
+    "mean_dE_display": 26.5
+   },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -7.6,
+     "detail": 9.2,
+     "material": 14.8,
+     "lighting": 32.0,
+     "composition": -8.0,
+     "environment": 14.0,
+     "weighted_total": 7.4
+    },
+    "round2": {
+     "silhouette": 0.9,
+     "detail": -6.8,
+     "material": -3.2,
+     "lighting": 27.0,
+     "composition": 0.0,
+     "environment": 2.0,
+     "weighted_total": 1.2,
+     "mean_dE_albedo": 5.8,
+     "mean_dE_display": 5.0,
+     "ref_iou_body": -0.0009
+    }
+   },
+   "delta_vs_prev": {
+    "silhouette": 0.9,
+    "detail": -6.8,
+    "material": -3.2,
+    "lighting": 27.0,
+    "composition": 0.0,
+    "environment": 2.0,
+    "weighted_total": 1.2,
+    "mean_dE_albedo": 5.8,
+    "mean_dE_display": 5.0,
+    "ref_iou_body": -0.0009
+   }
+  },
+  "side": {
+   "axes": {
+    "silhouette": {
+     "score": 67.4,
+     "quant": 62.8,
+     "subjective": 72,
+     "basis": "[정량] ref IoU 0.586, design IoU 0.896 | [주관] 꼬리재 곡선·선체 비례가 사진과 유사, 프레임 안에 들어옴."
+    },
+    "detail": {
+     "score": 52.9,
+     "quant": 41.8,
+     "subjective": 64,
+     "basis": "[정량] edge density ratio 2.393 | [주관] 원형 문양 열·나비 철물·노·삭구. 하부 선체 판재가 여전히 단조."
+    },
+    "material": {
+     "score": 57.8,
+     "quant": 57.5,
+     "subjective": 58,
+     "basis": "[정량] mean ΔE albedo 17.0 / display 15.9 | [주관] 목재 알베도는 사진과 근접(ΔE 10)하나 판재마다 같은 색이라 균일. 돛은 밝아짐."
+    },
+    "lighting": {
+     "score": 70.0,
+     "quant": null,
+     "subjective": 70,
+     "basis": "[주관] 우현 측광, 꼬리재 윤곽 살아남. 라운드2 역광 해소."
+    },
+    "composition": {
+     "score": 65.8,
+     "quant": 67.5,
+     "subjective": 64,
+     "basis": "[정량] bbox IoU vs ref 0.6848 | [주관] bbox IoU 0.68. 하단 빈 수면이 여전히 넓음."
+    },
+    "environment": {
+     "score": 62.0,
+     "quant": null,
+     "subjective": 62,
+     "basis": "[주관] 안벽 석축·물 무난, 키 주변 거품."
+    }
+   },
+   "weighted_total": 61.9,
+   "quant": {
+    "silhouette_design": 69.2,
+    "silhouette_ref": 58.6,
+    "silhouette": 62.8,
+    "composition": 67.5,
+    "detail": 41.8,
+    "material": 57.5
+   },
+   "design_iou": {
+    "body": 0.8962,
+    "hull": 0.688,
+    "superstructure": 0.86,
+    "dragon": 0.2143
+   },
+   "framing": {
+    "render_bbox": [
+     41,
+     61,
+     867,
+     318
+    ],
+    "cropped_by_frame": false,
+    "width_fill": 0.86
+   },
+   "projection_check_px": 0.0,
+   "ref_iou": {
+    "body": 0.5864,
+    "dragon": 0.0
+   },
+   "ref_bbox": [
+    76,
+    34,
+    850,
+    392
+   ],
+   "bbox_iou_vs_ref": 0.6848,
+   "edge_density": {
+    "render_body": 0.3571,
+    "ref_body": 0.1492,
+    "ratio": 2.393
+   },
+   "color": {
+    "white_patch_lin": [
+     0.485,
+     0.521,
+     0.521
+    ],
+    "classes": {
+     "hull": {
+      "render_px": 36739,
+      "ref_albedo_est": {
+       "srgb": [
+        117,
+        42,
+        19
+       ],
+       "L": 28.3,
+       "C": 44.5,
+       "h_deg": 44.1
+      },
+      "render_albedo": {
+       "srgb": [
+        122,
+        61,
+        29
+       ],
+       "L": 33.4,
+       "C": 38.8,
+       "h_deg": 52.4
+      },
+      "dE_albedo": 9.7,
+      "dL_albedo": 5.1,
+      "dC_albedo": -5.7,
+      "render_display": {
+       "srgb": [
+        53,
+        39,
+        18
+       ],
+       "L": 16.8,
+       "C": 16.6,
+       "h_deg": 77.8
+      },
+      "ref_display_wb": {
+       "srgb": [
+        95,
+        32,
+        13
+       ],
+       "L": 22.1,
+       "C": 38.2,
+       "h_deg": 44.0
+      },
+      "dE_display": 26.6,
+      "dL_display": -5.3,
+      "dC_display": -21.6
+     },
+     "wall": {
+      "render_px": 25997,
+      "ref_albedo_est": {
+       "srgb": [
+        149,
+        73,
+        32
+       ],
+       "L": 40.2,
+       "C": 47.8,
+       "h_deg": 52.3
+      },
+      "render_albedo": {
+       "srgb": [
+        117,
+        58,
+        26
+       ],
+       "L": 31.7,
+       "C": 38.3,
+       "h_deg": 52.8
+      },
+      "dE_albedo": 12.7,
+      "dL_albedo": -8.5,
+      "dC_albedo": -9.5,
+      "render_display": {
+       "srgb": [
+        154,
+        82,
+        50
+       ],
+       "L": 43.0,
+       "C": 41.7,
+       "h_deg": 49.5
+      },
+      "ref_display_wb": {
+       "srgb": [
+        121,
+        58,
+        24
+       ],
+       "L": 32.3,
+       "C": 41.1,
+       "h_deg": 52.3
+      },
+      "dE_display": 10.8,
+      "dL_display": 10.6,
+      "dC_display": 0.6
+     },
+     "sail": {
+      "render_px": 18736,
+      "ref_albedo_est": {
+       "srgb": [
+        254,
+        235,
+        195
+       ],
+       "L": 96.0,
+       "C": 26.9,
+       "h_deg": 70.0
+      },
+      "render_albedo": {
+       "srgb": [
+        196,
+        158,
+        111
+       ],
+       "L": 67.6,
+       "C": 30.7,
+       "h_deg": 75.2
+      },
+      "dE_albedo": 28.7,
+      "dL_albedo": -28.4,
+      "dC_albedo": 3.9,
+      "render_display": {
+       "srgb": [
+        197,
+        166,
+        136
+       ],
+       "L": 70.1,
+       "C": 20.9,
+       "h_deg": 70.7
+      },
+      "ref_display_wb": {
+       "srgb": [
+        228,
+        192,
+        159
+       ],
+       "L": 80.3,
+       "C": 23.1,
+       "h_deg": 70.0
+      },
+      "dE_display": 10.4,
+      "dL_display": -10.2,
+      "dC_display": -2.2
+     }
+    },
+    "mean_dE_albedo": 17.0,
+    "mean_dE_display": 15.9
+   },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -10.4,
+     "detail": -2.1,
+     "material": 7.8,
+     "lighting": 10.0,
+     "composition": -1.4,
+     "environment": 22.0,
+     "weighted_total": 2.7
+    },
+    "round2": {
+     "silhouette": -0.5,
+     "detail": -9.9,
+     "material": 26.6,
+     "lighting": 32.0,
+     "composition": 6.2,
+     "environment": 4.0,
+     "weighted_total": 7.7,
+     "mean_dE_albedo": -14.8,
+     "mean_dE_display": -29.6,
+     "ref_iou_body": -0.024
+    }
+   },
+   "delta_vs_prev": {
+    "silhouette": -0.5,
+    "detail": -9.9,
+    "material": 26.6,
+    "lighting": 32.0,
+    "composition": 6.2,
+    "environment": 4.0,
+    "weighted_total": 7.7,
+    "mean_dE_albedo": -14.8,
+    "mean_dE_display": -29.6,
+    "ref_iou_body": -0.024
+   }
+  },
+  "stern34": {
+   "axes": {
+    "silhouette": {
+     "score": 69.8,
+     "quant": 67.5,
+     "subjective": 72,
+     "basis": "[정량] ref IoU 0.675, design IoU 0.963 | [주관] 선미면·꼬리재·우현 곡선 일치(refIoU 0.68)."
+    },
+    "detail": {
+     "score": 76.7,
+     "quant": 85.3,
+     "subjective": 68,
+     "basis": "[정량] edge density ratio 1.173 | [주관] 선미 갑판 소품·돛 줄·개판 육각+철첨."
+    },
+    "material": {
+     "score": 63.2,
+     "quant": 66.5,
+     "subjective": 60,
+     "basis": "[정량] mean ΔE albedo 13.4 / display 22.8 | [주관] 돛 알베도는 사진과 일치(ΔE 4.6), 목재는 사진보다 밝은 주황(C* +16), 개판 밝음."
+    },
+    "lighting": {
+     "score": 68.0,
+     "quant": null,
+     "subjective": 68,
+     "basis": "[주관] 측광으로 선미·우현 입체감 좋음."
+    },
+    "composition": {
+     "score": 63.8,
+     "quant": 69.6,
+     "subjective": 58,
+     "basis": "[정량] bbox IoU vs ref 0.7261 | [주관] 사진은 배가 좌하단을 크게 채우는데 렌더 배는 여전히 작고 화면 위쪽."
+    },
+    "environment": {
+     "score": 62.0,
+     "quant": null,
+     "subjective": 62,
+     "basis": "[주관] 선미 거품·물 무난, 안벽 일부."
+    }
+   },
+   "weighted_total": 67.9,
+   "quant": {
+    "silhouette_design": 67.4,
+    "silhouette_ref": 67.5,
+    "silhouette": 67.5,
+    "composition": 69.6,
+    "detail": 85.3,
+    "material": 66.5
+   },
+   "design_iou": {
+    "body": 0.9627,
+    "hull": 0.6906,
+    "superstructure": 0.9235,
+    "dragon": 0.0
+   },
+   "framing": {
+    "render_bbox": [
+     0,
+     309,
+     476,
+     636
+    ],
+    "cropped_by_frame": true,
+    "width_fill": 0.744
+   },
+   "projection_check_px": 0.0,
+   "ref_iou": {
+    "body": 0.6755
+   },
+   "ref_bbox": [
+    0,
+    307,
+    438,
+    729
+   ],
+   "bbox_iou_vs_ref": 0.7261,
+   "edge_density": {
+    "render_body": 0.4054,
+    "ref_body": 0.3455,
+    "ratio": 1.173
+   },
+   "color": {
+    "white_patch_lin": [
+     0.332,
+     0.342,
+     0.337
+    ],
+    "classes": {
+     "wall": {
+      "render_px": 11961,
+      "ref_albedo_est": {
+       "srgb": [
+        73,
+        40,
+        23
+       ],
+       "L": 20.2,
+       "C": 22.6,
+       "h_deg": 51.8
+      },
+      "render_albedo": {
+       "srgb": [
+        118,
+        59,
+        26
+       ],
+       "L": 32.0,
+       "C": 38.6,
+       "h_deg": 52.9
+      },
+      "dE_albedo": 19.9,
+      "dL_albedo": 11.8,
+      "dC_albedo": 16.0,
+      "render_display": {
+       "srgb": [
+        132,
+        64,
+        28
+       ],
+       "L": 35.3,
+       "C": 43.4,
+       "h_deg": 52.3
+      },
+      "ref_display_wb": {
+       "srgb": [
+        47,
+        23,
+        12
+       ],
+       "L": 11.2,
+       "C": 15.9,
+       "h_deg": 48.7
+      },
+      "dE_display": 36.7,
+      "dL_display": 24.2,
+      "dC_display": 27.5
+     },
+     "roof": {
+      "render_px": 51165,
+      "ref_albedo_est": {
+       "srgb": [
+        115,
+        118,
+        125
+       ],
+       "L": 49.8,
+       "C": 3.9,
+       "h_deg": 274.8
+      },
+      "render_albedo": {
+       "srgb": [
+        83,
+        79,
+        84
+       ],
+       "L": 34.3,
+       "C": 3.5,
+       "h_deg": 316.4
+      },
+      "dE_albedo": 15.7,
+      "dL_albedo": -15.5,
+      "dC_albedo": -0.4,
+      "render_display": {
+       "srgb": [
+        111,
+        102,
+        102
+       ],
+       "L": 44.0,
+       "C": 3.8,
+       "h_deg": 19.8
+      },
+      "ref_display_wb": {
+       "srgb": [
+        76,
+        78,
+        83
+       ],
+       "L": 33.3,
+       "C": 3.0,
+       "h_deg": 274.8
+      },
+      "dE_display": 11.9,
+      "dL_display": 10.7,
+      "dC_display": 0.8
+     },
+     "sail": {
+      "render_px": 40681,
+      "ref_albedo_est": {
+       "srgb": [
+        208,
+        166,
+        127
+       ],
+       "L": 71.3,
+       "C": 27.7,
+       "h_deg": 69.4
+      },
+      "render_albedo": {
+       "srgb": [
+        194,
+        158,
+        115
+       ],
+       "L": 67.5,
+       "C": 28.5,
+       "h_deg": 74.5
+      },
+      "dE_albedo": 4.6,
+      "dL_albedo": -3.8,
+      "dC_albedo": 0.8,
+      "render_display": {
+       "srgb": [
+        87,
+        78,
+        65
+       ],
+       "L": 33.7,
+       "C": 9.2,
+       "h_deg": 81.6
+      },
+      "ref_display_wb": {
+       "srgb": [
+        140,
+        112,
+        85
+       ],
+       "L": 49.4,
+       "C": 20.8,
+       "h_deg": 69.4
+      },
+      "dE_display": 19.8,
+      "dL_display": -15.8,
+      "dC_display": -11.6
+     }
+    },
+    "mean_dE_albedo": 13.4,
+    "mean_dE_display": 22.8
+   },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -14.4,
+     "detail": 18.7,
+     "material": 11.2,
+     "lighting": 6.0,
+     "composition": -15.2,
+     "environment": 17.0,
+     "weighted_total": 4.0
+    },
+    "round2": {
+     "silhouette": -2.4,
+     "detail": -5.5,
+     "material": 5.7,
+     "lighting": 6.0,
+     "composition": 1.4,
+     "environment": 2.0,
+     "weighted_total": 0.5,
+     "mean_dE_albedo": -5.4,
+     "mean_dE_display": 11.4,
+     "ref_iou_body": -0.0177
+    }
+   },
+   "delta_vs_prev": {
+    "silhouette": -2.4,
+    "detail": -5.5,
+    "material": 5.7,
+    "lighting": 6.0,
+    "composition": 1.4,
+    "environment": 2.0,
+    "weighted_total": 0.5,
+    "mean_dE_albedo": -5.4,
+    "mean_dE_display": 11.4,
+    "ref_iou_body": -0.0177
+   }
+  },
+  "aerial": {
+   "axes": {
+    "silhouette": {
+     "score": 78.7,
+     "quant": 81.4,
+     "subjective": 76,
+     "basis": "[정량] ref IoU 0.777, design IoU 0.975 | [주관] 선수 정면 조감 배치 일치(refIoU 0.78). 용두가 작음."
+    },
+    "detail": {
+     "score": 54.8,
+     "quant": 43.5,
+     "subjective": 66,
+     "basis": "[정량] edge density ratio 2.298 | [주관] 육각판·철첨·돛 활대·아딧줄 읽힘. 육각판이 큼직하고 균일해 사진보다 단순."
+    },
+    "material": {
+     "score": 71.8,
+     "quant": 81.5,
+     "subjective": 62,
+     "basis": "[정량] mean ΔE albedo 7.4 / display 15.1 | [주관] 개판 알베도 사진과 일치(ΔE 0.4)하나 보이는 색이 밝고 깨끗(ΔL* +10); 돛 채도 약간 낮음."
+    },
+    "lighting": {
+     "score": 66.0,
+     "quant": null,
+     "subjective": 66,
+     "basis": "[주관] 선수면·개판 순광, 수면 하이라이트."
+    },
+    "composition": {
+     "score": 72.3,
+     "quant": 72.7,
+     "subjective": 72,
+     "basis": "[정량] bbox IoU vs ref 0.7363 | [주관] 사진 구도와 일치(bbox IoU 0.74)."
+    },
+    "environment": {
+     "score": 66.0,
+     "quant": null,
+     "subjective": 66,
+     "basis": "[주관] 수면·안벽·거품선 자연스러움."
+    }
+   },
+   "weighted_total": 68.7,
+   "quant": {
+    "silhouette_design": 87.0,
+    "silhouette_ref": 77.7,
+    "silhouette": 81.4,
+    "composition": 72.7,
+    "detail": 43.5,
+    "material": 81.5
+   },
+   "design_iou": {
+    "body": 0.9754,
+    "hull": 0.8281,
+    "superstructure": 0.9479,
+    "dragon": 0.6257
+   },
+   "framing": {
+    "render_bbox": [
+     126,
+     464,
+     504,
+     838
+    ],
+    "cropped_by_frame": false,
+    "width_fill": 0.525
+   },
+   "projection_check_px": 0.0,
+   "ref_iou": {
+    "body": 0.7771,
+    "dragon": 0.5602
+   },
+   "ref_bbox": [
+    163,
+    437,
+    480,
+    873
+   ],
+   "bbox_iou_vs_ref": 0.7363,
+   "edge_density": {
+    "render_body": 0.4078,
+    "ref_body": 0.1775,
+    "ratio": 2.298
+   },
+   "color": {
+    "white_patch_lin": [
+     0.672,
+     0.672,
+     0.672
+    ],
+    "classes": {
+     "wall": {
+      "render_px": 8166,
+      "ref_albedo_est": {
+       "srgb": [
+        91,
+        36,
+        11
+       ],
+       "L": 22.2,
+       "C": 36.1,
+       "h_deg": 49.2
+      },
+      "render_albedo": {
+       "srgb": [
+        118,
+        59,
+        27
+       ],
+       "L": 32.2,
+       "C": 38.8,
+       "h_deg": 52.9
+      },
+      "dE_albedo": 10.6,
+      "dL_albedo": 10.0,
+      "dC_albedo": 2.7,
+      "render_display": {
+       "srgb": [
+        142,
+        69,
+        29
+       ],
+       "L": 38.0,
+       "C": 46.5,
+       "h_deg": 52.8
+      },
+      "ref_display_wb": {
+       "srgb": [
+        84,
+        33,
+        10
+       ],
+       "L": 20.0,
+       "C": 33.7,
+       "h_deg": 48.7
+      },
+      "dE_display": 22.2,
+      "dL_display": 18.0,
+      "dC_display": 12.8
+     },
+     "roof": {
+      "render_px": 60180,
+      "ref_albedo_est": {
+       "srgb": [
+        85,
+        82,
+        88
+       ],
+       "L": 35.7,
+       "C": 3.6,
+       "h_deg": 312.7
+      },
+      "render_albedo": {
+       "srgb": [
+        85,
+        82,
+        88
+       ],
+       "L": 35.6,
+       "C": 3.4,
+       "h_deg": 306.3
+      },
+      "dE_albedo": 0.4,
+      "dL_albedo": -0.0,
+      "dC_albedo": -0.2,
+      "render_display": {
+       "srgb": [
+        107,
+        99,
+        100
+       ],
+       "L": 42.7,
+       "C": 3.4,
+       "h_deg": 9.6
+      },
+      "ref_display_wb": {
+       "srgb": [
+        79,
+        76,
+        81
+       ],
+       "L": 32.8,
+       "C": 3.4,
+       "h_deg": 312.7
+      },
+      "dE_display": 10.5,
+      "dL_display": 10.0,
+      "dC_display": -0.0
+     },
+     "sail": {
+      "render_px": 46764,
+      "ref_albedo_est": {
+       "srgb": [
+        191,
+        138,
+        88
+       ],
+       "L": 61.7,
+       "C": 37.5,
+       "h_deg": 67.2
+      },
+      "render_albedo": {
+       "srgb": [
+        196,
+        158,
+        113
+       ],
+       "L": 67.7,
+       "C": 29.9,
+       "h_deg": 74.9
+      },
+      "dE_albedo": 10.7,
+      "dL_albedo": 6.0,
+      "dC_albedo": -7.6,
+      "render_display": {
+       "srgb": [
+        146,
+        119,
+        88
+       ],
+       "L": 51.8,
+       "C": 21.9,
+       "h_deg": 74.1
+      },
+      "ref_display_wb": {
+       "srgb": [
+        177,
+        127,
+        81
+       ],
+       "L": 57.3,
+       "C": 35.4,
+       "h_deg": 67.2
+      },
+      "dE_display": 15.0,
+      "dL_display": -5.5,
+      "dC_display": -13.6
+     },
+     "dragon": {
+      "render_px": 4056,
+      "ref_albedo_est": {
+       "srgb": [
+        68,
+        46,
+        49
+       ],
+       "L": 21.9,
+       "C": 10.8,
+       "h_deg": 12.3
+      },
+      "render_albedo": {
+       "srgb": [
+        63,
+        51,
+        44
+       ],
+       "L": 22.7,
+       "C": 7.4,
+       "h_deg": 59.6
+      },
+      "dE_albedo": 8.0,
+      "dL_albedo": 0.7,
+      "dC_albedo": -3.5,
+      "render_display": {
+       "srgb": [
+        85,
+        67,
+        58
+       ],
+       "L": 30.0,
+       "C": 10.4,
+       "h_deg": 53.5
+      },
+      "ref_display_wb": {
+       "srgb": [
+        63,
+        42,
+        45
+       ],
+       "L": 19.8,
+       "C": 10.2,
+       "h_deg": 12.3
+      },
+      "dE_display": 12.6,
+      "dL_display": 10.2,
+      "dC_display": 0.2
+     }
+    },
+    "mean_dE_albedo": 7.4,
+    "mean_dE_display": 15.1
+   },
+   "delta_vs": {
+    "round1": {
+     "silhouette": -3.7,
+     "detail": 9.8,
+     "material": 31.8,
+     "lighting": 16.0,
+     "composition": -6.7,
+     "environment": 16.0,
+     "weighted_total": 10.7
+    },
+    "round2": {
+     "silhouette": 0.5,
+     "detail": -12.4,
+     "material": 10.7,
+     "lighting": 16.0,
+     "composition": 2.1,
+     "environment": 1.0,
+     "weighted_total": 1.7,
+     "mean_dE_albedo": -6.9,
+     "mean_dE_display": -13.1,
+     "ref_iou_body": 0.0046
+    }
+   },
+   "delta_vs_prev": {
+    "silhouette": 0.5,
+    "detail": -12.4,
+    "material": 10.7,
+    "lighting": 16.0,
+    "composition": 2.1,
+    "environment": 1.0,
+    "weighted_total": 1.7,
+    "mean_dE_albedo": -6.9,
+    "mean_dE_display": -13.1,
+    "ref_iou_body": 0.0046
+   }
+  }
+ },
+ "notes": "[정량]=마스크 IoU·bbox·엣지밀도·ΔE 계산, [주관]=렌더 육안 평가(assessment.json). 같은 축에 둘 다 있으면 평균. 참고 사진은 실내 전시 복원선이라 lighting·environment 는 [주관](항구/물 사실감)만.",
+ "overall_weighted_total": 66.2,
+ "overall_delta_vs": {
+  "round1": 6.2,
+  "round2": 2.8
+ },
+ "overall_delta_vs_prev": 2.8,
+ "delta_caveat": "round1 은 참고 사진 없이 설계 투영만으로 채점(카메라 설계 v1) — 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님. round2 은 같은 참고 사진·지표·가중치 — 직접 비교 가능."
+}
