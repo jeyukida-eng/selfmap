@@ -1,2 +1,6 @@
 *.png
 !icons/*.png
+geobukseon/modeling/*.blend
+geobukseon/modeling/*.blend1
+geobukseon/out/frames/
+__pycache__/
