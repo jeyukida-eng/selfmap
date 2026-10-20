@@ -418,9 +418,9 @@ def _hex(g, u, v, cell):
     return edge, cid
 
 
-def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.075, arc_attr="roof_s"):
+def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.035, arc_attr="roof_s"):
     """거북등 지붕: 판 길이방향=Object Y, 가로방향 = attribute `arc_attr`(용마루로부터의 호길이 m,
-    좌현 음수) 가 있으면 그것, 없으면 Object X (위에서 투영)."""
+    좌현 음수) 가 있으면 그것, 없으면 x·θ/sinθ 원호 근사. 홈선 폭 line_w(m) 거의 흑색."""
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
@@ -428,7 +428,6 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.075, arc_attr="roof
     at = g.node("ShaderNodeAttribute", attribute_name=arc_attr, attribute_type="GEOMETRY")
     s_attr = g.o(at, "Factor")
     has = g.m("GREATER_THAN", g.m("ABSOLUTE", s_attr), 1e-4)
-    # 속성 없을 때: 원호 근사 s = x·θ/sinθ (θ = 법선의 수직 기울기). 원형 단면이면 정확한 호길이.
     nx, _, nz = g.sep(g.wnorm())
     th = g.m("ARCTAN2", g.m("ABSOLUTE", nx), nz)
     sn = g.m("MAXIMUM", g.m("SINE", th), 0.05)
@@ -437,42 +436,43 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.075, arc_attr="roof
     edge, cid = _hex(g, s, y, hex_cell)
     crnd = g.white(cid)
     cr = g.o(crnd, "Value")
-    line = g.smooth(edge, line_w * 0.5 + 0.004, line_w * 0.5 - 0.004)       # 1 = 굵은 선
-    rim = g.m("MULTIPLY", g.smooth(edge, line_w * 0.5 + 0.06, line_w * 0.5 + 0.01), g.m("SUBTRACT", 1.0, line))
-    # 판 바탕: 적갈 ~ 흑갈 (셀별), 대형 얼룩
-    big = g.nfac(P, 0.25, 3.0, 0.6)
-    tone = g.m("ADD", g.m("MULTIPLY", cr, 0.6), g.m("MULTIPLY", big, 0.4))
-    plate = g.ramp(tone, [(0.0, (0.013, 0.010, 0.009)), (0.35, (0.024, 0.013, 0.009)),
-                          (0.7, (0.042, 0.018, 0.011)), (1.0, (0.062, 0.025, 0.015))])
-    # 도장 얼룩(중간 스케일) + 빗물 흘러내린 줄
+    cc = g.o(crnd, "Color")
+    cr2, _, _ = g.sep(cc)
+    line = g.smooth(edge, line_w * 0.5 + 0.003, line_w * 0.5 - 0.003)       # 1 = 홈선
+    # 셀별 색: 적갈 ↔ 흑갈 (cr), 명도 ±15% (cr2)
+    plate = g.ramp(cr, [(0.0, (0.026, 0.020, 0.017)), (0.45, (0.040, 0.024, 0.017)),
+                        (0.8, (0.060, 0.028, 0.018)), (1.0, (0.075, 0.032, 0.020))])
+    plate = g.mix(1.0, plate, g.comb(*(g.lin(cr2, 0, 1, 0.85, 1.15),) * 3), "MULTIPLY")
+    # 셀 중앙 마모(약간 밝게)
+    center = g.smooth(edge, hex_cell * 0.12, hex_cell * 0.42)
+    plate = g.mix(g.m("MULTIPLY", center, 0.15), plate, g.mix(1.0, plate, (1.5, 1.4, 1.3), "MULTIPLY", clamp=False))
+    # 대형 오염(기존 대비 50%): 도장 얼룩 + 빗물 줄
     mott = g.nfac(P, 4.0, 8.0, 0.65, dist=0.2)
-    plate = g.mix(g.lin(mott, 0.3, 0.75, 0.0, 0.55), plate, g.mix(1.0, plate, (0.55, 0.5, 0.48), "MULTIPLY"))
+    plate = g.mix(g.lin(mott, 0.3, 0.75, 0.0, 0.27), plate, g.mix(1.0, plate, (0.55, 0.5, 0.48), "MULTIPLY"))
     stk = g.nfac(g.comb(g.m("MULTIPLY", x, 7.0), g.m("MULTIPLY", y, 7.0), g.m("MULTIPLY", z, 0.35)), 1.0, 4.0, 0.6)
-    plate = g.mix(g.m("MULTIPLY", g.smooth(stk, 0.5, 0.75), 0.5), plate, (0.05, 0.045, 0.04))
-    # 판 내부 나무결(도장 아래로 비침)
-    gr = g.wave(g.comb(g.m("MULTIPLY", s, 1.0), g.m("MULTIPLY", y, 0.08), z), 30.0, 6.0, 3.0, 1.0,
-                direction="X")
-    plate = g.mix(g.m("MULTIPLY", g.smooth(gr, 0.3, 0.9), 0.25), plate,
-                  g.mix(1.0, plate, (0.6, 0.6, 0.6), "MULTIPLY"))
-    linec = (0.012, 0.010, 0.009)
-    col = g.mix(line, plate, linec)
-    col = g.mix(g.m("MULTIPLY", rim, 0.35), col, g.mix(1.0, col, (0.6, 0.55, 0.5), "MULTIPLY"))
-    # 도장 벗겨짐 → 회갈 목재
+    plate = g.mix(g.m("MULTIPLY", g.smooth(stk, 0.55, 0.78), 0.25), plate, (0.05, 0.045, 0.04))
+    gr = g.wave(g.comb(s, g.m("MULTIPLY", y, 0.08), z), 30.0, 6.0, 3.0, 1.0, direction="X")
+    plate = g.mix(g.m("MULTIPLY", g.smooth(gr, 0.3, 0.9), 0.2), plate,
+                  g.mix(1.0, plate, (0.65, 0.65, 0.65), "MULTIPLY"))
+    col = g.mix(line, plate, (0.012, 0.010, 0.009))
+    # 선 바로 옆 어두운 그늘(홈 가장자리)
+    lip = g.m("MULTIPLY", g.smooth(edge, line_w * 0.5 + 0.025, line_w * 0.5), g.m("SUBTRACT", 1.0, line))
+    col = g.mix(g.m("MULTIPLY", lip, 0.4), col, g.mix(1.0, col, (0.5, 0.5, 0.5), "MULTIPLY"))
+    # 도장 벗겨짐
     chip_n = g.nfac(P, 1.6, 8.0, 0.72, dist=0.2)
-    near_line = g.smooth(edge, line_w * 0.5 + 0.12, line_w * 0.5)
-    chips = g.smooth(g.m("ADD", chip_n, g.m("MULTIPLY", near_line, 0.06)), 0.68, 0.70)
-    col = g.mix(chips, col, g.mix(g.o(crnd, "Value"), (0.045, 0.037, 0.030), (0.075, 0.062, 0.050)))
-    # 먼지·염분 (위를 향한 면) + 빗물 줄
-    _, _, nz = g.sep(g.wnorm())
-    dust = g.m("MULTIPLY", g.smooth(nz, 0.3, 0.95), g.smooth(g.nfac(P, 1.5, 5.0, 0.6), 0.4, 0.75))
-    col = g.mix(g.m("MULTIPLY", dust, 0.35), col, (0.16, 0.14, 0.12))
-    col = _ao_dirt(g, col, amount=0.7, dist=0.25)
-    rough = g.m("ADD", g.lin(mott, 0.2, 0.8, 0.58, 0.82), g.m("MULTIPLY", g.m("ADD", dust, chips), 0.15))
-    rough = g.mixf(line, rough, 0.8)
-    h = g.m("SUBTRACT", g.m("MULTIPLY", g.smooth(edge, 0.0, 0.12), 0.45), g.m("MULTIPLY", line, 0.35))
-    h = g.m("ADD", h, g.m("MULTIPLY", chips, -0.15))
-    h = g.m("ADD", h, g.m("MULTIPLY", g.nfac(P, 25.0, 3.0), 0.08))
-    nrm = g.bump(h, 0.35, 0.02)
+    chips = g.smooth(chip_n, 0.70, 0.72)
+    col = g.mix(chips, col, g.mix(cr, (0.045, 0.037, 0.030), (0.075, 0.062, 0.050)))
+    # 먼지(위를 향한 면, 50% 감소)
+    dust = g.m("MULTIPLY", g.smooth(nz, 0.3, 0.95), g.smooth(g.nfac(P, 1.5, 5.0, 0.6), 0.45, 0.8))
+    col = g.mix(g.m("MULTIPLY", dust, 0.18), col, (0.16, 0.14, 0.12))
+    col = _ao_dirt(g, col, amount=0.6, dist=0.25)
+    rough = g.m("ADD", g.lin(mott, 0.2, 0.8, 0.55, 0.78), g.m("MULTIPLY", g.m("ADD", dust, chips), 0.15))
+    rough = g.m("SUBTRACT", rough, g.m("MULTIPLY", center, 0.08))
+    rough = g.mixf(line, rough, 0.85)
+    h = g.m("SUBTRACT", g.m("MULTIPLY", g.smooth(edge, 0.0, 0.03), 0.25), g.m("MULTIPLY", line, 0.5))
+    h = g.m("ADD", h, g.m("MULTIPLY", chips, -0.1))
+    h = g.m("ADD", h, g.m("MULTIPLY", g.nfac(P, 25.0, 3.0), 0.06))
+    nrm = g.bump(h, 0.3, 0.02)
     b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.45)
     g.output(g.o(b, "BSDF"))
     return mat
@@ -509,36 +509,64 @@ def _fade(g, col, P, amount=0.35):
 
 
 def mat_dragon_head(name="dragon_head"):
-    """용두 단청: Generated Y(뒤→주둥이) 따라 녹·적·청·백·황 띠 + 비늘(Voronoi) + 바램.
-    단청 색 기준(선형): 뇌록, 석간주(적), 군청, 백토, 황토."""
+    """용두 단청 (구역 채색, Generated 좌표: x=폭, y=뒤(0)→주둥이(1), z=아래→위).
+    목·정수리 녹청 / 갈기 군청+주홍 끝 / 볼 군청 / 뿔 황토 / 눈두덩 백 / 주둥이·입술·아래턱 주홍 / 배 백토,
+    구역 경계 흑선, 비늘(Voronoi), 채도 −20%, 때 20%."""
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
-    Gc = g.gen()
-    gx, gy, gz = g.sep(Gc)
-    dn = g.nfac(P, 3.0, 3.0, 0.5)
-    t = g.m("ADD", gy, g.m("MULTIPLY", g.m("SUBTRACT", dn, 0.5), 0.05))
-    t = g.m("ADD", t, g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.5), 0.15))
-    bands = g.m("FRACT", g.m("MULTIPLY", t, 9.0))
-    green = (0.050, 0.130, 0.085)
-    red = (0.24, 0.040, 0.028)
-    blue = (0.030, 0.055, 0.14)
-    white = (0.42, 0.40, 0.35)
-    yellow = (0.32, 0.21, 0.07)
-    stripe = g.ramp(bands, [(0.0, green), (0.56, white), (0.60, red), (0.76, white), (0.79, blue),
-                            (0.90, yellow), (0.94, green)], interp="CONSTANT")
-    # 아래턱/목 아랫면은 적색, 윗면은 녹색 비중
-    lower = g.smooth(gz, 0.38, 0.30)
-    col = g.mix(g.m("MULTIPLY", lower, 0.8), stripe, red)
-    # 비늘
-    vor = g.voronoi(P, 14.0, "DISTANCE_TO_EDGE")
-    scale_line = g.smooth(g.o(vor, "Distance"), 0.06, 0.0)
-    col = g.mix(g.m("MULTIPLY", scale_line, 0.6), col, (0.03, 0.03, 0.025))
-    col = _fade(g, col, P, 0.85)
-    chips = g.smooth(g.nfac(P, 5.0, 6.0, 0.7), 0.66, 0.70)
-    col = g.mix(chips, col, (0.12, 0.10, 0.08))
-    col = _ao_dirt(g, col, amount=0.85, dist=0.2)
-    rough = g.m("ADD", 0.62, g.m("MULTIPLY", chips, 0.2))
+    gx, gy, gz = g.sep(g.gen())
+    wn = g.m("MULTIPLY", g.m("SUBTRACT", g.nfac(P, 5.0, 3.0, 0.5), 0.5), 0.05)
+    gy = g.m("ADD", gy, wn)
+    gz = g.m("ADD", gz, g.m("MULTIPLY", wn, 0.7))
+    dx = g.m("ABSOLUTE", g.m("SUBTRACT", gx, 0.5))
+    teal = (0.09, 0.30, 0.25)
+    green = (0.06, 0.20, 0.10)
+    blue = (0.035, 0.08, 0.22)
+    verm = (0.50, 0.075, 0.035)
+    ochre = (0.36, 0.23, 0.07)
+    white = (0.44, 0.42, 0.36)
+    belly = (0.36, 0.30, 0.19)
+    w = 0.006
+    col = g.mix(g.smooth(gz, 0.55, 0.75), green, teal)                  # 목: 아래 녹 → 위 녹청
+    m_belly = g.smooth(gz, 0.30, 0.26)
+    col = g.mix(m_belly, col, belly)
+    m_head = g.smooth(gy, 0.40 - w, 0.40 + w)
+    m_cheek = g.m("MULTIPLY", m_head, g.m("MULTIPLY", g.smooth(dx, 0.16, 0.19), g.smooth(gz, 0.56, 0.52)))
+    col = g.mix(g.m("MULTIPLY", m_head, g.smooth(gz, 0.48, 0.52)), col, teal)
+    col = g.mix(m_cheek, col, blue)
+    m_jaw = g.m("MULTIPLY", g.smooth(gy, 0.45, 0.47), g.smooth(gz, 0.40, 0.36))
+    col = g.mix(m_jaw, col, verm)
+    m_snout = g.smooth(gy, 0.82 - w, 0.82 + w)
+    col = g.mix(m_snout, col, verm)
+    m_brow = g.m("MULTIPLY", g.m("MULTIPLY", g.smooth(gy, 0.45, 0.47), g.smooth(gy, 0.64, 0.62)),
+                 g.m("MULTIPLY", g.smooth(gz, 0.58, 0.61), g.smooth(gz, 0.70, 0.67)))
+    col = g.mix(m_brow, col, white)
+    m_horn = g.m("MULTIPLY", g.smooth(gz, 0.74, 0.78), g.smooth(gy, 0.50, 0.46))
+    col = g.mix(m_horn, col, ochre)
+    m_mane = g.m("MULTIPLY", g.smooth(dx, 0.30, 0.33), g.smooth(gy, 0.50, 0.46))
+    mane_c = g.mix(g.smooth(dx, 0.42, 0.45), blue, verm)
+    col = g.mix(m_mane, col, mane_c)
+    # 비늘(목·정수리·갈기 제외 영역 위주)
+    vor = g.voronoi(P, 16.0, "DISTANCE_TO_EDGE")
+    scale_line = g.m("MULTIPLY", g.smooth(g.o(vor, "Distance"), 0.05, 0.0),
+                     g.m("SUBTRACT", 1.0, g.m("MAXIMUM", m_snout, m_horn)))
+    col = g.mix(g.m("MULTIPLY", scale_line, 0.55), col, (0.02, 0.025, 0.02))
+    # 구역 경계 흑선(마스크 경계의 전이폭 → 선)
+    def edge_of(mk):
+        return g.m("MULTIPLY", g.m("MULTIPLY", mk, g.m("SUBTRACT", 1.0, mk)), 4.0)
+    ln = edge_of(m_head)
+    for mk in (m_snout, m_cheek, m_jaw, m_brow, m_horn, m_mane):
+        ln = g.m("MAXIMUM", ln, edge_of(mk))
+    col = g.mix(g.smooth(ln, 0.3, 0.6), col, (0.012, 0.012, 0.012))
+    col = g.hsv(col, 0.5, 0.8, 1.0)
+    col = _fade(g, col, P, 0.45)
+    chips = g.smooth(g.nfac(P, 5.0, 6.0, 0.7), 0.68, 0.71)
+    col = g.mix(chips, col, (0.10, 0.085, 0.07))
+    dirt = g.smooth(g.nfac(P, 1.5, 5.0, 0.6), 0.4, 0.8)
+    col = g.mix(g.m("MULTIPLY", dirt, 0.2), col, g.mix(1.0, col, (0.45, 0.4, 0.33), "MULTIPLY"))
+    col = _ao_dirt(g, col, amount=0.85, dist=0.15)
+    rough = g.m("ADD", 0.58, g.m("MULTIPLY", g.m("ADD", chips, dirt), 0.15))
     h = g.m("ADD", g.m("MULTIPLY", scale_line, -0.5), g.m("MULTIPLY", g.nfac(P, 40.0, 3.0), 0.2))
     nrm = g.bump(h, 0.3, 0.004)
     b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.4)
@@ -547,85 +575,126 @@ def mat_dragon_head(name="dragon_head"):
 
 
 def mat_ghost_face(name="ghost_face"):
-    """귀면: Generated(x=가로 0..1, z=세로 0..1) 기준. 얼굴 평면 = 로컬 XZ(법선 ±Y) 가정.
-    붉은 바탕 + 흰 눈자위 + 검은 눈동자 + 녹색 눈썹 + 흰 이빨/송곳니."""
+    """귀면: Generated(x=가로 0..1, z=세로 0..1), 얼굴 = 메시 로컬 XZ 평면(법선 ±Y).
+    주토(검붉은) 얼굴 + 흑청 바깥 테·녹/청 불꽃 갈기, 흰 눈자위+주홍 테+흑 눈동자, 녹 눈썹(백 테),
+    주홍 코, 흰 이빨·송곳니, 부조 골 AO. (부조 위치는 modeling/build_ghost_face 와 일치)"""
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
     gx, gy, gz = g.sep(g.gen())
-    dx = g.m("ABSOLUTE", g.m("SUBTRACT", gx, 0.5))  # 좌우 대칭
-    red = (0.33, 0.035, 0.025)
-    col = g.mix(g.m("MULTIPLY", g.nfac(P, 4.0, 4.0), 0.5), red, (0.20, 0.025, 0.02))
+    dx = g.m("ABSOLUTE", g.m("SUBTRACT", gx, 0.5))
+    dz = g.m("SUBTRACT", gz, 0.52)
+    face_r = g.v("LENGTH", g.comb(g.m("MULTIPLY", dx, 2.0), g.m("MULTIPLY", dz, 2.0), 0.0))  # 0 중앙, ~1 가장자리
+    jit = g.m("MULTIPLY", g.m("SUBTRACT", g.nfac(P, 6.0, 3.0), 0.5), 0.06)
+    face_r = g.m("ADD", face_r, jit)
+    base = g.mix(g.m("MULTIPLY", g.nfac(P, 4.0, 4.0), 0.5), (0.26, 0.04, 0.025), (0.16, 0.03, 0.02))
+    # 바깥 갈기: 각도별 녹/청 불꽃 혀 + 흑청 바탕
+    ang = g.m("ARCTAN2", g.m("SUBTRACT", gx, 0.5), dz)
+    fl = g.m("FRACT", g.m("MULTIPLY", ang, 14.0 / 6.2832))
+    flame_c = g.mix(g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", fl, 0.5)), 0.22, 0.26), (0.05, 0.17, 0.10), (0.03, 0.06, 0.16))
+    tongue = g.smooth(g.m("ADD", g.m("MULTIPLY", g.m("ABSOLUTE", g.m("SUBTRACT", fl, 0.5)), 0.5), face_r), 1.08, 1.02)
+    outer = g.smooth(face_r, 0.80, 0.84)
+    ring_c = g.mix(tongue, (0.018, 0.028, 0.040), flame_c)
+    col = g.mix(outer, base, ring_c)
+    col = g.mix(g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", face_r, 0.82)), 0.02, 0.008), 1.0), col,
+                (0.01, 0.01, 0.01))
     # 눈
     ed = g.v("LENGTH", g.comb(g.m("SUBTRACT", dx, 0.2), g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.64), 1.3), 0.0))
-    sclera = g.smooth(ed, 0.135, 0.125)
-    pupil = g.smooth(ed, 0.065, 0.055)
+    sclera = g.smooth(ed, 0.125, 0.115)
+    pupil = g.smooth(ed, 0.06, 0.05)
     ring = g.m("MULTIPLY", g.smooth(ed, 0.16, 0.15), g.m("SUBTRACT", 1.0, sclera))
-    col = g.mix(ring, col, (0.02, 0.02, 0.02))
+    col = g.mix(ring, col, (0.50, 0.09, 0.035))
+    col = g.mix(g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", ed, 0.125)), 0.008, 0.003), 1.0), col,
+                (0.01, 0.01, 0.01))
     col = g.mix(sclera, col, (0.46, 0.44, 0.38))
-    col = g.mix(pupil, col, (0.008, 0.008, 0.008))
-    # 눈썹 (녹색 사선 띠)
+    col = g.mix(pupil, col, (0.006, 0.006, 0.006))
+    # 눈썹 (녹 + 흰 테)
     bz = g.m("SUBTRACT", gz, g.m("ADD", 0.80, g.m("MULTIPLY", dx, 0.25)))
-    brow = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", bz), 0.045, 0.035), g.smooth(dx, 0.38, 0.36))
-    brow = g.m("MULTIPLY", brow, g.smooth(dx, 0.04, 0.06))
-    col = g.mix(brow, col, (0.04, 0.17, 0.10))
-    # 코 (어두운 콧구멍)
+    bmask = g.m("MULTIPLY", g.smooth(dx, 0.38, 0.36), g.smooth(dx, 0.04, 0.06))
+    brow_rim = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", bz), 0.055, 0.045), bmask)
+    brow = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", bz), 0.04, 0.03), bmask)
+    col = g.mix(brow_rim, col, (0.40, 0.39, 0.34))
+    col = g.mix(brow, col, g.mix(g.nfac(P, 12.0, 3.0), (0.04, 0.16, 0.09), (0.03, 0.08, 0.17)))
+    # 코 (주홍) + 콧구멍
+    nose = g.v("LENGTH", g.comb(dx, g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.50), 0.8), 0.0))
+    col = g.mix(g.smooth(nose, 0.10, 0.085), col, (0.42, 0.07, 0.03))
     nd = g.v("LENGTH", g.comb(g.m("SUBTRACT", dx, 0.07), g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.46), 1.6), 0.0))
-    col = g.mix(g.smooth(nd, 0.045, 0.035), col, (0.03, 0.006, 0.005))
-    # 입 + 이빨
+    col = g.mix(g.smooth(nd, 0.04, 0.03), col, (0.02, 0.005, 0.004))
+    # 입 + 이빨 + 송곳니
     mouth = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", gz, 0.27)), 0.11, 0.10), g.smooth(dx, 0.33, 0.31))
-    col = g.mix(mouth, col, (0.05, 0.008, 0.006))
+    col = g.mix(mouth, col, (0.035, 0.006, 0.005))
     tf = g.m("FRACT", g.m("MULTIPLY", gx, 11.0))
     tooth = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", tf, 0.5)), 0.42, 0.36),
                 g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", gz, 0.27)), 0.085, 0.075), g.smooth(dx, 0.30, 0.28)))
-    # 송곳니(위로 삼각)
     fx = g.m("ABSOLUTE", g.m("SUBTRACT", dx, 0.24))
     fang = g.m("MULTIPLY", g.smooth(fx, g.m("MULTIPLY", g.m("SUBTRACT", 0.47, gz), 0.25), 0.0),
                g.m("MULTIPLY", g.smooth(gz, 0.47, 0.45), g.smooth(gz, 0.18, 0.2)))
     teeth = g.m("MAXIMUM", tooth, g.smooth(fang, 0.2, 0.5))
-    col = g.mix(teeth, col, (0.48, 0.46, 0.40))
-    col = _fade(g, col, P, 0.45)
-    chips = g.smooth(g.nfac(P, 6.0, 6.0, 0.7), 0.67, 0.71)
-    col = g.mix(chips, col, (0.11, 0.09, 0.07))
-    col = _ao_dirt(g, col, amount=0.8, dist=0.15)
-    h = g.m("ADD", g.m("MULTIPLY", g.m("ADD", sclera, teeth), 0.6), g.m("MULTIPLY", g.nfac(P, 35.0, 3.0), 0.2))
-    h = g.m("SUBTRACT", h, g.m("ADD", pupil, g.m("MULTIPLY", mouth, 0.5)))
-    nrm = g.bump(h, 0.25, 0.006)
-    b = g.principled(Base_Color=col, Roughness=g.m("ADD", 0.6, g.m("MULTIPLY", chips, 0.25)), Normal=nrm)
+    col = g.mix(teeth, col, (0.50, 0.48, 0.42))
+    col = _fade(g, col, P, 0.4)
+    chips = g.smooth(g.nfac(P, 6.0, 6.0, 0.7), 0.68, 0.71)
+    col = g.mix(chips, col, (0.10, 0.085, 0.07))
+    col = _ao_dirt(g, col, (0.02, 0.012, 0.01), amount=1.0, dist=0.08)
+    col = _ao_dirt(g, col, amount=0.5, dist=0.3)
+    h = g.m("ADD", g.m("MULTIPLY", g.m("ADD", sclera, teeth), 0.4), g.m("MULTIPLY", g.nfac(P, 35.0, 3.0), 0.2))
+    h = g.m("SUBTRACT", h, g.m("ADD", g.m("MULTIPLY", pupil, 0.6), g.m("MULTIPLY", mouth, 0.3)))
+    nrm = g.bump(h, 0.2, 0.004)
+    b = g.principled(Base_Color=col, Roughness=g.m("ADD", 0.55, g.m("MULTIPLY", chips, 0.25)), Normal=nrm)
     g.output(g.o(b, "BSDF"))
     return mat
 
 
-def mat_wall_panel(name="wall_panel"):
-    """방패판: 세로 판재(폭 0.28m, 결=Z) 검붉은 도장 + Generated Z 상단 흰 띠/청 띠, 하단 청 띠 흔적."""
+def mat_wall_panel(name="wall_panel", panel_w=0.9, v_attr="wall_v"):
+    """방패판: 세로 판재(0.28m, 결=Z) 검붉은 도장, 패판 경계 세로 흑선(panel_w 간격, 3cm),
+    상·하단 흑 테(각 ~8cm), 상단 띠에 녹·주홍 단청 반복(0.45m), 상단 흰 선 흔적, 풍화 15%.
+    세로 위치 v = attribute `v_attr`(0 하단 → 1 상단, 권장) 없으면 Generated Z."""
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
     x, y, z = g.sep(P)
-    Pr = g.comb(g.m("ADD", x, y), z, g.m("SUBTRACT", x, y))
+    across = g.m("ADD", x, y)
+    Pr = g.comb(across, z, g.m("SUBTRACT", x, y))
     col, rv, h = _wood(g, Pr, (0.08, 0.03, 0.02), (0.15, 0.07, 0.045), plank_w=0.28, seg=50.0,
-                       grain_axis="Y", grey=0.25, seed=5.0, seam_w=0.012, seam_dark=0.75)
-    # ↑ Pr: (가로=x+y, Y슬롯=z) → 결 방향=z(세로), 판은 가로로 나열
-    paint = (0.11, 0.022, 0.016)
+                       grain_axis="Y", grey=0.25, seed=5.0, seam_w=0.010, seam_dark=0.6)
+    wood = col
+    paint = (0.075, 0.019, 0.014)
     pn = g.nfac(P, 1.2, 5.0, 0.6)
-    painted = g.mix(g.lin(pn, 0.3, 0.8, 0.0, 0.5), paint, (0.05, 0.015, 0.012))
-    painted = g.mix(0.35, painted, g.mix(1.0, painted, col, "MULTIPLY"))
+    painted = g.mix(g.lin(pn, 0.3, 0.8, 0.0, 0.4), paint, (0.06, 0.016, 0.012))
     painted = g.mix(1.0, painted, g.hsv(col, 0.5, 0.0, 6.0), "MULTIPLY")
+    at = g.node("ShaderNodeAttribute", attribute_name=v_attr, attribute_type="GEOMETRY")
+    va = g.o(at, "Factor")
     _, _, gz = g.sep(g.gen())
-    wn = g.m("MULTIPLY", g.m("SUBTRACT", g.nfac(P, 6.0, 3.0), 0.5), 0.03)
-    gzn = g.m("ADD", gz, wn)
-    top_w = g.m("MULTIPLY", g.smooth(gzn, 0.90, 0.92), g.smooth(gzn, 0.985, 0.975))
-    top_b = g.m("MULTIPLY", g.smooth(gzn, 0.84, 0.855), g.smooth(gzn, 0.89, 0.88))
-    bot_b = g.m("MULTIPLY", g.smooth(gzn, 0.04, 0.05), g.smooth(gzn, 0.11, 0.10))
-    wear = g.smooth(g.nfac(P, 4.0, 6.0, 0.7), 0.55, 0.62)    # 띠 도장 흔적만 남김
-    keep = g.m("SUBTRACT", 1.0, g.m("MULTIPLY", wear, 0.85))
-    painted = g.mix(g.m("MULTIPLY", top_w, keep), painted, (0.45, 0.43, 0.38))
-    painted = g.mix(g.m("MULTIPLY", g.m("MAXIMUM", top_b, bot_b), keep), painted, (0.03, 0.06, 0.15))
-    chips = g.smooth(g.nfac(P, 2.5, 7.0, 0.7, dist=0.3), 0.64, 0.69)
-    col = g.mix(chips, painted, col)
+    v = g.mixf(g.m("GREATER_THAN", va, 1e-4), gz, va)
+    v = g.m("ADD", v, g.m("MULTIPLY", g.m("SUBTRACT", g.nfac(P, 6.0, 3.0), 0.5), 0.012))
+    bt = 0.06   # ≈8cm / 1.35m
+    top_k = g.smooth(v, 1.0 - bt - 0.004, 1.0 - bt + 0.004)
+    bot_k = g.smooth(v, bt + 0.004, bt - 0.004)
+    # 상단 단청 띠 (흑테 바로 아래, 폭 ~0.11)
+    dan = g.m("MULTIPLY", g.smooth(v, 1.0 - bt - 0.12, 1.0 - bt - 0.11), g.m("SUBTRACT", 1.0, top_k))
+    ph = g.m("FRACT", g.m("DIVIDE", across, 0.45))
+    dan_c = g.ramp(ph, [(0.0, (0.05, 0.17, 0.11)), (0.45, (0.40, 0.38, 0.33)), (0.52, (0.42, 0.07, 0.035)),
+                        (0.92, (0.40, 0.38, 0.33))], interp="CONSTANT")
+    wear = g.smooth(g.nfac(P, 4.0, 6.0, 0.7), 0.58, 0.64)
+    keep = g.m("SUBTRACT", 1.0, g.m("MULTIPLY", wear, 0.7))
+    painted = g.mix(g.m("MULTIPLY", dan, keep), painted, dan_c)
+    # 패판 경계 세로 흑선
+    fp = g.m("FRACT", g.m("DIVIDE", across, panel_w))
+    pd = g.m("MULTIPLY", g.m("MINIMUM", fp, g.m("SUBTRACT", 1.0, fp)), panel_w)
+    vline = g.smooth(pd, 0.017, 0.013)
+    black = (0.014, 0.012, 0.011)
+    painted = g.mix(g.m("MAXIMUM", g.m("MAXIMUM", top_k, bot_k), vline), painted, black)
+    # 흑테 위 가는 흰 선 흔적
+    wl = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", v, 1.0 - bt - 0.006)), 0.005, 0.002), keep)
+    painted = g.mix(wl, painted, (0.40, 0.38, 0.33))
+    chips = g.smooth(g.nfac(P, 2.5, 7.0, 0.7, dist=0.3), 0.66, 0.70)
+    col = g.mix(chips, painted, wood)
+    weath = g.smooth(g.nfac(P, 0.7, 5.0, 0.6), 0.45, 0.8)
+    col = g.mix(g.m("MULTIPLY", weath, 0.15), col, (0.16, 0.14, 0.12))
     col = _ao_dirt(g, col, amount=0.7, dist=0.3)
     col, rough, _ = _waterline(g, col, g.lin(rv, 0, 1, 0.6, 0.85), strength=0.6)
-    nrm = g.bump(g.m("ADD", h, g.m("MULTIPLY", chips, -0.3)), 0.25, 0.01)
+    hh = g.m("ADD", h, g.m("MULTIPLY", chips, -0.3))
+    hh = g.m("SUBTRACT", hh, g.m("MULTIPLY", vline, 0.6))
+    nrm = g.bump(hh, 0.25, 0.01)
     b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.4)
     g.output(g.o(b, "BSDF"))
     return mat
@@ -731,35 +800,64 @@ def mat_flag_cloth(name="flag_cloth"):
     return mat
 
 
-def mat_water(name="water"):
-    """바다: 불투명 유전체 반사(IOR 1.333) + 짙은 청록 산란색. Cycles·EEVEE 모두 안정.
-    법선 = 다중 스케일 Noise/Wave 잔물결 (월드 XY m 기준). 큰 파도는 모델러 Ocean modifier."""
+def mat_water(name="water", foam_attr="hull_dist", foam_width=0.6):
+    """바다. Cycles: 투과(IOR 1.333)+청록 볼륨 흡수(+12% 확산 몸체색). EEVEE: 같은 법선·색의 불투명 반사판
+    (Material Output 타깃 분리 — 열린 수면 메시에서 EEVEE 볼륨은 바운딩박스를 채우므로 사용 안 함).
+    거품: 메시 float attribute `foam_attr`(선체까지 수평거리 m) 0~foam_width 띠. 속성 없으면(0) 거품 없음.
+    법선: 도메인 왜곡 + 비정수 배율 다중 스케일 Noise(타일 반복 없음). 큰 파도는 Ocean modifier."""
     mat = _new_mat(name)
     g = G(mat)
     W = g.wpos()
-    x, y, z = g.sep(W)
-    # 바람 방향으로 늘린 좌표
-    Pw = g.comb(g.m("MULTIPLY", x, 1.0), g.m("MULTIPLY", y, 0.6), z)
-    n1 = g.nfac(Pw, 0.18, 3.0, 0.5)                      # ~5m 너울 조각
-    n2 = g.nfac(Pw, 0.9, 4.0, 0.55, dist=0.3)            # ~1m
-    n3 = g.nfac(W, 4.5, 3.0, 0.5)                        # ~20cm
-    n4 = g.nfac(W, 18.0, 2.0, 0.5)                       # 미세
-    wv = g.wave(g.v("ADD", Pw, g.v("SCALE", g.o(g.noise(W, 0.5, 2.0), "Color"), scale=2.0)),
-                0.6, 3.0, 2.0, direction="Y", profile="SIN")
-    h = g.m("ADD", g.m("MULTIPLY", n1, 1.6), g.m("MULTIPLY", n2, 0.55))
+    # 도메인 왜곡(수십 m 스케일) → 반복감 제거
+    warp = g.v("SUBTRACT", g.o(g.noise(W, 0.013, 2.0, 0.5), "Color"), (0.5, 0.5, 0.5))
+    Wd = g.v("ADD", W, g.v("SCALE", warp, scale=9.0))
+    x, y, z = g.sep(Wd)
+    Pw = g.comb(x, g.m("MULTIPLY", y, 0.62), z)          # 바람 방향 늘림
+    n1 = g.nfac(Pw, 0.2466, 3.0, 0.5)                    # ~4m
+    n2 = g.nfac(Pw, 1.137, 4.0, 0.55, dist=0.35)         # ~0.9m
+    n3 = g.nfac(Wd, 4.73, 3.0, 0.5)                      # ~20cm
+    n4 = g.nfac(Wd, 17.3, 2.0, 0.5)                      # 미세
+    rid = g.nfac(Pw, 0.61, 3.0, 0.55, ntype="RIDGED_MULTIFRACTAL", normalize=False)
+    h = g.m("ADD", g.m("MULTIPLY", n1, 1.5), g.m("MULTIPLY", n2, 0.55))
     h = g.m("ADD", h, g.m("ADD", g.m("MULTIPLY", n3, 0.12), g.m("MULTIPLY", n4, 0.03)))
-    h = g.m("ADD", h, g.m("MULTIPLY", wv, 0.25))
-    # 먼 곳은 범프 감쇠(그레이징 반사가 수면 아래로 꺾여 생기는 수평선 검은 띠 방지)
+    h = g.m("ADD", h, g.m("MULTIPLY", rid, 0.12))
     cam = g.node("ShaderNodeCameraData")
     far = g.smooth(g.o(cam, "View Distance"), 60.0, 900.0, 1.0, 0.08)
-    nrm = g.bump(h, g.m("MULTIPLY", far, 0.7), 0.2)
-    # 바람결 패치 → 거칠기 변이
+    nrm = g.bump(h, g.m("MULTIPLY", far, 0.6), 0.2)
     patch = g.nfac(W, 0.04, 3.0, 0.6)
-    rough = g.lin(patch, 0.35, 0.7, 0.025, 0.11)
-    col = g.mix(g.smooth(n1, 0.3, 0.7), (0.004, 0.018, 0.020), (0.010, 0.035, 0.034))
-    b = g.principled(Base_Color=col, Roughness=rough, IOR=1.333, Normal=nrm, Specular_IOR_Level=0.5,
-                     Coat_Weight=0.0)
-    g.output(g.o(b, "BSDF"))
+    rough = g.lin(patch, 0.35, 0.7, 0.02, 0.06)
+    # 거품
+    at = g.node("ShaderNodeAttribute", attribute_name=foam_attr, attribute_type="GEOMETRY")
+    d = g.o(at, "Factor")
+    has = g.m("GREATER_THAN", d, 1e-4)
+    band = g.m("MULTIPLY", g.smooth(d, foam_width, 0.0), has)
+    fn = g.nfac(Wd, 8.0, 6.0, 0.62, dist=0.3)
+    foam = g.smooth(g.m("ADD", band, g.m("MULTIPLY", g.m("SUBTRACT", fn, 0.5), 0.9)), 0.6, 0.85)
+    foam = g.m("MULTIPLY", foam, has)
+    # 셰이더
+    body = g.mix(g.smooth(n1, 0.3, 0.7), (0.012, 0.045, 0.042), (0.020, 0.062, 0.055))
+    glass = g.principled(Base_Color=(0.85, 0.97, 0.95), Roughness=rough, IOR=1.333, Normal=nrm,
+                         Transmission_Weight=1.0)
+    diff = g.principled(Base_Color=body, Roughness=rough, IOR=1.333, Normal=nrm, Specular_IOR_Level=0.0)
+    mx = g.node("ShaderNodeMixShader", {"Fac": 0.2})
+    g.nt.links.new(g.o(glass, "BSDF"), mx.inputs[1])
+    g.nt.links.new(g.o(diff, "BSDF"), mx.inputs[2])
+    foam_b = g.principled(Base_Color=(0.62, 0.66, 0.66), Roughness=0.55, Normal=nrm, Specular_IOR_Level=0.3)
+    mxf = g.node("ShaderNodeMixShader", {"Fac": foam})
+    g.nt.links.new(g.o(mx, "Shader"), mxf.inputs[1])
+    g.nt.links.new(g.o(foam_b, "BSDF"), mxf.inputs[2])
+    vol = g.node("ShaderNodeVolumeAbsorption", {"Color": (0.25, 0.45, 0.42), "Density": 0.6})
+    outc = g.node("ShaderNodeOutputMaterial", target="CYCLES")
+    g.nt.links.new(g.o(mxf, "Shader"), _sock(outc.inputs, "Surface"))
+    g.nt.links.new(g.o(vol, "Volume"), _sock(outc.inputs, "Volume"))
+    # EEVEE: 불투명 반사 물 (예전 방식) + 거품
+    ecol = g.mix(g.smooth(n1, 0.3, 0.7), (0.004, 0.015, 0.018), (0.008, 0.028, 0.030))
+    eb = g.principled(Base_Color=ecol, Roughness=rough, IOR=1.333, Normal=nrm, Specular_IOR_Level=0.5)
+    mxe = g.node("ShaderNodeMixShader", {"Fac": foam})
+    g.nt.links.new(g.o(eb, "BSDF"), mxe.inputs[1])
+    g.nt.links.new(g.o(foam_b, "BSDF"), mxe.inputs[2])
+    oute = g.node("ShaderNodeOutputMaterial", target="EEVEE")
+    g.nt.links.new(g.o(mxe, "Shader"), _sock(oute.inputs, "Surface"))
     mat.surface_render_method = "DITHERED"
     return mat
 
@@ -795,7 +893,8 @@ def mat_stone(name="stone"):
 
 
 def mat_ground(name="ground"):
-    """해안 지면: 흙·모래 + 풀 패치(평탄부) + 자갈 + 경사면은 흙/암반."""
+    """해안 지면·원경 산: 흙/모래(물가)/풀(평탄)/자갈 + 높은 곳(z>3m)·경사면은 숲(짙은 녹, 수관 덩어리)·
+    능선 암석 + 카메라 거리 대기원근(Emission 혼합, 색은 world.setup_world 가 'AERIAL_HAZE' 노드에 씀)."""
     mat = _new_mat(name)
     g = G(mat)
     W = g.wpos()
@@ -806,7 +905,7 @@ def mat_ground(name="ground"):
     soil = g.mix(n2, (0.10, 0.075, 0.05), (0.19, 0.15, 0.11))
     sand = g.mix(n2, (0.28, 0.24, 0.18), (0.36, 0.31, 0.24))
     grass = g.mix(g.nfac(W, 8.0, 4.0, 0.6), (0.035, 0.05, 0.015), (0.09, 0.10, 0.035))
-    col = g.mix(g.smooth(wz, 0.8, 0.3), soil, sand)                 # 물가는 모래
+    col = g.mix(g.smooth(wz, 0.8, 0.3), soil, sand)
     gmask = g.m("MULTIPLY", g.smooth(n1, 0.45, 0.6), g.smooth(nz, 0.8, 0.95))
     gmask = g.m("MULTIPLY", gmask, g.smooth(wz, 0.6, 1.2))
     col = g.mix(gmask, col, grass)
@@ -815,17 +914,39 @@ def mat_ground(name="ground"):
     col = g.mix(pebble, col, g.mix(g.o(vor, "Color"), (0.15, 0.14, 0.13), (0.30, 0.29, 0.27)))
     rock = g.smooth(nz, 0.75, 0.55)
     col = g.mix(rock, col, g.mix(n2, (0.12, 0.115, 0.10), (0.22, 0.21, 0.19)))
+    # 숲: 수관(Voronoi ~6m) + 50m 노이즈 색 패치, 침엽(짙음)/활엽(밝음) 혼합
+    tree = g.voronoi(W, 0.17, "F1")
+    crown = g.smooth(g.o(tree, "Distance"), 0.55, 0.1)
+    fpatch = g.nfac(W, 0.02, 4.0, 0.6)
+    forest = g.mix(g.smooth(fpatch, 0.35, 0.7), (0.020, 0.040, 0.016), (0.055, 0.085, 0.030))
+    forest = g.mix(g.m("MULTIPLY", g.o(tree, "Color"), 1.0), forest, g.mix(1.0, forest, (0.7, 0.85, 0.6), "MULTIPLY"))
+    forest = g.mix(g.m("SUBTRACT", 1.0, crown), forest, g.mix(1.0, forest, (0.35, 0.35, 0.35), "MULTIPLY"))
+    ridge_rock = g.m("MULTIPLY", g.smooth(nz, 0.6, 0.4), g.smooth(g.nfac(W, 0.05, 4.0), 0.5, 0.65))
+    forest = g.mix(ridge_rock, forest, g.mix(n2, (0.10, 0.10, 0.09), (0.17, 0.165, 0.15)))
+    fmask = g.m("MULTIPLY", g.smooth(wz, 2.5, 6.0), g.smooth(g.m("ADD", fpatch, g.m("MULTIPLY", wz, 0.004)), 0.15, 0.3))
+    col = g.mix(fmask, col, forest)
     col, rough, _ = _waterline(g, col, g.lin(n2, 0, 1, 0.8, 0.95), strength=0.8, band_top=0.4, algae=False)
     h = g.m("ADD", g.m("MULTIPLY", n2, 0.5), g.m("MULTIPLY", pebble, 0.6))
     h = g.m("ADD", h, g.m("MULTIPLY", g.nfac(W, 25.0, 3.0), 0.2))
+    h = g.m("ADD", h, g.m("MULTIPLY", g.m("MULTIPLY", crown, fmask), 6.0))
     nrm = g.bump(h, 0.35, 0.03)
     b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.3)
-    g.output(g.o(b, "BSDF"))
+    # 대기원근: f = 1 - exp(-d / 1800m), 최대 0.75
+    cam = g.node("ShaderNodeCameraData")
+    dist = g.o(cam, "View Distance")
+    fa = g.m("MULTIPLY", g.m("SUBTRACT", 1.0, g.m("EXPONENT", g.m("DIVIDE", dist, -1800.0))), 0.75)
+    haze = g.node("ShaderNodeRGB", name="AERIAL_HAZE")
+    haze.outputs[0].default_value = (2.2, 2.7, 3.6, 1.0)
+    em = g.node("ShaderNodeEmission", {"Color": g.o(haze, "Color"), "Strength": 1.0})
+    mx = g.node("ShaderNodeMixShader", {"Fac": fa})
+    g.nt.links.new(g.o(b, "BSDF"), mx.inputs[1])
+    g.nt.links.new(g.o(em, "Emission"), mx.inputs[2])
+    g.output(g.o(mx, "Shader"))
     return mat
 
 
 # ----------------------------------------------------------------------------------------------
-def build_all(hex_cell=0.9, hex_line_w=0.075, roof_arc_attr="roof_s", rebuild=True):
+def build_all(hex_cell=0.9, hex_line_w=0.035, roof_arc_attr="roof_s", rebuild=True):
     """SPEC §4 재질 전부 생성. rebuild=False 면 이미 있는 재질은 노드를 다시 만들지 않고 재사용."""
     makers = {
         "hull_wood": mat_hull_wood,

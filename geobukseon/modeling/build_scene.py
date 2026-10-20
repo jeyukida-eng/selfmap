@@ -49,13 +49,17 @@ WALL_RAIL_OUT = 0.05             # 띠장 돌출
 PORT_FRAME_RATIO = 0.18          # 포혈 테 폭 = 포혈 크기 × 비율
 PORT_FRAME_DEPTH = 0.05          # 포혈 테 돌출
 OAR_PORT_R = 0.09                # 노 구멍 반지름 (gen_drawings.py 표기와 동일)
+PORT_CAVITY_DEPTH = 0.25         # 포혈·노 구멍 뒤 어두운 막음 상자 깊이(바깥면 기준)
+PORT_CAVITY_OVER = 1.06          # 막음 상자 크기 = 구멍 × 비율(구멍 벽 뒤로 숨김)
 
 # 개판(지붕)
 WALKWAY_RAISE = 0.025            # 통로 판재가 지붕면 위로 뜨는 높이
 WALKWAY_THICK = 0.05             # 통로 판재 두께
 WALKWAY_BOARD = 0.20             # 통로 판재 1장 폭(이음 홈 간격)
 SPIKE_EDGE_MARGIN = 0.5          # 철첨 배치: 처마/양끝에서 spacing × 이 비율만큼 비움
-SPIKE_SIDES = 6                  # 철첨 원뿔 측면 수
+SPIKE_SIDES = 8                  # 철첨 원뿔 측면 수
+SPIKE_PLATE = 0.05               # 철첨 밑 사각 받침판 한 변(m) (검증 D2 지시)
+SPIKE_PLATE_T = 0.012            # 받침판 두께
 SPIKE_SCALE_JITTER = 0.12        # 철첨 크기 랜덤 ±
 HATCH_H = 0.22                   # 지붕 출입 해치 높이
 
@@ -63,6 +67,8 @@ HATCH_H = 0.22                   # 지붕 출입 해치 높이
 DRAGON_SECTIONS_PREVIEW = 22
 DRAGON_SECTIONS_FINAL = 40
 DRAGON_RING = 20                 # 단면 링 버텍스 수
+DRAGON_MOUTH_U = 0.58            # 입꼬리 위치(길이 비율) — gen_drawings 실루엣의 입 노치 0.62L 부근
+DRAGON_HORN_LEN = 0.30           # 뿔 길이 = length × 비율 (≈0.5 m)
 
 # 귀면
 GHOST_RELIEF = 0.10              # 귀면 부조 최대 돌출(m)
@@ -91,6 +97,9 @@ RUDDER_BLADE_FRAC = 0.45         # 키 날개 높이 = depth × 비율 (gen_draw
 RUDDER_STOCK_EXT = 0.6           # 키 자루 상단 돌출
 RUDDER_TILLER = 1.6              # 키손(가로대) 길이
 RUDDER_BOARDS = 5
+RUDDER_BLADE_SUBMERGE = 0.10     # 키 날개 윗변을 수면 아래 이만큼 (떠 보이지 않게)
+ANCHOR_Y_FRAC = 0.35             # 닻 위치 y = 선수 호판 하단 → 상장 앞끝 사이 비율
+ANCHOR_LEN = 1.4
 
 # 깃발
 FLAG_WAVE_AMP = 0.07             # 펄럭임 진폭 = w × 비율
@@ -102,9 +111,16 @@ FLAG_POLE_TOP = 0.25
 # 부두·지형
 STONE_JITTER_SIZE = 0.05         # 석재 크기 랜덤 ±비율
 STONE_JITTER_ROT_DEG = 1.5
-STONE_JITTER_OUT = 0.025         # 석재 면 앞뒤 들쭉날쭉(m)
+STONE_JITTER_OUT = 0.03         # 석재 면 앞뒤 들쭉날쭉(m)
 STONE_GAP = 0.018                # 석재 사이 틈
-STONE_BEVEL = 0.035
+STONE_BEVEL = 0.03               # 석재 모서리 bevel (2단)
+STONE_LEN_JITTER = 0.20          # 석축 블록 길이 ±
+STONE_ROW_H_JITTER = 0.12        # 석축 단 높이 ±
+PAVE_MIN, PAVE_MAX = 0.5, 1.0    # 포장석 변 = block_size[0] × U(min,max) → 0.6~1.2 m
+PAVE_T = 0.12                    # 포장석 두께
+PAVE_DZ = 0.015                  # 포장석 높이 ±
+PAVE_TILT_DEG = 0.5
+PAVE_JOINT = (0.01, 0.02)        # 줄눈 폭 범위
 CAP_LEN_RATIO = 1.5              # 갓돌 길이 = block_size[0] × 비율
 CAP_OVERHANG = 0.06
 BOLLARD_R = 0.22
@@ -121,11 +137,13 @@ OCEAN_WAVE_SCALE = 0.25        # 파고 약 ±0.25 m (std ~0.07 m)
 OCEAN_CHOP = 0.9
 OCEAN_SEED = 7
 HORIZON_FAR = 25000.0            # 원경 평면 반경(수평선까지)
+WATER_CORE_X = 14.0              # 근경 수면 격자: 이 반경 안은 water_fine 간격
+WATER_CORE_Y = 20.0
 
 QUALITY = {
-    "preview": dict(y_step=0.22, side_sub=2, roof_n=56, subdiv=1, ocean_res=14, ghost=(56, 44),
+    "preview": dict(y_step=0.22, side_sub=2, roof_n=56, subdiv=1, ocean_res=18, water_fine=0.30, water_coarse=2.0, ghost=(56, 44),
                     wall_step=0.30, dragon_sec=DRAGON_SECTIONS_PREVIEW, cyl=16, hill=(48, 20)),
-    "final":   dict(y_step=0.08, side_sub=4, roof_n=120, subdiv=2, ocean_res=24, ghost=(110, 84),
+    "final":   dict(y_step=0.08, side_sub=4, roof_n=120, subdiv=2, ocean_res=24, water_fine=0.15, water_coarse=1.2, ghost=(110, 84),
                     wall_step=0.12, dragon_sec=DRAGON_SECTIONS_FINAL, cyl=32, hill=(128, 48)),
 }
 
@@ -695,8 +713,23 @@ def build_wall(d, H, wc, Q, colls, mats):
             yy = y1 if ny > 0 else y0
             ports.append((Vector((p["x"], yy, p["z"])), R))
     fw = sz * PORT_FRAME_RATIO
+    cav = bmesh.new()
+
+    def cavity(c, R, ring_pts):
+        """구멍 뒤 앞면이 열린 어두운 상자/관: ring_pts = 로컬(x,y) 단면 윤곽. 법선 안쪽."""
+        nrm = R.col[2]
+        z0, z1 = -0.01, -PORT_CAVITY_DEPTH
+        front = [cav.verts.new(c + R @ Vector((px, py, 0)) + nrm * z0) for px, py in ring_pts]
+        back = [cav.verts.new(c + R @ Vector((px, py, 0)) + nrm * z1) for px, py in ring_pts]
+        n_ = len(ring_pts)
+        for k in range(n_):
+            cav.faces.new((front[k], back[k], back[(k + 1) % n_], front[(k + 1) % n_]))
+        cav.faces.new(back)
+
     for c, R in ports:
         add_box(cut, c, (sz, sz, thick * 6), R)
+        hs_ = sz / 2 * PORT_CAVITY_OVER
+        cavity(c, R, [(-hs_, -hs_), (hs_, -hs_), (hs_, hs_), (-hs_, hs_)])
         # 테(4변)
         nrm = R.col[2]
         cc = c + nrm * (PORT_FRAME_DEPTH / 2)
@@ -714,9 +747,12 @@ def build_wall(d, H, wc, Q, colls, mats):
             nrm = R.col[2]
             c = Vector((base.x, base.y, o["port_z"]))
             add_cyl(cut, c - nrm * thick * 3, c + nrm * thick * 3, OAR_PORT_R, seg=seg)
+            rr_ = OAR_PORT_R * PORT_CAVITY_OVER
+            cavity(c, R, [(rr_ * math.cos(2 * math.pi * k / seg), rr_ * math.sin(2 * math.pi * k / seg)) for k in range(seg)])
             # 노 구멍 테(링)
             add_cyl(frames, c - nrm * 0.0, c + nrm * PORT_FRAME_DEPTH, OAR_PORT_R * 1.7, seg=seg)
     cutter = mesh_object("_cutter", cut, colls["Superstructure"], smooth=False)
+    mesh_object("PortCavities", cav, colls["Superstructure"], [mats["_dark"]], smooth=False)
     # 노 구멍 테는 가운데가 막힘 → 같은 cutter 로 뚫음
     fr = mesh_object("PortFrames", frames, colls["Superstructure"], [mats["hull_wood"]], angle=30)
     for ob in (wall, fr):
@@ -770,18 +806,18 @@ class RoofShape:
         return Vector((x, y, z))
 
     def table(self, y, n=400):
-        """th 등간격 표 → (th, s(호길이, 좌현 음수), point)"""
+        """th 등간격 표 → (th, s(호길이, 좌현 음수), xs, zs). 벡터화."""
+        hx, e, r = self.c["half"](y), self.c["eave_z"](y), self.c["ridge_z"](y)
         ths = np.linspace(math.pi, 0, n)
-        pts = [self.point(y, t) for t in ths]
-        s = [0.0]
-        for a, b in zip(pts, pts[1:]):
-            s.append(s[-1] + (b - a).length)
-        s = np.array(s)
-        mid = np.interp(0.0, [p.x for p in pts], s)
-        return ths, s - mid, pts
+        c, sn = np.cos(ths), np.sin(ths)
+        xs = hx * np.sign(c) * np.abs(c) ** (2.0 / self.p)
+        zs = e + (r - e) * np.abs(sn) ** (2.0 / self.p)
+        s = np.r_[0.0, np.cumsum(np.hypot(np.diff(xs), np.diff(zs)))]
+        mid = np.interp(0.0, xs, s)
+        return ths, s - mid, xs, zs
 
     def at_s(self, y, sq, tab=None):
-        ths, s, pts = tab or self.table(y)
+        ths, s = (tab or self.table(y))[:2]
         th = float(np.interp(sq, s, ths))
         p = self.point(y, th)
         # 법선: 접선(호) × y축 근사 → 수치 미분
@@ -885,31 +921,68 @@ def build_roof(d, Q, colls, mats):
     masts = [(m["y"], m["diameter"]) for m in d["masts"]]
     rnd = random.Random(SEED)
     P, N, S = [], [], []
-    y = R.y1 - spacing * SPIKE_EDGE_MARGIN * 2
-    row = 0
-    while y > R.y0 + spacing * SPIKE_EDGE_MARGIN * 2:
-        tab = R.table(y, 300)
-        s_lo, s_hi = tab[1][0] + spacing * SPIKE_EDGE_MARGIN, tab[1][-1] - spacing * SPIKE_EDGE_MARGIN
-        off = (spacing / 2) if row % 2 else 0.0
-        sq = math.floor(s_lo / spacing) * spacing + off
-        in_cross = abs(y - cy) < cw / 2 + spacing * 0.3
-        while sq < s_hi:
-            if sq > s_lo and abs(sq) > lane / 2 + spacing * 0.3 and not in_cross:
-                ok = True
-                for hc in rf.get("hatches", []):
-                    if abs(y - hc["y"]) < hc["l"] / 2 + spacing and abs(sq) < hc["w"] / 2 + spacing:
-                        ok = False
-                for my, md in masts:
-                    if math.hypot(sq, y - my) < md * 2:
-                        ok = False
-                if ok:
-                    p, nn = R.at_s(y, sq, tab)
-                    P.append(p)
-                    N.append(nn)
-                    S.append(1.0 + rnd.uniform(-SPIKE_SCALE_JITTER, SPIKE_SCALE_JITTER))
-            sq += spacing
-        y -= spacing * math.sqrt(3) / 2   # 엇갈림(삼각) 배열
-        row += 1
+    hex_cell = rf.get("hex_cell", spacing)
+    placement = str(sp.get("placement", sp.get("layout", "grid"))).lower()
+    margin = spacing * SPIKE_EDGE_MARGIN
+    tabs = {}
+
+    def tab_at(yq):
+        k = round(yq, 4)
+        if k not in tabs:
+            tabs[k] = R.table(yq, 300)
+        return tabs[k]
+
+    cands = []
+    if placement in ("hex_vertex", "hex_vertices", "hex"):
+        # materials/matlib.py _hex() 와 같은 격자: (pu,pv)=(s,y)/cell, 중심 A=(k+.5,(m+.5)√3), B=(k, m√3),
+        # pointy-top 육각 → 꼭짓점 = 중심 + cell·{(0,±1/√3), (±.5,±1/(2√3))}
+        S3 = math.sqrt(3.0)
+        smax = max(R.c["half"](yy) for yy in np.linspace(R.y0, R.y1, 30)) * 2.0
+        offs = [(0, 1 / S3), (0, -1 / S3), (0.5, 0.5 / S3), (0.5, -0.5 / S3), (-0.5, 0.5 / S3), (-0.5, -0.5 / S3)]
+        seen = set()
+        kmax = int(smax / hex_cell) + 2
+        m0, m1 = int(math.floor(R.y0 / hex_cell / S3)) - 1, int(math.ceil(R.y1 / hex_cell / S3)) + 1
+        for mm in range(m0, m1 + 1):
+            for kk in range(-kmax, kmax + 1):
+                for cu, cv in ((kk + 0.5, (mm + 0.5) * S3), (kk, mm * S3)):
+                    for ou, ov in offs:
+                        key = (round(cu + ou, 3), round(cv + ov, 3))
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        cands.append((key[0] * hex_cell, key[1] * hex_cell))
+    else:
+        y = R.y1 - margin * 2
+        row = 0
+        while y > R.y0 + margin * 2:
+            tb = tab_at(y)
+            off = (spacing / 2) if row % 2 else 0.0
+            sq = math.floor(tb[1][0] / spacing) * spacing + off
+            while sq < tb[1][-1]:
+                cands.append((sq, y))
+                sq += spacing
+            y -= spacing * math.sqrt(3) / 2   # 엇갈림(삼각) 배열
+            row += 1
+    for sq, y in sorted(cands, key=lambda c: (-c[1], c[0])):
+        if not (R.y0 + margin * 2 < y < R.y1 - margin * 2):
+            continue
+        if abs(sq) < lane / 2 + spacing * 0.3 or abs(y - cy) < cw / 2 + spacing * 0.3:
+            continue
+        tb = tab_at(y) if placement == "grid" else R.table(y, 300)
+        if not (tb[1][0] + margin < sq < tb[1][-1] - margin):
+            continue
+        ok = True
+        for hc in rf.get("hatches", []):
+            if abs(y - hc["y"]) < hc["l"] / 2 + spacing and abs(sq) < hc["w"] / 2 + spacing:
+                ok = False
+        for my, md in masts:
+            if math.hypot(sq, y - my) < md * 2:
+                ok = False
+        if ok:
+            p, nn = R.at_s(y, sq, tb)
+            P.append(p)
+            N.append(nn)
+            S.append(1.0 + rnd.uniform(-SPIKE_SCALE_JITTER, SPIKE_SCALE_JITTER))
     me = bpy.data.meshes.new("SpikePoints")
     me.vertices.add(len(P))
     me.vertices.foreach_set("co", [c for p in P for c in p])
@@ -940,6 +1013,11 @@ def spike_nodegroup(sp, mat):
     cone.inputs["Depth"].default_value = sp["height"]
     tr = nd.new("GeometryNodeTransform")
     tr.inputs["Translation"].default_value = (0, 0, sp["height"] / 2 - 0.01)
+    plate = nd.new("GeometryNodeMeshCube")
+    plate.inputs["Size"].default_value = (SPIKE_PLATE, SPIKE_PLATE, SPIKE_PLATE_T)
+    trp = nd.new("GeometryNodeTransform")
+    trp.inputs["Translation"].default_value = (0, 0, SPIKE_PLATE_T / 2 - 0.004)
+    jn = nd.new("GeometryNodeJoinGeometry")
     sm = nd.new("GeometryNodeSetMaterial")
     sm.inputs["Material"].default_value = mat
     na = nd.new("GeometryNodeInputNamedAttribute")
@@ -953,7 +1031,10 @@ def spike_nodegroup(sp, mat):
     iop = nd.new("GeometryNodeInstanceOnPoints")
     L = ng.links
     L.new(cone.outputs["Mesh"], tr.inputs["Geometry"])
-    L.new(tr.outputs["Geometry"], sm.inputs["Geometry"])
+    L.new(plate.outputs["Mesh"], trp.inputs["Geometry"])
+    L.new(tr.outputs["Geometry"], jn.inputs["Geometry"])
+    L.new(trp.outputs["Geometry"], jn.inputs["Geometry"])
+    L.new(jn.outputs["Geometry"], sm.inputs["Geometry"])
     L.new(gi.outputs[0], iop.inputs["Points"])
     L.new(sm.outputs["Geometry"], iop.inputs["Instance"])
     L.new(na.outputs["Attribute"], al.inputs["Vector"])
@@ -983,53 +1064,50 @@ def _smooth_profile(keys, u):
 
 
 def build_dragon(d, Q, colls, mats):
+    """용두. 로컬 +Y=주둥이, +Z=위, 원점=base, 피치는 오브젝트 회전.
+    측면 실루엣은 gen_drawings.dragon_polygon_side() 의 윤곽(단위 L,H)에 맞춘 위/아래 윤곽선으로 구성,
+    폭은 dragon_head.width 를 최대 폭으로."""
     dh = d["dragon_head"]
     L, Hh, W, mo = dh["length"], dh["height"], dh["width"], dh["mouth_open"]
     hw = W / 2
     nsec = Q["dragon_sec"]
     nr = DRAGON_RING
     bm = bmesh.new()
-    # 로컬: +Y 앞(주둥이), +Z 위, X 좌우. 원점 = base
-    # 목+머리통 (u: -0.3..0.62)
-    neck_w = [(-0.3, 0.55), (0.0, 0.52), (0.22, 0.44), (0.40, 0.50), (0.52, 0.52), (0.62, 0.40)]
-    neck_h = [(-0.3, 0.50), (0.0, 0.45), (0.22, 0.38), (0.40, 0.42), (0.52, 0.40), (0.62, 0.26)]
-    neck_c = [(-0.3, -0.05), (0.0, 0.0), (0.22, 0.05), (0.40, 0.13), (0.52, 0.14), (0.62, 0.12)]
-    rings = []
-    for i in range(nsec + 1):
-        u = -0.3 + 0.92 * i / nsec
-        w = _smooth_profile(neck_w, u) * hw
-        h = _smooth_profile(neck_h, u) * Hh
-        c = _smooth_profile(neck_c, u) * Hh
-        rings.append(_superring(0, c, w, h, nr, 2.3, y=u * L))
-    loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
-    # 입 축(mouth line): u=0.5 부터 벌어짐
-    us = 0.50
-    mz0 = 0.02 * Hh
+    P = _smooth_profile
+    us = DRAGON_MOUTH_U            # 입꼬리(벌어지기 시작) u
+    mz0 = 0.0
 
     def gap(u):
         return max(0.0, (u - us) / (1 - us)) * mo / 2
 
-    # 위턱 (u 0.45..1.0): 아래면 = 입선+gap, 위면 높이 감소, 코끝 살짝 들림
-    up_w = [(0.45, 0.46), (0.65, 0.40), (0.85, 0.34), (0.97, 0.30), (1.0, 0.22)]
-    up_h = [(0.45, 0.30), (0.65, 0.22), (0.85, 0.17), (0.95, 0.19), (1.0, 0.12)]
+    def ring_tb(u, top, bot, w, e=2.4):
+        c = (top + bot) / 2
+        return _superring(0, c, w, max((top - bot) / 2, 0.01), nr, e, y=u * L)
+
+    # 목 + 머리통 (u -0.3..0.66): 윗선/아랫선 = 설계 실루엣
+    nk_top = [(-0.3, 0.45), (0.0, 0.45), (0.2, 0.60), (0.35, 0.52), (0.5, 0.56), (0.66, 0.40)]
+    nk_bot = [(-0.3, -0.50), (0.0, -0.45), (0.3, -0.37), (0.55, -0.30), (0.66, -0.24)]
+    nk_w = [(-0.3, 0.92), (0.0, 0.92), (0.22, 0.84), (0.42, 1.0), (0.56, 1.0), (0.66, 0.86)]
     rings = []
     for i in range(nsec + 1):
-        u = 0.45 + 0.55 * i / nsec
-        w = _smooth_profile(up_w, u) * hw
-        h = _smooth_profile(up_h, u) * Hh
-        base = mz0 + gap(u)
-        rings.append(_superring(0, base + h, w, h, nr, 2.6, y=u * L))
+        u = -0.3 + 0.96 * i / nsec
+        rings.append(ring_tb(u, P(nk_top, u) * Hh, P(nk_bot, u) * Hh, P(nk_w, u) * hw, 2.3))
     loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
-    # 아래턱 (u 0.45..0.95), 아래로 벌어짐
-    lo_w = [(0.45, 0.40), (0.7, 0.33), (0.9, 0.26), (0.95, 0.20)]
-    lo_h = [(0.45, 0.14), (0.7, 0.10), (0.9, 0.08), (0.95, 0.05)]
+    # 위턱 (u 0.5..1.0): 아랫면 = 입선 + gap
+    up_top = [(0.5, 0.52), (0.7, 0.42), (0.85, 0.33), (0.95, 0.31), (1.0, 0.24)]
+    up_w = [(0.5, 0.92), (0.7, 0.82), (0.88, 0.70), (1.0, 0.52)]
     rings = []
     for i in range(nsec + 1):
-        u = 0.45 + 0.50 * i / nsec
-        w = _smooth_profile(lo_w, u) * hw
-        h = _smooth_profile(lo_h, u) * Hh
-        top = mz0 - gap(u) * 1.15
-        rings.append(_superring(0, top - h, w, h, nr, 2.6, y=u * L))
+        u = 0.5 + 0.5 * i / nsec
+        rings.append(ring_tb(u, P(up_top, u) * Hh, mz0 + gap(u), P(up_w, u) * hw, 2.6))
+    loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
+    # 아래턱 (u 0.5..0.98)
+    lo_bot = [(0.5, -0.32), (0.75, -0.27), (0.98, -0.21)]
+    lo_w = [(0.5, 0.86), (0.75, 0.72), (0.98, 0.50)]
+    rings = []
+    for i in range(nsec + 1):
+        u = 0.5 + 0.48 * i / nsec
+        rings.append(ring_tb(u, mz0 - gap(u) * 1.2, P(lo_bot, u) * Hh, P(lo_w, u) * hw, 2.6))
     loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
 
     def tube(path, radii, ring_n=10):
@@ -1041,50 +1119,61 @@ def build_dragon(d, Q, colls, mats):
                        for j in range(ring_n)])
         loft_grid(bm, rr, closed=True, cap_start=True, cap_end=True)
 
-    # 뿔 2: 머리 위 뒤쪽에서 뒤·위·바깥으로 휘어짐
+    def surf_x(u, z):
+        """머리통 단면에서 높이 z 의 바깥 x (근사)."""
+        top, bot, w = P(nk_top, u) * Hh, P(nk_bot, u) * Hh, P(nk_w, u) * hw
+        c, h = (top + bot) / 2, (top - bot) / 2
+        t = min(1.0, abs(z - c) / h)
+        return w * (1 - t ** 2.3) ** (1 / 2.3)
+
+    # 뿔 2: 머리 위 뒤쪽에서 뒤·위·바깥으로 크게 휘어짐 (길이 ≈ DRAGON_HORN_LEN × L)
+    hl = DRAGON_HORN_LEN * L
     for sgn in (-1, 1):
+        root = Vector((sgn * hw * 0.42, L * 0.40, Hh * 0.50))
         pth, rad = [], []
-        for k in range(9):
-            t = k / 8
-            pth.append(Vector((sgn * hw * (0.30 + 0.35 * t), L * (0.44 - 0.42 * t), Hh * (0.48 + 0.50 * t - 0.12 * t * t))))
-            rad.append(Hh * 0.075 * (1 - 0.85 * t) + 0.004)
-        tube(pth, rad, 10)
-        # 갈래 뿔
+        for k in range(12):
+            t = k / 11
+            pth.append(root + Vector((sgn * hl * 0.30 * t, -hl * (0.85 * t + 0.10 * t * t), hl * (0.62 * t - 0.25 * t * t))))
+            rad.append(Hh * 0.085 * (1 - 0.88 * t) + 0.004)
+        tube(pth, rad, 12)
+        b = pth[5]
         pth2, rad2 = [], []
-        for k in range(5):
-            t = k / 4
-            b = pth[4]
-            pth2.append(b + Vector((sgn * hw * 0.15 * t, -L * 0.04 * t, Hh * 0.20 * t)))
-            rad2.append(Hh * 0.035 * (1 - 0.8 * t) + 0.003)
+        for k in range(6):
+            t = k / 5
+            pth2.append(b + Vector((sgn * hl * 0.12 * t, hl * 0.05 * t, hl * 0.30 * t)))
+            rad2.append(Hh * 0.045 * (1 - 0.85 * t) + 0.003)
         tube(pth2, rad2, 8)
-    # 눈두덩(눈썹 융기)
+    # 눈두덩
     for sgn in (-1, 1):
         pth, rad = [], []
         for k in range(7):
             t = k / 6
-            pth.append(Vector((sgn * hw * (0.42 - 0.06 * t), L * (0.46 + 0.16 * t), Hh * (0.47 - 0.10 * t + 0.08 * math.sin(math.pi * t)))))
-            rad.append(Hh * 0.06 * math.sin(math.pi * (0.15 + 0.7 * t)))
+            u = 0.44 + 0.18 * t
+            z = Hh * (0.47 - 0.06 * t + 0.06 * math.sin(math.pi * t))
+            pth.append(Vector((sgn * surf_x(min(u, 0.6), z) * 0.93, L * u, z)))
+            rad.append(Hh * 0.065 * math.sin(math.pi * (0.15 + 0.7 * t)))
         tube(pth, rad, 10)
-    # 콧방울
+    # 콧방울 (위턱 끝 윗면)
     for sgn in (-1, 1):
-        c = Vector((sgn * hw * 0.17, L * 0.97, mz0 + gap(0.97) + Hh * 0.30))
-        r = bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=7, radius=Hh * 0.075)
+        c = Vector((sgn * hw * 0.26, L * 0.955, P(up_top, 0.955) * Hh - 0.01))
+        r = bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=7, radius=Hh * 0.08)
         bmesh.ops.translate(bm, verts=r["verts"], vec=c)
-    # 턱수염: 아래턱 밑에서 뒤·아래로 말려 늘어지는 짧은 다발 5개 (끝이 앞으로 살짝 말림)
+    # 턱수염 다발
     for k in range(5):
-        xo = (k - 2) / 2 * hw * 0.40
+        xo = (k - 2) / 2 * hw * 0.45
         pth, rad = [], []
         for j in range(8):
             t = j / 7
             pth.append(Vector((xo * (1 + 0.4 * t), L * (0.74 - 0.16 * t + 0.06 * t * t - 0.025 * abs(k - 2)),
-                               mz0 - gap(0.74) * 1.15 - Hh * (0.15 + 0.20 * t))))
-            rad.append(Hh * 0.04 * (1 - 0.75 * t) + 0.004)
+                               P(lo_bot, 0.74) * Hh - Hh * (0.02 + 0.20 * t))))
+            rad.append(Hh * 0.042 * (1 - 0.75 * t) + 0.004)
         tube(pth, rad, 8)
-    # 갈기: 목 뒤·옆 불꽃 판(삼각 지느러미)
+    # 갈기: 목 옆·뒤 불꽃 판
     for k in range(6):
         u = 0.30 - 0.12 * k
         for sgn in (-1, 1):
-            root = Vector((sgn * hw * 0.42, u * L, Hh * (0.30 - 0.02 * k)))
+            zr = Hh * (0.30 - 0.02 * k)
+            root = Vector((sgn * surf_x(max(u, -0.29), zr) * 0.9, u * L, zr))
             tip = root + Vector((sgn * hw * 0.55, -L * 0.18, Hh * 0.22))
             a = root + Vector((0, L * 0.07, 0))
             b = root - Vector((0, L * 0.07, 0))
@@ -1104,42 +1193,48 @@ def build_dragon(d, Q, colls, mats):
     sub.levels = Q["subdiv"]
     sub.render_levels = Q["subdiv"]
 
-    # 눈알
+    # 눈알 (머리통 옆면에 반쯤 묻힘)
     bm = bmesh.new()
+    eu, ez = 0.55, Hh * 0.36
     for sgn in (-1, 1):
-        r = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=Hh * 0.085)
-        bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((sgn * hw * 0.44, L * 0.56, Hh * 0.36)))
+        r = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=Hh * 0.09)
+        bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((sgn * (surf_x(eu, ez) - Hh * 0.03), L * eu, ez)))
     eyes = mesh_object("DragonEyes", bm, colls["Details"], [mats["_eye"]], angle=80)
     eyes.matrix_world = head.matrix_world.copy()
     parent_keep(eyes, head)
-    # 이빨(위·아래 턱 가장자리 원뿔) + 송곳니
+    # 이빨 + 송곳니
     bm = bmesh.new()
     for jaw in (1, -1):
         for k in range(6):
-            u = 0.58 + 0.065 * k
+            u = 0.64 + 0.06 * k
             for sgn in (-1, 1):
-                w = _smooth_profile(up_w if jaw > 0 else lo_w, u) * hw * 0.82
-                z = mz0 + gap(u) if jaw > 0 else mz0 - gap(u) * 1.15
-                ln = Hh * (0.09 if k in (0, 5) else 0.045)
+                w = P(up_w if jaw > 0 else lo_w, u) * hw * 0.80
+                z = mz0 + gap(u) if jaw > 0 else mz0 - gap(u) * 1.2
+                ln = Hh * (0.10 if k in (0, 5) else 0.05)
                 p0 = Vector((sgn * w, u * L, z + jaw * 0.01))
-                add_cyl(bm, p0, p0 + Vector((0, 0, -jaw * ln)), Hh * 0.022, 0.002, seg=6)
+                add_cyl(bm, p0, p0 + Vector((0, 0, -jaw * ln)), Hh * 0.024, 0.002, seg=6)
     teeth = mesh_object("DragonTeeth", bm, colls["Details"], [mats["_ivory"]], angle=60)
     teeth.matrix_world = head.matrix_world.copy()
     parent_keep(teeth, head)
-    # 입 속(어두운 구멍: 연기 분출 포혈)
+    # 입 속
     bm = bmesh.new()
     r = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=1.0)
-    bmesh.ops.scale(bm, vec=Vector((hw * 0.32, L * 0.28, max(mo * 0.45, 0.05))), verts=r["verts"])
-    bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((0, L * 0.70, mz0)))
+    bmesh.ops.scale(bm, vec=Vector((hw * 0.62, L * 0.26, max(mo * 0.5, 0.05))), verts=r["verts"])
+    bmesh.ops.translate(bm, verts=r["verts"], vec=Vector((0, L * 0.74, mz0)))
     mouth = mesh_object("DragonMouth", bm, colls["Details"], [mats["_dark"]])
     mouth.matrix_world = head.matrix_world.copy()
     parent_keep(mouth, head)
-    # 수염(긴 곡선 2가닥)
+    # 수염: 윗입술 옆 표면점(+0.04 m)에서 시작 → 바깥(±X)·뒤·아래로 (얼굴 앞을 지나지 않음)
     for sgn in (-1, 1):
+        u0 = 0.90
+        z0 = mz0 + gap(u0) + 0.05 * Hh
+        start = Vector((sgn * (P(up_w, u0) * hw + 0.04), L * u0, z0))
         pts = []
-        for k in range(14):
-            t = k / 13
-            pts.append(Vector((sgn * hw * (0.25 + 0.9 * t), L * (0.95 - 0.55 * t), Hh * (0.32 + 0.15 * math.sin(math.pi * t * 1.3) - 0.3 * t))))
+        for k in range(16):
+            t = k / 15
+            # 입가에서 바깥으로 뻗었다가 아래로 늘어져 끝이 살짝 말림
+            pts.append(start + Vector((sgn * (0.30 * L * math.sin(0.5 * math.pi * t)), -L * 0.10 * t + L * 0.06 * math.sin(math.pi * t),
+                                       -Hh * (0.55 * t * t) + Hh * 0.08 * math.sin(math.pi * t))))
         pts = [head.matrix_world @ p for p in pts]
         wob = rope_curve(f"DragonWhisker_{'L' if sgn < 0 else 'R'}", pts, 0.012, colls["Details"], mats["dragon_head"])
         parent_keep(wob, head)
@@ -1227,6 +1322,8 @@ def build_ghost_face(d, H, Q, colls, mats):
         else:
             hi = m
     yc = (lo + hi) / 2
+    if abs(yc - gf["center"][1]) > 0.02:
+        print(f"[build_scene] note: ghost_face.center.y {gf['center'][1]} → 호판 표면 y {yc:.3f} 로 부착")
     n = H.transom_normal(yc)          # 바깥(앞·아래)
     upslope = Vector((0, 1.0, H.kz.deriv(yc))).normalized()
     xax = Vector((1, 0, 0))
@@ -1457,7 +1554,8 @@ def build_rigging(d, H, wc, R, Q, colls, mats):
 # =====================================================================================================
 # 키 + 소품
 # =====================================================================================================
-def build_rudder_props(d, H, Q, colls, mats):
+def build_rudder_props(d, H, wc, Q, colls, mats):
+    wc_half = wc["half"]
     r = d["rudder"]
     seg = Q["cyl"]
     bot = r["top_z"] - r["depth"]
@@ -1465,16 +1563,26 @@ def build_rudder_props(d, H, Q, colls, mats):
     add_cyl(bm, (0, r["y"], bot), (0, r["y"], r["top_z"] + RUDDER_STOCK_EXT), r["stock_diameter"] / 2, seg=seg)
     stock = mesh_object("RudderStock", bm, colls["Details"], [mats["mast_wood"]], angle=50)
     bm = bmesh.new()
+    wz = d["site"]["water_z"]
     bh = r["depth"] * RUDDER_BLADE_FRAC
+    btop = min(bot + bh, wz - RUDDER_BLADE_SUBMERGE)     # 날개 윗변은 수면 아래로
+    bh = btop - bot
     bdh = bh / RUDDER_BOARDS
+    y_mid = r["y"] - r["width"] / 2 - r["stock_diameter"] * 0.3
     for k in range(RUDDER_BOARDS):
         zc = bot + bdh * (k + 0.5)
-        add_box(bm, (0, r["y"] - r["width"] / 2 - r["stock_diameter"] * 0.3, zc),
-                (r["thickness"], r["width"], bdh - 0.015))
+        add_box(bm, (0, y_mid, zc), (r["thickness"], r["width"], bdh - 0.015))
     # 날개 보강 띠(세로)
     for t in (0.3, 0.7):
         add_box(bm, (0, r["y"] - r["width"] * t - r["stock_diameter"] * 0.3, bot + bh / 2),
                 (r["thickness"] + 0.04, 0.08, bh))
+    # 날개 ↔ 자루 연결 쇠띠 2 (날개 위·아래)
+    straps = bmesh.new()
+    for zf in (0.2, 0.8):
+        zc = bot + bh * zf
+        add_box(straps, (0, (r["y"] + r["stock_diameter"] / 2 + y_mid - r["width"] * 0.25) / 2, zc),
+                (r["thickness"] + 0.05, r["stock_diameter"] + r["width"] * 0.25 + 0.1, 0.07))
+    mesh_object("RudderStraps", straps, colls["Details"], [mats["iron_spike"]], angle=30)
     mesh_object("RudderBlade", bm, colls["Details"], [mats["hull_wood"]], angle=30)
     bm = bmesh.new()
     zt = r["top_z"] + RUDDER_STOCK_EXT * 0.6
@@ -1512,17 +1620,31 @@ def build_rudder_props(d, H, Q, colls, mats):
         rr = 0.18 + 0.012 * k / 6
         pts.append(Vector((0.9 + rr * math.cos(a), yf + rr * math.sin(a) * 0.8, H.sz(yf) + 0.03 + 0.02 * (k // 20))))
     rope_curve("RopeCoil", pts, 0.022, colls["Details"], mats["rope"])
-    # 닻: 선수 우현 쪽 매달린 나무닻
+    # 닻: 선수 좌현 현측에 기대 걸린 나무닻 (현측 경사면을 따라 내려옴) + 갑판 걸이
+    ya = ANCHOR_Y_FRAC * (wy1 - H.bt["y_bottom"]) + H.bt["y_bottom"]
+    bh_, sh_, kz_, sz_ = H.bh(ya), H.sh(ya), H.kz(ya), H.sz(ya)
+    side_dir = Vector((sh_ - bh_, 0, sz_ - kz_)).normalized()           # 아래→위, +x
+    out_n = Vector((side_dir.z, 0, -side_dir.x))                        # 바깥 법선(+x 쪽)
+    top_p = Vector((sh_, ya, sz_)) - side_dir * 0.25 + out_n * 0.10
+    shank = ANCHOR_LEN
+    bot_p = top_p - side_dir * shank
+    for P_ in (top_p, bot_p):
+        P_.x = -P_.x                                                    # 좌현으로 반전
     bm = bmesh.new()
-    ax, ay = H.sh(11.0) + 0.15, 11.0
-    az = H.sz(11.0) - 0.4
-    add_box(bm, (ax, ay, az - 0.6), (0.12, 0.12, 1.4), Matrix.Rotation(math.radians(8), 3, "Y"))
-    add_box(bm, (ax, ay, az - 1.25), (0.1, 0.9, 0.1))
-    for sgn in (-1, 1):
-        add_box(bm, (ax, ay + sgn * 0.42, az - 1.1), (0.08, 0.08, 0.35), Matrix.Rotation(math.radians(-sgn * 30), 3, "X"))
+    axis = (top_p - bot_p).normalized()
+    Rm = frame_from_z(axis, Vector((0, 1, 0)))
+    add_box(bm, (top_p + bot_p) / 2, (0.12, 0.12, shank), Rm)
+    add_box(bm, bot_p + axis * 0.15, (0.10, 0.9, 0.10), Rm)            # 닻 가로대(스톡)
+    for sgn in (-1, 1):                                                  # 닻 가지
+        add_box(bm, bot_p + axis * 0.32 + Vector((0, sgn * 0.40, 0)), (0.08, 0.08, 0.38),
+                Rm @ Matrix.Rotation(math.radians(sgn * 30), 3, "X"))
     mesh_object("Anchor", bm, colls["Details"], [mats["oar_wood"]], angle=30)
-    rope_curve("AnchorRope", catenary_points(Vector((ax - 0.05, ay, H.sz(11.0) + 0.1)), Vector((ax, ay, az + 0.1)), 0.02),
-               0.02, colls["Details"], mats["rope"])
+    bm = bmesh.new()                                                     # 갑판 가장자리 닻걸이(말뚝)
+    cleat = Vector((-(max(sh_, wc_half(ya)) - 0.15), ya + 0.3, sz_))
+    add_cyl(bm, cleat, cleat + Vector((0, 0, 0.28)), 0.06, seg=12)
+    mesh_object("AnchorBitt", bm, colls["Details"], [mats["hull_wood"]], angle=40)
+    rope_curve("AnchorRope", catenary_points(cleat + Vector((0, 0, 0.2)), top_p + axis * 0.02, 0.08), 0.02,
+               colls["Details"], mats["rope"])
     del rnd
 
 
@@ -1541,29 +1663,46 @@ def build_site(d, Q, colls, mats):
         nrows = max(1, int(round((z1 - z0) / bhh)))
         rh = (z1 - z0) / nrows
         bm = bmesh.new()
+        lay = bm.faces.layers.float.new("stone_rand")     # 석재별 랜덤(재질 명도/색 변이용)
 
-        def jitter_block(center, size, axis_out):
-            s = [v * (1 + rnd.uniform(-STONE_JITTER_SIZE, STONE_JITTER_SIZE)) for v in size]
+        def tag(vs, val):
+            fs = set()
+            for v in vs:
+                fs.update(v.link_faces)
+            for f in fs:
+                f[lay] = val
+
+        def jitter_block(center, size, axis_out, target=None):
+            bmx = target or bm
+            s_ = [v * (1 + rnd.uniform(-STONE_JITTER_SIZE, STONE_JITTER_SIZE)) for v in size]
             rot = (Matrix.Rotation(math.radians(rnd.uniform(-1, 1) * STONE_JITTER_ROT_DEG), 3, "X") @
                    Matrix.Rotation(math.radians(rnd.uniform(-1, 1) * STONE_JITTER_ROT_DEG), 3, "Y") @
                    Matrix.Rotation(math.radians(rnd.uniform(-1, 1) * STONE_JITTER_ROT_DEG), 3, "Z"))
             c = Vector(center) + axis_out * rnd.uniform(-STONE_JITTER_OUT, STONE_JITTER_OUT)
-            add_box(bm, c, (s[0] - STONE_GAP, s[1] - STONE_GAP, s[2] - STONE_GAP), rot)
+            vs = add_box(bmx, c, (s_[0] - STONE_GAP, s_[1] - STONE_GAP, s_[2] - STONE_GAP), rot)
+            tag(vs, rnd.random())
 
         def course_wall(fixed_axis, fixed_val, run_lo, run_hi, out_dir):
-            for r_ in range(nrows):
-                zc = z0 + rh * (r_ + 0.5)
-                off = (bl / 2) if r_ % 2 else 0.0
-                t = run_lo - off
+            z = z0
+            r_ = 0
+            while z < z1 - 0.05:
+                h_ = min(rh * (1 + rnd.uniform(-STONE_ROW_H_JITTER, STONE_ROW_H_JITTER)), z1 - z)
+                if z1 - (z + h_) < rh * 0.4:
+                    h_ = z1 - z
+                zc = z + h_ / 2
+                t = run_lo - rnd.uniform(0, bl)
                 while t < run_hi:
-                    a, b = max(t, run_lo), min(t + bl * (1 + rnd.uniform(-0.15, 0.15)), run_hi)
+                    ln = bl * (1 + rnd.uniform(-STONE_LEN_JITTER, STONE_LEN_JITTER))
+                    a, b = max(t, run_lo), min(t + ln, run_hi)
                     if b - a > 0.15:
                         c = (a + b) / 2
                         if fixed_axis == "x":
-                            jitter_block((fixed_val - out_dir.x * bd / 2, c, zc), (bd, b - a, rh), out_dir)
+                            jitter_block((fixed_val - out_dir.x * bd / 2, c, zc), (bd, b - a, h_), out_dir)
                         else:
-                            jitter_block((c, fixed_val - out_dir.y * bd / 2, zc), (b - a, bd, rh), out_dir)
+                            jitter_block((c, fixed_val - out_dir.y * bd / 2, zc), (b - a, bd, h_), out_dir)
                     t = b
+                z += h_
+                r_ += 1
         course_wall("x", xf, p["y_min"], p["y_max"], Vector((1, 0, 0)))
         course_wall("y", p["y_max"], p["x_min"], xf, Vector((0, 1, 0)))
         course_wall("y", p["y_min"], p["x_min"], xf, Vector((0, -1, 0)))
@@ -1572,32 +1711,41 @@ def build_site(d, Q, colls, mats):
         t = p["y_min"]
         zc = p["top_z"] - cap["height"] / 2
         while t < p["y_max"] - 0.1:
-            b = min(t + cl, p["y_max"])
+            b = min(t + cl * (1 + rnd.uniform(-0.2, 0.2)), p["y_max"])
             jitter_block((xf - cap["depth"] / 2 + CAP_OVERHANG, (t + b) / 2, zc), (cap["depth"], b - t, cap["height"]),
                          Vector((0, 0, 1)) * 0.3)
             t = b
-        bmesh.ops.bevel(bm, geom=bm.edges[:], offset=STONE_BEVEL, segments=1, affect="EDGES", clamp_overlap=True)
+        bmesh.ops.bevel(bm, geom=bm.edges[:], offset=STONE_BEVEL, segments=2, profile=0.6, affect="EDGES",
+                        clamp_overlap=True)
         mesh_object("QuayFaceStones", bm, colls["Site"], [mats["stone"]], angle=30)
-        # 상판 포장석
+        # 상판 포장석: 행 폭·석 길이 0.5~1.0 × block_size[0] 랜덤, 높이·기울기 지터
         bm = bmesh.new()
+        lay = bm.faces.layers.float.new("stone_rand")
         x = p["x_min"]
-        rowi = 0
-        while x < xf - cap["depth"] - 0.05:
-            xb = min(x + bl, xf - cap["depth"])
-            off = (bd / 2) * (rowi % 2)
-            t = p["y_min"] - off
+        x_end = xf - cap["depth"] + CAP_OVERHANG
+        while x < x_end - 0.05:
+            xb = min(x + bl * rnd.uniform(PAVE_MIN, PAVE_MAX), x_end)
+            if x_end - xb < bl * PAVE_MIN * 0.6:
+                xb = x_end
+            t = p["y_min"] - rnd.uniform(0, bl)
             while t < p["y_max"]:
-                a, b = max(t, p["y_min"]), min(t + bd * 2 * (1 + rnd.uniform(-0.2, 0.2)), p["y_max"])
-                if b - a > 0.1:
-                    s = 1 + rnd.uniform(-0.02, 0.02)
-                    add_box(bm, ((x + xb) / 2, (a + b) / 2, p["top_z"] - 0.06 + rnd.uniform(-0.008, 0.008)),
-                            ((xb - x) * s - STONE_GAP, (b - a) - STONE_GAP, 0.12),
-                            Matrix.Rotation(math.radians(rnd.uniform(-0.4, 0.4)), 3, "X"))
+                a, b = max(t, p["y_min"]), min(t + bl * rnd.uniform(PAVE_MIN, PAVE_MAX), p["y_max"])
+                if b - a > 0.12:
+                    gap_ = rnd.uniform(*PAVE_JOINT)
+                    rot = (Matrix.Rotation(math.radians(rnd.uniform(-PAVE_TILT_DEG, PAVE_TILT_DEG)), 3, "X") @
+                           Matrix.Rotation(math.radians(rnd.uniform(-PAVE_TILT_DEG, PAVE_TILT_DEG)), 3, "Y"))
+                    vs = add_box(bm, ((x + xb) / 2, (a + b) / 2, p["top_z"] - PAVE_T / 2 + rnd.uniform(-PAVE_DZ, PAVE_DZ)),
+                                 ((xb - x) - gap_, (b - a) - gap_, PAVE_T), rot)
+                    tag(vs, rnd.random())
                 t = b
             x = xb
-            rowi += 1
-        bmesh.ops.bevel(bm, geom=[e for e in bm.edges], offset=0.02, segments=1, affect="EDGES", clamp_overlap=True)
+        bmesh.ops.bevel(bm, geom=bm.edges[:], offset=0.015, segments=2, profile=0.6, affect="EDGES", clamp_overlap=True)
         mesh_object("QuayPaving", bm, colls["Site"], [mats["stone"]], angle=30)
+        # 줄눈 바닥(흙·이끼): 포장석 틈으로 ground 재질이 보이게
+        bm = bmesh.new()
+        add_box(bm, ((p["x_min"] + x_end) / 2, (p["y_min"] + p["y_max"]) / 2, p["top_z"] - PAVE_T * 0.75),
+                (x_end - p["x_min"], p["y_max"] - p["y_min"], 0.02))
+        mesh_object("QuayJointBed", bm, colls["Site"], [mats["ground"]], smooth=False)
         # 안벽 몸체(속채움)
         bm = bmesh.new()
         add_box(bm, ((p["x_min"] + xf - bd) / 2, (p["y_min"] + p["y_max"]) / 2 - 0.0, (p["bottom_z"] + p["top_z"] - 0.1) / 2),
@@ -1697,17 +1845,91 @@ def build_site(d, Q, colls, mats):
         mesh_object("BackgroundHills", bm, colls["Site"], [mats["ground"]], angle=60)
 
 
-def build_water(d, Q, colls, mats):
+def water_distances(d, H, pts):
+    """pts (N,2) → (hull_dist, contact_dist) 수평거리(m).
+    hull_dist = 선체 수선(z=water_z) 윤곽 + 키 자루까지(선체 안쪽 0). contact_dist = 여기에 부두 안벽면 포함."""
+    wz = d["site"]["water_z"]
+    yy = np.linspace(H.ymin, H.ymax, 600)
+    half = []
+    for y in yy:
+        kz, sz, bh, sh = H.kz(y), H.sz(y), H.bh(y), H.sh(y)
+        if kz < wz < sz:
+            t = (wz - kz) / (sz - kz)
+            half.append((y, bh + (sh - bh) * t))
+    hy = np.array([h[0] for h in half])
+    hx = np.array([h[1] for h in half])
+    poly = np.r_[np.c_[-hx[::-1], hy[::-1]], np.c_[hx, hy]]          # 닫힌 윤곽
+    seg_a, seg_b = poly, np.roll(poly, -1, axis=0)
+
+    def dist_segs(P, A, B):
+        out = np.full(len(P), np.inf)
+        for i0 in range(0, len(A), 64):
+            a, b = A[i0:i0 + 64], B[i0:i0 + 64]
+            ab = b - a
+            ap = P[:, None, :] - a[None]
+            t = np.clip((ap * ab[None]).sum(-1) / np.maximum((ab * ab).sum(-1), 1e-12)[None], 0, 1)
+            q = a[None] + t[..., None] * ab[None]
+            out = np.minimum(out, np.sqrt(((P[:, None, :] - q) ** 2).sum(-1)).min(1))
+        return out
+    hd = dist_segs(pts, seg_a, seg_b)
+    inside = (pts[:, 1] >= hy.min()) & (pts[:, 1] <= hy.max())
+    inside &= np.abs(pts[:, 0]) <= np.interp(pts[:, 1], hy, hx)
+    hd[inside] = 0.0
+    r = d["rudder"]
+    rd = np.maximum(np.hypot(pts[:, 0], pts[:, 1] - r["y"]) - r["stock_diameter"] / 2, 0)
+    hd = np.minimum(hd, rd)
+    cd = hd.copy()
+    p = d["site"].get("pier")
+    if p:
+        A = np.array([[p["x_max"], p["y_min"]], [p["x_max"], p["y_max"]], [p["x_min"], p["y_max"]], [p["x_min"], p["y_min"]]])
+        B = np.array([[p["x_max"], p["y_max"]], [p["x_min"], p["y_max"]], [p["x_min"], p["y_min"]], [p["x_max"], p["y_min"]]])
+        qd = dist_segs(pts, A, B)
+        inq = (pts[:, 0] >= p["x_min"]) & (pts[:, 0] <= p["x_max"]) & (pts[:, 1] >= p["y_min"]) & (pts[:, 1] <= p["y_max"])
+        qd[inq] = 0.0
+        cd = np.minimum(cd, qd)
+    return hd, cd
+
+
+def build_water(d, H, Q, colls, mats):
     site = d["site"]
     wz = site["water_z"]
     ext = site["water_size"] * OCEAN_EXTENT_RATIO
+    # 근경 수면: 선체 주변이 촘촘한 등급 격자 + Ocean(DISPLACE) → 점 속성(hull_dist 등)이 그대로 유지됨
+    def graded(half, core, fine, coarse):
+        out, x = [0.0], 0.0
+        while x < half:
+            x += fine + (coarse - fine) * min(1.0, max(0.0, x - core) / (half * 0.5))
+            out.append(min(x, half))
+        pos = np.array(out)
+        return np.unique(np.r_[-pos[::-1], pos])
+    xs = graded(ext / 2, WATER_CORE_X, Q["water_fine"], Q["water_coarse"])
+    ys = graded(ext / 2, WATER_CORE_Y, Q["water_fine"], Q["water_coarse"])
+    X, Y = np.meshgrid(xs, ys)
+    pts = np.c_[X.ravel(), Y.ravel()]
+    hd, cd = water_distances(d, H, pts)
+    nx_, ny_ = len(xs), len(ys)
     me = bpy.data.meshes.new("Water")
+    me.vertices.add(nx_ * ny_)
+    co = np.c_[pts, np.zeros(len(pts))].ravel()
+    me.vertices.foreach_set("co", co)
+    idx = np.arange(nx_ * ny_).reshape(ny_, nx_)
+    quads = np.stack([idx[:-1, :-1], idx[:-1, 1:], idx[1:, 1:], idx[1:, :-1]], -1).reshape(-1, 4)
+    me.loops.add(quads.size)
+    me.loops.foreach_set("vertex_index", quads.ravel())
+    me.polygons.add(len(quads))
+    me.polygons.foreach_set("loop_start", np.arange(0, quads.size, 4))
+    me.update(calc_edges=True)
+    me.polygons.foreach_set("use_smooth", [True] * len(quads))
+    a1 = me.attributes.new("hull_dist", "FLOAT", "POINT")
+    a1.data.foreach_set("value", hd.astype(np.float32))
+    a2 = me.attributes.new("contact_dist", "FLOAT", "POINT")
+    a2.data.foreach_set("value", cd.astype(np.float32))
     ob = bpy.data.objects.new("Water", me)
     colls["Site"].objects.link(ob)
     me.materials.append(mats["water"])
     ob.location = (0, 0, wz)
     m = ob.modifiers.new("Ocean", "OCEAN")
-    m.geometry_mode = "GENERATE"
+    m.geometry_mode = "DISPLACE"
     m.spatial_size = int(round(ext))
     m.size = 1.0
     m.resolution = Q["ocean_res"]
@@ -1748,6 +1970,8 @@ def build_cameras(d, colls, sc):
         cd.lens = v["lens_mm"]
         cd.sensor_width = v.get("sensor_mm", 36)
         cd.sensor_fit = "HORIZONTAL"
+        cd.shift_x = v.get("shift_x", 0.0)
+        cd.shift_y = v.get("shift_y", 0.0)
         cd.clip_start = 0.1
         cd.clip_end = HORIZON_FAR * 1.5
         ob = bpy.data.objects.new("CAM_" + v["id"], cd)
@@ -1777,9 +2001,9 @@ def build(design_path=DEFAULT_DESIGN, quality="preview"):
     build_ghost_face(d, H, Q, colls, mats)
     build_oars(d, wc, Q, colls, mats)
     build_rigging(d, H, wc, R, Q, colls, mats)
-    build_rudder_props(d, H, Q, colls, mats)
+    build_rudder_props(d, H, wc, Q, colls, mats)
     build_site(d, Q, colls, mats)
-    build_water(d, Q, colls, mats)
+    build_water(d, H, Q, colls, mats)
     build_cameras(d, colls, sc)
     try:
         import world  # noqa

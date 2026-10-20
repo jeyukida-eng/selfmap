@@ -1,0 +1,72 @@
+{
+ "accessed": "2026-10-20",
+ "method": "refs/fetch_refs_yfcc.py (Wikimedia 차단 환경 대안)",
+ "caveats": [
+  "피사체는 실내 전시(전쟁기념관) 복원선 — 항구 환경·자연광은 비교 대상이 아님(선체 형상·재질·구도만 비교)",
+  "BY-NC-ND 사진은 비상업적 참고·원본 그대로 나란히 비교(리사이즈만)로만 사용, 변형·재배포 금지",
+  "side는 촬영자 본인이 만든 2장 몽타주(원근 왜곡 있음)",
+  "해상도 500px 내외(YFCC 미러 크기)"
+ ],
+ "views": [
+  {
+   "id": "bow34",
+   "file": "ref_bow34.jpg",
+   "flickr_photo_id": "6955028169",
+   "flickr_page": "https://www.flickr.com/photos/15834523@N00/6955028169/",
+   "author": "Julio Martinez",
+   "license": "CC BY-NC-ND/2.0",
+   "license_url": "https://creativecommons.org/licenses/by-nc-nd/2.0/",
+   "taken": "2012-03-04 15:18:34",
+   "subject": "전쟁기념관(서울 용산) 실내 전시 거북선 복원선",
+   "note": "좌현 선수 3/4, 눈높이. 용두(긴 목)·방패판 원형 문양·철첨·세운 돛",
+   "source": "YFCC100M via AWS Open Data multimedia-commons",
+   "mirror": "https://multimedia-commons.s3.amazonaws.com/data/images/b69/1a9/b691a9fe6d5d6a50d5e5bdf652517d4f.jpg",
+   "md5": "6593e889baadec87ad20fd5a9c3bdded"
+  },
+  {
+   "id": "side",
+   "file": "ref_side.jpg",
+   "flickr_photo_id": "2675165813",
+   "flickr_page": "https://www.flickr.com/photos/79958256@N00/2675165813/",
+   "author": "NelC",
+   "license": "CC BY-NC-ND/2.0",
+   "license_url": "https://creativecommons.org/licenses/by-nc-nd/2.0/",
+   "taken": "2007-09-12 18:53:44",
+   "subject": "전쟁기념관(서울 용산) 실내 전시 거북선 복원선",
+   "note": "좌현 측면(촬영자 몽타주 2장 합성). 선미 연장재·노·가룡 머리",
+   "source": "YFCC100M via AWS Open Data multimedia-commons",
+   "mirror": "https://multimedia-commons.s3.amazonaws.com/data/images/29a/c1e/29ac1e2caf5677df9ec5fa5349868ac9.jpg",
+   "md5": "44c4624ea1d6769da7f97dbcc842c4f4"
+  },
+  {
+   "id": "stern34",
+   "file": "ref_stern34.jpg",
+   "flickr_photo_id": "294860532",
+   "flickr_page": "https://www.flickr.com/photos/55048848@N00/294860532/",
+   "author": "Andrew 鐘",
+   "license": "CC BY/2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0/",
+   "taken": "2006-11-11 16:57:22",
+   "subject": "전쟁기념관(서울 용산) 실내 전시 거북선 복원선",
+   "note": "선미 3/4 높은 시점(2층 회랑). 개판 육각판·철첨·선미 창",
+   "source": "YFCC100M via AWS Open Data multimedia-commons",
+   "mirror": "https://multimedia-commons.s3.amazonaws.com/data/images/913/6aa/9136aa884c37850b1fdcbb789cb2c11.jpg",
+   "md5": "6004b166a15a3f30e66549a854d93e5b"
+  },
+  {
+   "id": "aerial",
+   "file": "ref_aerial.jpg",
+   "flickr_photo_id": "2698730335",
+   "flickr_page": "https://www.flickr.com/photos/79958256@N00/2698730335/",
+   "author": "NelC",
+   "license": "CC BY-NC-ND/2.0",
+   "license_url": "https://creativecommons.org/licenses/by-nc-nd/2.0/",
+   "taken": "2007-09-12 20:19:56",
+   "subject": "전쟁기념관(서울 용산) 실내 전시 거북선 복원선",
+   "note": "선수 쪽 상공 조감(2층). 개판 전체·돛 2·용두",
+   "source": "YFCC100M via AWS Open Data multimedia-commons",
+   "mirror": "https://multimedia-commons.s3.amazonaws.com/data/images/c9f/b86/c9fb8642ebfec3d7c84efc42d5a1ad3.jpg",
+   "md5": "683482499d1a8daf4cc789404cc38e7b"
+  }
+ ]
+}

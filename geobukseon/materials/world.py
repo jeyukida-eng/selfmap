@@ -64,7 +64,9 @@ def _sock(sockets, key):
 
 def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
                 air=1.0, dust=1.6, ozone=1.0, altitude=0.0,
-                auto_exposure=True, exposure_bias=0.0, sun_angle_deg=0.6):
+                auto_exposure=True, exposure_bias=0.8, sun_angle_deg=1.5, clouds=0.35, cloud_seed=3.0):
+    """clouds: 0=없음 ~1=많음 (절차적 2D 구름층, 비용 거의 없음).
+    머티리얼 안의 이름 'AERIAL_HAZE' RGB 노드(matlib 대기원근용)에 수평선 연무 휘도를 써 넣는다."""
     """물리 하늘 + 방향이 일치하는 Sun 라이트를 만든다(멱등). 반환: (world, sun_object)."""
     w = bpy.data.worlds.get(WORLD_NAME) or bpy.data.worlds.new(WORLD_NAME)
     if w.node_tree is None:
@@ -98,6 +100,84 @@ def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
     nt.links.new(_sock(lp.outputs, "Is Camera Ray"), _sock(mix.inputs, "Factor"))
     nt.links.new(_sock(sky.outputs, "Color"), _sock(mix.inputs, "A"))
     nt.links.new(_sock(sky_disc.outputs, "Color"), _sock(mix.inputs, "B"))
+    # --- 절차적 구름층: 방향 d → 평면 투영 (d.xy / d.z) 노이즈 ---
+    sun_irr0, sky_l0 = _lerp_table(sun_elevation_deg)
+    sel = math.sin(math.radians(max(sun_elevation_deg, 2.0)))
+    cloud_rgb = tuple(0.85 * (si * sel / math.pi) + 0.9 * kl for si, kl in zip(sun_irr0, sky_l0))
+    sky_out = _sock(mix.outputs, "Result")
+    if clouds > 0:
+        def N(t, x, y):
+            n = nt.nodes.new(t)
+            n.location = (x, y)
+            return n
+        tcc = N("ShaderNodeTexCoord", -1500, 700)
+        nrm = N("ShaderNodeVectorMath", -1350, 700)
+        nrm.operation = "NORMALIZE"
+        nt.links.new(_sock(tcc.outputs, "Generated"), nrm.inputs[0])
+        sp = N("ShaderNodeSeparateXYZ", -1200, 700)
+        nt.links.new(_sock(nrm.outputs, "Vector"), _sock(sp.inputs, "Vector"))
+        zc = N("ShaderNodeMath", -1050, 600)
+        zc.operation = "MAXIMUM"
+        nt.links.new(_sock(sp.outputs, "Z"), zc.inputs[0])
+        zc.inputs[1].default_value = 0.04
+        cx = N("ShaderNodeMath", -900, 760)
+        cx.operation = "DIVIDE"
+        nt.links.new(_sock(sp.outputs, "X"), cx.inputs[0])
+        nt.links.new(zc.outputs[0], cx.inputs[1])
+        cy = N("ShaderNodeMath", -900, 680)
+        cy.operation = "DIVIDE"
+        nt.links.new(_sock(sp.outputs, "Y"), cy.inputs[0])
+        nt.links.new(zc.outputs[0], cy.inputs[1])
+        cv = N("ShaderNodeCombineXYZ", -750, 720)
+        nt.links.new(cx.outputs[0], _sock(cv.inputs, "X"))
+        nt.links.new(cy.outputs[0], _sock(cv.inputs, "Y"))
+        _sock(cv.inputs, "Z").default_value = cloud_seed
+        nz = N("ShaderNodeTexNoise", -600, 720)
+        nz.noise_dimensions = "3D"
+        for k, v in (("Scale", 0.9), ("Detail", 7.0), ("Roughness", 0.58), ("Distortion", 0.25)):
+            _sock(nz.inputs, k).default_value = v
+        nt.links.new(_sock(cv.outputs, "Vector"), _sock(nz.inputs, "Vector"))
+        cov = N("ShaderNodeMapRange", -450, 720)
+        cov.interpolation_type = "SMOOTHSTEP"
+        thr = 0.66 - 0.16 * clouds
+        _sock(cov.inputs, "From Min").default_value = thr
+        _sock(cov.inputs, "From Max").default_value = thr + 0.18
+        nt.links.new(_sock(nz.outputs, "Fac"), _sock(cov.inputs, "Value"))
+        hor = N("ShaderNodeMapRange", -450, 560)
+        hor.interpolation_type = "SMOOTHSTEP"
+        _sock(hor.inputs, "From Min").default_value = 0.02
+        _sock(hor.inputs, "From Max").default_value = 0.15
+        nt.links.new(_sock(sp.outputs, "Z"), _sock(hor.inputs, "Value"))
+        cm = N("ShaderNodeMath", -300, 650)
+        cm.operation = "MULTIPLY"
+        nt.links.new(_sock(cov.outputs, "Result"), cm.inputs[0])
+        nt.links.new(_sock(hor.outputs, "Result"), cm.inputs[1])
+        cm2 = N("ShaderNodeMath", -200, 650)
+        cm2.operation = "MULTIPLY"
+        nt.links.new(cm.outputs[0], cm2.inputs[0])
+        cm2.inputs[1].default_value = 0.9
+        # 구름 밝기 변이(아랫면 그늘)
+        shade = N("ShaderNodeMapRange", -300, 820)
+        nt.links.new(_sock(nz.outputs, "Fac"), _sock(shade.inputs, "Value"))
+        _sock(shade.inputs, "From Min").default_value = thr
+        _sock(shade.inputs, "From Max").default_value = thr + 0.35
+        _sock(shade.inputs, "To Min").default_value = 1.0
+        _sock(shade.inputs, "To Max").default_value = 0.62
+        ccol = N("ShaderNodeMix", -150, 820)
+        ccol.data_type = "RGBA"
+        ccol.blend_type = "MULTIPLY"
+        _sock(ccol.inputs, "Factor").default_value = 1.0
+        _sock(ccol.inputs, "A").default_value = (*cloud_rgb, 1.0)
+        sh_rgb = N("ShaderNodeCombineColor", -250, 900)
+        for k in ("Red", "Green", "Blue"):
+            nt.links.new(_sock(shade.outputs, "Result"), _sock(sh_rgb.inputs, k))
+        nt.links.new(_sock(sh_rgb.outputs, "Color"), _sock(ccol.inputs, "B"))
+        cmix = N("ShaderNodeMix", 0, 500)
+        cmix.data_type = "RGBA"
+        nt.links.new(cm2.outputs[0], _sock(cmix.inputs, "Factor"))
+        nt.links.new(sky_out, _sock(cmix.inputs, "A"))
+        nt.links.new(_sock(ccol.outputs, "Result"), _sock(cmix.inputs, "B"))
+        sky_out = _sock(cmix.outputs, "Result")
     # 수평선 아래(물리 하늘은 검정): 연무색으로 채움 (Sky 노드는 Vector 입력 비활성이라 방향 미러 불가)
     _, sky_l = _lerp_table(sun_elevation_deg)
     lum = 0.2126 * sky_l[0] + 0.7152 * sky_l[1] + 0.0722 * sky_l[2]
@@ -117,8 +197,16 @@ def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
     mix2.data_type = "RGBA"
     mix2.location = (-250, -200)
     nt.links.new(_sock(mr.outputs, "Result"), _sock(mix2.inputs, "Factor"))
-    nt.links.new(_sock(mix.outputs, "Result"), _sock(mix2.inputs, "A"))
-    _sock(mix2.inputs, "B").default_value = haze
+    nt.links.new(sky_out, _sock(mix2.inputs, "A"))
+    # 아래 반구: 카메라 광선 = 연무(수평선 너머), 그 외(투과·반사·간접) = 깊은 바다 산란색(어두운 청록)
+    deep = (lum * 0.012, lum * 0.035, lum * 0.036, 1.0)
+    mix3 = nt.nodes.new("ShaderNodeMix")
+    mix3.data_type = "RGBA"
+    mix3.location = (-400, -600)
+    nt.links.new(_sock(lp.outputs, "Is Camera Ray"), _sock(mix3.inputs, "Factor"))
+    _sock(mix3.inputs, "A").default_value = deep
+    _sock(mix3.inputs, "B").default_value = haze
+    nt.links.new(_sock(mix3.outputs, "Result"), _sock(mix2.inputs, "B"))
     bg = nt.nodes.new("ShaderNodeBackground")
     bg.location = (-100, 0)
     _sock(bg.inputs, "Strength").default_value = strength
@@ -126,6 +214,13 @@ def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
     out = nt.nodes.new("ShaderNodeOutputWorld")
     out.location = (100, 0)
     nt.links.new(_sock(bg.outputs, "Background"), _sock(out.inputs, "Surface"))
+    # 재질의 대기원근 연무색 갱신
+    for m in bpy.data.materials:
+        if m.node_tree is not None:
+            for n in m.node_tree.nodes:
+                if n.name.startswith("AERIAL_HAZE") and n.type == "RGB":
+                    n.outputs[0].default_value = tuple(c * strength for c in haze[:3]) + (1.0,)
+    scene["aerial_haze"] = list(haze[:3])
     # EEVEE: 월드에서 태양 추출 끔(직사광은 Sun 라이트가 담당)
     w.sun_threshold = 0.0
 
@@ -170,7 +265,7 @@ def setup_render(scene, engine="CYCLES", quality="preview", res=(1920, 1080)):
     r.image_settings.color_depth = "8"
     vs = scene.view_settings
     vs.view_transform = "AgX"
-    vs.look = "AgX - Medium High Contrast"
+    vs.look = "AgX - Base Contrast"
     vs.gamma = 1.0
     scene.display_settings.display_device = "sRGB"
     if engine == "CYCLES":
@@ -195,17 +290,29 @@ def setup_render(scene, engine="CYCLES", quality="preview", res=(1920, 1080)):
         r.threads_mode = "AUTO"
     elif engine == "BLENDER_EEVEE":
         e = scene.eevee
-        e.taa_render_samples = 64 if final else 16
+        e.taa_render_samples = 64 if final else 24
         e.use_raytracing = True
         e.ray_tracing_method = "SCREEN"
-        e.ray_tracing_options.resolution_scale = "2" if final else "4"
+        e.ray_tracing_options.resolution_scale = "2" if final else "2"
         e.ray_tracing_options.use_denoise = True
+        e.ray_tracing_options.trace_max_roughness = 0.5
         e.use_shadows = True
         e.shadow_ray_count = 2 if final else 1
         e.shadow_step_count = 8 if final else 6
+        e.shadow_resolution_scale = 1.0
+        # 수평 스캔 GI: 화면 공간 반사광(물·부두→선체 그늘면) + 하늘 차폐
         e.use_fast_gi = True
         e.fast_gi_method = "GLOBAL_ILLUMINATION"
-        e.fast_gi_distance = 4.0
+        e.fast_gi_resolution = "2"
+        e.fast_gi_distance = 0.0       # 0 = 무제한
+        e.fast_gi_quality = 0.5
+        e.fast_gi_thickness_near = 0.5
+        e.fast_gi_ray_count = 4
+        e.fast_gi_step_count = 8
+        e.gi_diffuse_bounces = 3
+        e.indirect_light_intensity = 1.0
+        if scene.world is not None:
+            scene.world.probe_resolution = "1024"
         e.use_volumetric_shadows = False
         e.volumetric_end = 400.0
     else:
