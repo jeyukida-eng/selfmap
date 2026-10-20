@@ -1,6 +1,6 @@
 """재질 견본 씬 렌더 (Cycles 960x540 64spp → matlib_preview.png, EEVEE → matlib_preview_eevee.png).
 
-실행: /opt/bvenv/bin/python materials/preview_matlib.py [--only cycles|eevee] [--samples 64]
+실행: /opt/bvenv/bin/python materials/preview_matlib.py [--only cycles|eevee] [--samples 64] [--close --out /abs/path.png]
 """
 import os
 import sys
@@ -49,7 +49,7 @@ def cyl(name, p0, p1, r, mat, verts=24):
 def build_scene(M):
     sc = bpy.context.scene
     # 바다
-    bpy.ops.mesh.primitive_plane_add(size=600, location=(0, 0, 0))
+    bpy.ops.mesh.primitive_plane_add(size=6000, location=(0, 0, 0))
     sea = bpy.context.object
     sea.name = "Sea"
     sea.data.materials.append(M["water"])
@@ -87,7 +87,9 @@ def build_scene(M):
     gf = bpy.context.object
     gf.name = "GhostFace"
     gf.scale = (1.2, 1.0, 1.0)
-    gf.rotation_euler = (math.radians(90), 0, math.radians(90))
+    gf.rotation_euler = (math.radians(90), 0, 0)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)  # 메시를 로컬 XZ 평면으로
+    gf.rotation_euler = (0, 0, math.radians(90))
     sol = gf.modifiers.new("sol", "SOLIDIFY")
     sol.thickness = 0.06
     gf.data.materials.append(M["ghost_face"])
@@ -140,8 +142,13 @@ def build_scene(M):
     cd.lens = 26
     cam = bpy.data.objects.new("CAM", cd)
     sc.collection.objects.link(cam)
-    cam.location = (15.5, 0.5, 3.6)
-    d = Vector((-1.5, 0.3, 1.6)) - cam.location
+    if "--close" in sys.argv:
+        cam.location = (7.0, -3.0, 2.4)
+        d = Vector((-1.5, -1.2, 1.2)) - cam.location
+        cd.lens = 35
+    else:
+        cam.location = (15.5, 0.5, 3.6)
+        d = Vector((-1.5, 0.3, 1.6)) - cam.location
     cam.rotation_mode = "QUATERNION"
     cam.rotation_quaternion = d.to_track_quat("-Z", "Y")
     sc.camera = cam
@@ -166,7 +173,8 @@ def main():
     if only in (None, "cycles"):
         world.setup_render(sc, "CYCLES", "preview", res)
         sc.cycles.samples = samples
-        sc.render.filepath = os.path.join(HERE, "matlib_preview.png")
+        sc.render.filepath = (a[a.index("--out") + 1] if "--out" in a
+                              else os.path.join(HERE, "matlib_preview.png"))
         t = time.time()
         bpy.ops.render.render(write_still=True)
         print(f"CYCLES render {time.time() - t:.1f}s -> {sc.render.filepath}")

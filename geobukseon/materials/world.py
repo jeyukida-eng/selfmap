@@ -98,10 +98,31 @@ def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
     nt.links.new(_sock(lp.outputs, "Is Camera Ray"), _sock(mix.inputs, "Factor"))
     nt.links.new(_sock(sky.outputs, "Color"), _sock(mix.inputs, "A"))
     nt.links.new(_sock(sky_disc.outputs, "Color"), _sock(mix.inputs, "B"))
+    # 수평선 아래(물리 하늘은 검정): 연무색으로 채움 (Sky 노드는 Vector 입력 비활성이라 방향 미러 불가)
+    _, sky_l = _lerp_table(sun_elevation_deg)
+    lum = 0.2126 * sky_l[0] + 0.7152 * sky_l[1] + 0.0722 * sky_l[2]
+    haze = (lum * 0.80, lum * 0.92, lum * 1.05, 1.0)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    tc.location = (-900, -400)
+    sxyz = nt.nodes.new("ShaderNodeSeparateXYZ")
+    sxyz.location = (-700, -400)
+    nt.links.new(_sock(tc.outputs, "Generated"), _sock(sxyz.inputs, "Vector"))
+    mr = nt.nodes.new("ShaderNodeMapRange")
+    mr.location = (-500, -400)
+    mr.interpolation_type = "SMOOTHSTEP"
+    nt.links.new(_sock(sxyz.outputs, "Z"), _sock(mr.inputs, "Value"))
+    _sock(mr.inputs, "From Min").default_value = 0.006
+    _sock(mr.inputs, "From Max").default_value = -0.002
+    mix2 = nt.nodes.new("ShaderNodeMix")
+    mix2.data_type = "RGBA"
+    mix2.location = (-250, -200)
+    nt.links.new(_sock(mr.outputs, "Result"), _sock(mix2.inputs, "Factor"))
+    nt.links.new(_sock(mix.outputs, "Result"), _sock(mix2.inputs, "A"))
+    _sock(mix2.inputs, "B").default_value = haze
     bg = nt.nodes.new("ShaderNodeBackground")
     bg.location = (-100, 0)
     _sock(bg.inputs, "Strength").default_value = strength
-    nt.links.new(_sock(mix.outputs, "Result"), _sock(bg.inputs, "Color"))
+    nt.links.new(_sock(mix2.outputs, "Result"), _sock(bg.inputs, "Color"))
     out = nt.nodes.new("ShaderNodeOutputWorld")
     out.location = (100, 0)
     nt.links.new(_sock(bg.outputs, "Background"), _sock(out.inputs, "Surface"))
@@ -132,7 +153,7 @@ def setup_world(scene, sun_azimuth_deg, sun_elevation_deg, strength=1.0,
         el = math.radians(max(sun_elevation_deg, 0.0))
         lum = lambda c: 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
         white = (lum(sun_irr) * math.sin(el) / math.pi + lum(sky_lum)) * strength
-        scene.view_settings.exposure = -math.log2(max(white, 1e-4)) + 0.35 + exposure_bias
+        scene.view_settings.exposure = -math.log2(max(white, 1e-4)) - 0.45 + exposure_bias
     return w, ob
 
 

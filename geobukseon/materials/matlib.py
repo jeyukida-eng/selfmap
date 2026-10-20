@@ -314,10 +314,10 @@ def _waterline(g, col, rough, strength=1.0, band_top=0.45, algae=True):
     streak = g.m("MULTIPLY", g.smooth(streak, 0.5, 0.75), g.smooth(z, 2.2, 0.0))
     wet = g.m("MAXIMUM", band, g.m("MULTIPLY", streak, 0.55))
     wet = g.m("MULTIPLY", wet, strength)
-    col = g.mix(g.m("MULTIPLY", wet, 0.7), col, g.mix(1.0, col, (0.35, 0.33, 0.28), "MULTIPLY"))
+    col = g.mix(g.m("MULTIPLY", wet, 0.85), col, g.mix(1.0, col, (0.30, 0.28, 0.24), "MULTIPLY"))
     if algae:
         an = g.nfac(P, 4.0, 5.0, 0.7, dist=0.3)
-        algae_c = g.mix(an, (0.018, 0.028, 0.010), (0.045, 0.055, 0.020))
+        algae_c = g.mix(an, (0.020, 0.032, 0.010), (0.060, 0.075, 0.022))
         amask = g.m("MULTIPLY", g.m("MAXIMUM", under, g.m("MULTIPLY", band, g.smooth(an, 0.45, 0.7))), strength)
         col = g.mix(amask, col, algae_c)
     else:
@@ -352,7 +352,7 @@ def mat_hull_wood(name="hull_wood"):
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
-    col, rv, h = _wood(g, P, (0.050, 0.032, 0.020), (0.120, 0.085, 0.055), plank_w=0.32, seg=7.5,
+    col, rv, h = _wood(g, P, (0.022, 0.014, 0.009), (0.062, 0.040, 0.024), plank_w=0.32, seg=7.5,
                        grain_axis="Y", grey=0.55, seed=1.0)
     col = _ao_dirt(g, col)
     rough = g.lin(rv, 0.0, 1.0, 0.62, 0.88)
@@ -428,7 +428,12 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.075, arc_attr="roof
     at = g.node("ShaderNodeAttribute", attribute_name=arc_attr, attribute_type="GEOMETRY")
     s_attr = g.o(at, "Factor")
     has = g.m("GREATER_THAN", g.m("ABSOLUTE", s_attr), 1e-4)
-    s = g.mixf(has, x, s_attr)
+    # 속성 없을 때: 원호 근사 s = x·θ/sinθ (θ = 법선의 수직 기울기). 원형 단면이면 정확한 호길이.
+    nx, _, nz = g.sep(g.wnorm())
+    th = g.m("ARCTAN2", g.m("ABSOLUTE", nx), nz)
+    sn = g.m("MAXIMUM", g.m("SINE", th), 0.05)
+    s_arc = g.m("MULTIPLY", x, g.m("MINIMUM", g.m("DIVIDE", th, sn), 3.0))
+    s = g.mixf(has, s_arc, s_attr)
     edge, cid = _hex(g, s, y, hex_cell)
     crnd = g.white(cid)
     cr = g.o(crnd, "Value")
@@ -437,8 +442,13 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.075, arc_attr="roof
     # 판 바탕: 적갈 ~ 흑갈 (셀별), 대형 얼룩
     big = g.nfac(P, 0.25, 3.0, 0.6)
     tone = g.m("ADD", g.m("MULTIPLY", cr, 0.6), g.m("MULTIPLY", big, 0.4))
-    plate = g.ramp(tone, [(0.0, (0.022, 0.016, 0.013)), (0.35, (0.055, 0.020, 0.012)),
-                          (0.7, (0.110, 0.032, 0.018)), (1.0, (0.150, 0.050, 0.028))])
+    plate = g.ramp(tone, [(0.0, (0.013, 0.010, 0.009)), (0.35, (0.024, 0.013, 0.009)),
+                          (0.7, (0.042, 0.018, 0.011)), (1.0, (0.062, 0.025, 0.015))])
+    # 도장 얼룩(중간 스케일) + 빗물 흘러내린 줄
+    mott = g.nfac(P, 4.0, 8.0, 0.65, dist=0.2)
+    plate = g.mix(g.lin(mott, 0.3, 0.75, 0.0, 0.55), plate, g.mix(1.0, plate, (0.55, 0.5, 0.48), "MULTIPLY"))
+    stk = g.nfac(g.comb(g.m("MULTIPLY", x, 7.0), g.m("MULTIPLY", y, 7.0), g.m("MULTIPLY", z, 0.35)), 1.0, 4.0, 0.6)
+    plate = g.mix(g.m("MULTIPLY", g.smooth(stk, 0.5, 0.75), 0.5), plate, (0.05, 0.045, 0.04))
     # 판 내부 나무결(도장 아래로 비침)
     gr = g.wave(g.comb(g.m("MULTIPLY", s, 1.0), g.m("MULTIPLY", y, 0.08), z), 30.0, 6.0, 3.0, 1.0,
                 direction="X")
@@ -448,17 +458,18 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.075, arc_attr="roof
     col = g.mix(line, plate, linec)
     col = g.mix(g.m("MULTIPLY", rim, 0.35), col, g.mix(1.0, col, (0.6, 0.55, 0.5), "MULTIPLY"))
     # 도장 벗겨짐 → 회갈 목재
-    chip_n = g.nfac(P, 3.0, 6.0, 0.7, dist=0.2)
-    chips = g.smooth(chip_n, 0.66, 0.70)
-    col = g.mix(chips, col, (0.13, 0.11, 0.09))
+    chip_n = g.nfac(P, 1.6, 8.0, 0.72, dist=0.2)
+    near_line = g.smooth(edge, line_w * 0.5 + 0.12, line_w * 0.5)
+    chips = g.smooth(g.m("ADD", chip_n, g.m("MULTIPLY", near_line, 0.06)), 0.68, 0.70)
+    col = g.mix(chips, col, g.mix(g.o(crnd, "Value"), (0.045, 0.037, 0.030), (0.075, 0.062, 0.050)))
     # 먼지·염분 (위를 향한 면) + 빗물 줄
     _, _, nz = g.sep(g.wnorm())
     dust = g.m("MULTIPLY", g.smooth(nz, 0.3, 0.95), g.smooth(g.nfac(P, 1.5, 5.0, 0.6), 0.4, 0.75))
     col = g.mix(g.m("MULTIPLY", dust, 0.35), col, (0.16, 0.14, 0.12))
     col = _ao_dirt(g, col, amount=0.7, dist=0.25)
-    rough = g.m("ADD", g.lin(cr, 0.0, 1.0, 0.55, 0.75), g.m("MULTIPLY", g.m("ADD", dust, chips), 0.2))
+    rough = g.m("ADD", g.lin(mott, 0.2, 0.8, 0.58, 0.82), g.m("MULTIPLY", g.m("ADD", dust, chips), 0.15))
     rough = g.mixf(line, rough, 0.8)
-    h = g.m("SUBTRACT", g.m("MULTIPLY", g.smooth(edge, 0.0, 0.18), 1.0), g.m("MULTIPLY", line, 0.5))
+    h = g.m("SUBTRACT", g.m("MULTIPLY", g.smooth(edge, 0.0, 0.12), 0.45), g.m("MULTIPLY", line, 0.35))
     h = g.m("ADD", h, g.m("MULTIPLY", chips, -0.15))
     h = g.m("ADD", h, g.m("MULTIPLY", g.nfac(P, 25.0, 3.0), 0.08))
     nrm = g.bump(h, 0.35, 0.02)
@@ -474,9 +485,9 @@ def mat_iron_spike(name="iron_spike"):
     n1 = g.nfac(P, 18.0, 6.0, 0.65, dist=0.3)
     n2 = g.nfac(P, 70.0, 4.0, 0.6)
     W = g.wpos()
-    rust = g.smooth(g.m("ADD", n1, g.m("MULTIPLY", n2, 0.25)), 0.48, 0.62)
-    rust_c = g.ramp(n2, [(0.0, (0.06, 0.022, 0.010)), (0.5, (0.17, 0.060, 0.022)), (1.0, (0.28, 0.11, 0.04))])
-    iron_c = g.mix(n2, (0.035, 0.034, 0.033), (0.08, 0.075, 0.07))
+    rust = g.smooth(g.m("ADD", n1, g.m("MULTIPLY", n2, 0.25)), 0.55, 0.70)
+    rust_c = g.ramp(n2, [(0.0, (0.035, 0.016, 0.009)), (0.5, (0.085, 0.036, 0.016)), (1.0, (0.15, 0.065, 0.028))])
+    iron_c = g.mix(n2, (0.025, 0.024, 0.023), (0.055, 0.052, 0.05))
     col = g.mix(rust, iron_c, rust_c)
     col = _ao_dirt(g, col, amount=0.5, dist=0.08)
     metal = g.lin(rust, 0.0, 1.0, 0.85, 0.0)
@@ -508,14 +519,14 @@ def mat_dragon_head(name="dragon_head"):
     dn = g.nfac(P, 3.0, 3.0, 0.5)
     t = g.m("ADD", gy, g.m("MULTIPLY", g.m("SUBTRACT", dn, 0.5), 0.05))
     t = g.m("ADD", t, g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.5), 0.15))
-    bands = g.m("FRACT", g.m("MULTIPLY", t, 6.0))
-    green = (0.045, 0.20, 0.13)
-    red = (0.36, 0.045, 0.030)
-    blue = (0.025, 0.07, 0.24)
-    white = (0.62, 0.60, 0.54)
-    yellow = (0.50, 0.32, 0.08)
-    stripe = g.ramp(bands, [(0.0, green), (0.42, white), (0.47, red), (0.70, white), (0.74, blue),
-                            (0.90, yellow), (0.95, green)], interp="CONSTANT")
+    bands = g.m("FRACT", g.m("MULTIPLY", t, 9.0))
+    green = (0.050, 0.130, 0.085)
+    red = (0.24, 0.040, 0.028)
+    blue = (0.030, 0.055, 0.14)
+    white = (0.42, 0.40, 0.35)
+    yellow = (0.32, 0.21, 0.07)
+    stripe = g.ramp(bands, [(0.0, green), (0.56, white), (0.60, red), (0.76, white), (0.79, blue),
+                            (0.90, yellow), (0.94, green)], interp="CONSTANT")
     # 아래턱/목 아랫면은 적색, 윗면은 녹색 비중
     lower = g.smooth(gz, 0.38, 0.30)
     col = g.mix(g.m("MULTIPLY", lower, 0.8), stripe, red)
@@ -523,7 +534,7 @@ def mat_dragon_head(name="dragon_head"):
     vor = g.voronoi(P, 14.0, "DISTANCE_TO_EDGE")
     scale_line = g.smooth(g.o(vor, "Distance"), 0.06, 0.0)
     col = g.mix(g.m("MULTIPLY", scale_line, 0.6), col, (0.03, 0.03, 0.025))
-    col = _fade(g, col, P, 0.5)
+    col = _fade(g, col, P, 0.85)
     chips = g.smooth(g.nfac(P, 5.0, 6.0, 0.7), 0.66, 0.70)
     col = g.mix(chips, col, (0.12, 0.10, 0.08))
     col = _ao_dirt(g, col, amount=0.85, dist=0.2)
@@ -551,7 +562,7 @@ def mat_ghost_face(name="ghost_face"):
     pupil = g.smooth(ed, 0.065, 0.055)
     ring = g.m("MULTIPLY", g.smooth(ed, 0.16, 0.15), g.m("SUBTRACT", 1.0, sclera))
     col = g.mix(ring, col, (0.02, 0.02, 0.02))
-    col = g.mix(sclera, col, (0.62, 0.60, 0.52))
+    col = g.mix(sclera, col, (0.46, 0.44, 0.38))
     col = g.mix(pupil, col, (0.008, 0.008, 0.008))
     # 눈썹 (녹색 사선 띠)
     bz = g.m("SUBTRACT", gz, g.m("ADD", 0.80, g.m("MULTIPLY", dx, 0.25)))
@@ -572,7 +583,7 @@ def mat_ghost_face(name="ghost_face"):
     fang = g.m("MULTIPLY", g.smooth(fx, g.m("MULTIPLY", g.m("SUBTRACT", 0.47, gz), 0.25), 0.0),
                g.m("MULTIPLY", g.smooth(gz, 0.47, 0.45), g.smooth(gz, 0.18, 0.2)))
     teeth = g.m("MAXIMUM", tooth, g.smooth(fang, 0.2, 0.5))
-    col = g.mix(teeth, col, (0.66, 0.63, 0.55))
+    col = g.mix(teeth, col, (0.48, 0.46, 0.40))
     col = _fade(g, col, P, 0.45)
     chips = g.smooth(g.nfac(P, 6.0, 6.0, 0.7), 0.67, 0.71)
     col = g.mix(chips, col, (0.11, 0.09, 0.07))
@@ -655,9 +666,9 @@ def mat_sail_cloth(name="sail_cloth"):
     pw = 0.55
     pidx = g.m("FLOOR", g.m("DIVIDE", across, pw))
     pr = g.o(g.white(pidx, dims="1D"), "Value")
-    base = g.mix(pr, (0.36, 0.31, 0.23), (0.45, 0.40, 0.31))
+    base = g.mix(pr, (0.145, 0.120, 0.085), (0.20, 0.17, 0.125))
     stain = g.nfac(P, 0.9, 5.0, 0.65, dist=0.5)
-    base = g.mix(g.smooth(stain, 0.45, 0.8), base, (0.20, 0.17, 0.12))
+    base = g.mix(g.smooth(stain, 0.4, 0.8), base, (0.075, 0.062, 0.045))
     streak = g.nfac(g.comb(g.m("MULTIPLY", across, 3.0), g.m("MULTIPLY", z, 0.15), 0.0), 3.0, 3.0)
     base = g.mix(g.m("MULTIPLY", g.smooth(streak, 0.55, 0.8), 0.5), base, (0.18, 0.15, 0.11))
     fa = g.m("FRACT", g.m("DIVIDE", across, pw))
@@ -738,7 +749,10 @@ def mat_water(name="water"):
     h = g.m("ADD", g.m("MULTIPLY", n1, 1.6), g.m("MULTIPLY", n2, 0.55))
     h = g.m("ADD", h, g.m("ADD", g.m("MULTIPLY", n3, 0.12), g.m("MULTIPLY", n4, 0.03)))
     h = g.m("ADD", h, g.m("MULTIPLY", wv, 0.25))
-    nrm = g.bump(h, 0.55, 0.12)
+    # 먼 곳은 범프 감쇠(그레이징 반사가 수면 아래로 꺾여 생기는 수평선 검은 띠 방지)
+    cam = g.node("ShaderNodeCameraData")
+    far = g.smooth(g.o(cam, "View Distance"), 60.0, 900.0, 1.0, 0.08)
+    nrm = g.bump(h, g.m("MULTIPLY", far, 0.7), 0.2)
     # 바람결 패치 → 거칠기 변이
     patch = g.nfac(W, 0.04, 3.0, 0.6)
     rough = g.lin(patch, 0.35, 0.7, 0.025, 0.11)
@@ -757,9 +771,9 @@ def mat_stone(name="stone"):
 
     def builder(v):
         br = g.node("ShaderNodeTexBrick", {"Vector": v, "Scale": 1.0, "Mortar Size": 0.025,
-                                           "Mortar Smooth": 0.3, "Bias": 0.0, "Brick Width": 1.1,
-                                           "Row Height": 0.45, "Color1": (0.30, 0.29, 0.27),
-                                           "Color2": (0.20, 0.19, 0.18), "Mortar": (0.05, 0.05, 0.045)},
+                                           "Mortar Smooth": 0.3, "Bias": 0.0, "Brick Width": 1.3,
+                                           "Row Height": 0.5, "Color1": (0.17, 0.165, 0.155),
+                                           "Color2": (0.10, 0.098, 0.092), "Mortar": (0.03, 0.03, 0.027)},
                         offset=0.5, squash=1.0)
         return g.o(br, "Color"), g.o(br, "Factor")
     col, mort = _box_pattern(g, builder)
@@ -768,7 +782,9 @@ def mat_stone(name="stone"):
     col = g.mix(g.m("MULTIPLY", g.smooth(speck, 0.55, 0.7), 0.6), col, (0.05, 0.05, 0.05))
     col = g.mix(g.m("MULTIPLY", g.smooth(speck, 0.35, 0.25), 0.4), col, (0.45, 0.44, 0.41))
     blot = g.nfac(P, 1.0, 5.0, 0.6)
-    col = g.mix(g.m("MULTIPLY", blot, 0.4), col, g.mix(1.0, col, (0.6, 0.58, 0.52), "MULTIPLY"))
+    col = g.mix(g.smooth(blot, 0.35, 0.75), col, g.mix(1.0, col, (0.45, 0.43, 0.38), "MULTIPLY"))
+    lich = g.m("MULTIPLY", g.smooth(g.nfac(P, 2.5, 6.0, 0.7), 0.6, 0.7), 0.6)
+    col = g.mix(lich, col, (0.20, 0.19, 0.14))
     col = _ao_dirt(g, col, amount=0.7, dist=0.3)
     col, rough, _ = _waterline(g, col, g.lin(blot, 0, 1, 0.7, 0.9), strength=1.0, band_top=0.6)
     h = g.m("ADD", g.m("MULTIPLY", mort, -1.0), g.m("MULTIPLY", g.nfac(P, 8.0, 5.0, 0.6), 0.3))
