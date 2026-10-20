@@ -11,10 +11,20 @@
 import math
 import bpy
 
+# 참고 사진(refs/ref_*.jpg, 전쟁기념관 복원선) 고유색 샘플 → 선형 albedo 기준값 (README 표 참고)
+REF = {
+    "hull_dark": (0.080, 0.034, 0.015), "hull_light": (0.215, 0.098, 0.040),     # 적갈~꿀색 소나무
+    "board_dark": (0.115, 0.044, 0.018), "board_light": (0.245, 0.098, 0.036),   # 방패판 판재
+    "roof_dark": (0.040, 0.037, 0.035), "roof_light": (0.068, 0.062, 0.057),     # 회흑 육각판
+    "iron": (0.020, 0.019, 0.018),                                               # 흑철
+    "dragon_wood": (0.034, 0.026, 0.023),                                        # 흑갈 목조
+    "sail": (0.42, 0.29, 0.16), "bamboo": (0.36, 0.24, 0.095),
+}
+
 MAT_NAMES = [
     "hull_wood", "hull_waterline", "roof_shell", "iron_spike", "dragon_head", "ghost_face",
     "wall_panel", "oar_wood", "mast_wood", "sail_cloth", "rope", "flag_cloth", "water",
-    "stone", "ground",
+    "stone", "ground", "iron_fitting", "bamboo",
 ]
 
 
@@ -239,7 +249,7 @@ def _new_mat(name):
 # 공용 서브그래프
 # ----------------------------------------------------------------------------------------------
 def _wood(g, P, dark, light, plank_w=0.30, seg=6.0, grain_axis="Y", grey=0.35, seed=0.0,
-          seam_dark=0.6, seam_w=0.010):
+          seam_dark=0.6, seam_w=0.010, grain_k=0.45):
     """판재 나뭇결. grain_axis = 결 방향(판재 장축). 판재는 grain_axis 와 수직한 축으로 쌓인다.
     반환: (color, rough_var 0..1, height)"""
     x, y, z = g.sep(P)
@@ -282,7 +292,7 @@ def _wood(g, P, dark, light, plank_w=0.30, seg=6.0, grain_axis="Y", grey=0.35, s
     big = g.nfac(P, 0.35, 4.0, 0.6)
     tone = g.m("ADD", g.m("MULTIPLY", pr, 0.55), g.m("MULTIPLY", big, 0.45))
     base = g.mix(tone, dark, light)
-    grain_dark = g.mix(0.45, base, g.mix(1.0, base, (0.55, 0.50, 0.45), "MULTIPLY"))
+    grain_dark = g.mix(grain_k, base, g.mix(1.0, base, (0.55, 0.50, 0.45), "MULTIPLY"))
     col = g.mix(g.smooth(grain, 0.35, 0.8), base, grain_dark)
     # 회색 풍화 (얼룩 마스크)
     wmask = g.m("MULTIPLY", g.smooth(g.nfac(P, 0.8, 5.0, 0.65, dist=0.4), 0.35, 0.7), grey)
@@ -352,13 +362,15 @@ def mat_hull_wood(name="hull_wood"):
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
-    col, rv, h = _wood(g, P, (0.022, 0.014, 0.009), (0.062, 0.040, 0.024), plank_w=0.32, seg=7.5,
-                       grain_axis="Y", grey=0.55, seed=1.0)
+    col, rv, h = _wood(g, P, REF["hull_dark"], REF["hull_light"], plank_w=0.32, seg=7.5,
+                       grain_axis="Y", grey=0.18, seed=1.0, grain_k=0.75)
     col = _ao_dirt(g, col)
-    rough = g.lin(rv, 0.0, 1.0, 0.62, 0.88)
+    rough = g.lin(rv, 0.0, 1.0, 0.40, 0.65)
     col, rough, _ = _waterline(g, col, rough, strength=0.9)
     nrm = g.bump(h, 0.25, 0.012)
-    b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.35)
+    # 니스(오일) 약한 광택: Coat
+    b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.4,
+                     Coat_Weight=0.25, Coat_Roughness=0.35)
     g.output(g.o(b, "BSDF"))
     return mat
 
@@ -367,7 +379,7 @@ def mat_hull_waterline(name="hull_waterline"):
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
-    col, rv, h = _wood(g, P, (0.035, 0.026, 0.017), (0.080, 0.060, 0.040), plank_w=0.32, seg=7.5,
+    col, rv, h = _wood(g, P, (0.060, 0.026, 0.014), (0.130, 0.058, 0.030), plank_w=0.32, seg=7.5,
                        grain_axis="Y", grey=0.3, seed=1.0)
     col = _ao_dirt(g, col, amount=0.8)
     rough = g.lin(rv, 0.0, 1.0, 0.5, 0.8)
@@ -440,8 +452,7 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.035, arc_attr="roof
     cr2, _, _ = g.sep(cc)
     line = g.smooth(edge, line_w * 0.5 + 0.003, line_w * 0.5 - 0.003)       # 1 = 홈선
     # 셀별 색: 적갈 ↔ 흑갈 (cr), 명도 ±15% (cr2)
-    plate = g.ramp(cr, [(0.0, (0.026, 0.020, 0.017)), (0.45, (0.040, 0.024, 0.017)),
-                        (0.8, (0.060, 0.028, 0.018)), (1.0, (0.075, 0.032, 0.020))])
+    plate = g.ramp(cr, [(0.0, REF["roof_dark"]), (1.0, REF["roof_light"])])
     plate = g.mix(1.0, plate, g.comb(*(g.lin(cr2, 0, 1, 0.85, 1.15),) * 3), "MULTIPLY")
     # 셀 중앙 마모(약간 밝게)
     center = g.smooth(edge, hex_cell * 0.12, hex_cell * 0.42)
@@ -454,17 +465,17 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.035, arc_attr="roof
     gr = g.wave(g.comb(s, g.m("MULTIPLY", y, 0.08), z), 30.0, 6.0, 3.0, 1.0, direction="X")
     plate = g.mix(g.m("MULTIPLY", g.smooth(gr, 0.3, 0.9), 0.2), plate,
                   g.mix(1.0, plate, (0.65, 0.65, 0.65), "MULTIPLY"))
-    col = g.mix(line, plate, (0.012, 0.010, 0.009))
+    col = g.mix(g.m("MULTIPLY", line, 0.85), plate, (0.016, 0.015, 0.014))
     # 선 바로 옆 어두운 그늘(홈 가장자리)
     lip = g.m("MULTIPLY", g.smooth(edge, line_w * 0.5 + 0.025, line_w * 0.5), g.m("SUBTRACT", 1.0, line))
     col = g.mix(g.m("MULTIPLY", lip, 0.4), col, g.mix(1.0, col, (0.5, 0.5, 0.5), "MULTIPLY"))
     # 도장 벗겨짐
     chip_n = g.nfac(P, 1.6, 8.0, 0.72, dist=0.2)
     chips = g.smooth(chip_n, 0.70, 0.72)
-    col = g.mix(chips, col, g.mix(cr, (0.045, 0.037, 0.030), (0.075, 0.062, 0.050)))
+    col = g.mix(g.m("MULTIPLY", chips, 0.5), col, g.mix(cr, (0.10, 0.06, 0.035), (0.16, 0.09, 0.05)))
     # 먼지(위를 향한 면, 50% 감소)
     dust = g.m("MULTIPLY", g.smooth(nz, 0.3, 0.95), g.smooth(g.nfac(P, 1.5, 5.0, 0.6), 0.45, 0.8))
-    col = g.mix(g.m("MULTIPLY", dust, 0.18), col, (0.16, 0.14, 0.12))
+    col = g.mix(g.m("MULTIPLY", dust, 0.15), col, (0.15, 0.14, 0.13))
     col = _ao_dirt(g, col, amount=0.6, dist=0.25)
     rough = g.m("ADD", g.lin(mott, 0.2, 0.8, 0.55, 0.78), g.m("MULTIPLY", g.m("ADD", dust, chips), 0.15))
     rough = g.m("SUBTRACT", rough, g.m("MULTIPLY", center, 0.08))
@@ -478,24 +489,51 @@ def mat_roof_shell(name="roof_shell", hex_cell=0.9, line_w=0.035, arc_attr="roof
     return mat
 
 
-def mat_iron_spike(name="iron_spike"):
+def mat_iron(name="iron_spike", rust_amt=0.35, rough_base=0.45, metal_base=0.8, bump_d=0.002):
+    """흑철(단조). rust_amt 0..1 녹 비율. iron_spike: 철첨 / iron_fitting: 방패판 꺾쇠·띠·장식(반광, 녹 약간)."""
     mat = _new_mat(name)
     g = G(mat)
     P = g.obj()
     n1 = g.nfac(P, 18.0, 6.0, 0.65, dist=0.3)
     n2 = g.nfac(P, 70.0, 4.0, 0.6)
-    W = g.wpos()
-    rust = g.smooth(g.m("ADD", n1, g.m("MULTIPLY", n2, 0.25)), 0.55, 0.70)
-    rust_c = g.ramp(n2, [(0.0, (0.035, 0.016, 0.009)), (0.5, (0.085, 0.036, 0.016)), (1.0, (0.15, 0.065, 0.028))])
-    iron_c = g.mix(n2, (0.025, 0.024, 0.023), (0.055, 0.052, 0.05))
+    thr = 0.75 - 0.25 * rust_amt
+    rust = g.smooth(g.m("ADD", n1, g.m("MULTIPLY", n2, 0.25)), thr, thr + 0.12)
+    ao = g.ao(0.05)
+    rust = g.m("MAXIMUM", rust, g.m("MULTIPLY", g.smooth(ao, 0.9, 0.5), rust_amt))   # 홈·모서리 안쪽 녹
+    rust_c = g.ramp(n2, [(0.0, (0.030, 0.015, 0.009)), (0.5, (0.070, 0.032, 0.015)), (1.0, (0.12, 0.055, 0.025))])
+    iron_c = g.mix(n2, REF["iron"], (0.040, 0.038, 0.036))
     col = g.mix(rust, iron_c, rust_c)
     col = _ao_dirt(g, col, amount=0.5, dist=0.08)
-    metal = g.lin(rust, 0.0, 1.0, 0.85, 0.0)
-    rough = g.lin(rust, 0.0, 1.0, 0.42, 0.92)
-    rough = g.m("ADD", rough, g.m("MULTIPLY", n2, 0.12))
+    metal = g.lin(rust, 0.0, 1.0, metal_base, 0.0)
+    rough = g.lin(rust, 0.0, 1.0, rough_base, 0.9)
+    rough = g.m("ADD", rough, g.m("MULTIPLY", n2, 0.1))
     h = g.m("ADD", g.m("MULTIPLY", rust, 0.6), g.m("MULTIPLY", n2, 0.4))
-    nrm = g.bump(h, 0.35, 0.002)
+    nrm = g.bump(h, 0.3, bump_d)
     b = g.principled(Base_Color=col, Metallic=metal, Roughness=rough, Normal=nrm)
+    g.output(g.o(b, "BSDF"))
+    return mat
+
+
+def mat_bamboo(name="bamboo"):
+    """대나무 돛살(batten): 황갈색, 로컬 Z 축 방향 길이, 마디(0.32m 간격 띠) + 세로 섬유 줄, 반광."""
+    mat = _new_mat(name)
+    g = G(mat)
+    P = g.obj()
+    x, y, z = g.sep(P)
+    fz = g.m("FRACT", g.m("DIVIDE", z, 0.32))
+    node_d = g.m("MULTIPLY", g.m("MINIMUM", fz, g.m("SUBTRACT", 1.0, fz)), 0.32)
+    knot = g.smooth(node_d, 0.012, 0.003)
+    fib = g.nfac(g.comb(g.m("MULTIPLY", x, 1.0), g.m("MULTIPLY", y, 1.0), g.m("MULTIPLY", z, 0.03)), 120.0, 3.0, 0.5)
+    seg = g.o(g.white(g.m("FLOOR", g.m("DIVIDE", z, 0.32)), dims="1D"), "Value")
+    base = g.mix(seg, g.mix(1.0, REF["bamboo"], (0.8, 0.8, 0.8), "MULTIPLY"), REF["bamboo"])
+    base = g.mix(g.m("MULTIPLY", fib, 0.3), base, g.mix(1.0, base, (0.75, 0.7, 0.6), "MULTIPLY"))
+    base = g.mix(g.m("MULTIPLY", knot, 0.7), base, (0.13, 0.08, 0.035))
+    stain = g.smooth(g.nfac(P, 3.0, 5.0, 0.6), 0.5, 0.8)
+    base = g.mix(g.m("MULTIPLY", stain, 0.4), base, (0.12, 0.085, 0.05))
+    base = _ao_dirt(g, base, amount=0.5, dist=0.1)
+    nrm = g.bump(g.m("ADD", knot, g.m("MULTIPLY", fib, 0.2)), 0.3, 0.003)
+    b = g.principled(Base_Color=base, Roughness=g.lin(stain, 0, 1, 0.38, 0.6), Normal=nrm,
+                     Specular_IOR_Level=0.45, Coat_Weight=0.2, Coat_Roughness=0.3)
     g.output(g.o(b, "BSDF"))
     return mat
 
@@ -508,7 +546,42 @@ def _fade(g, col, P, amount=0.35):
     return g.mix(g.m("MULTIPLY", g.lin(n, 0.3, 0.8, 0.5, 1.0), amount), col, faded)
 
 
-def mat_dragon_head(name="dragon_head"):
+def mat_dragon_head_wood(name="dragon_head"):
+    """용두 (사진 기준 기본): 흑갈색 목조각 + 결 + 조각 골 AO + 모서리 마모(밝은 갈색) + 반광 오일.
+    흰 이빨·흰 눈 테·붉은 입속은 모델링 보조 재질(별도 메시)."""
+    mat = _new_mat(name)
+    g = G(mat)
+    P = g.obj()
+    x, y, z = g.sep(P)
+    gr = g.wave(g.v("ADD", g.comb(x, g.m("MULTIPLY", y, 0.1), z), g.v("SCALE", g.o(g.noise(P, 3.0, 3.0), "Color"), scale=0.1)),
+                14.0, 5.0, 3.0, 1.0, direction="Z")
+    base = g.mix(g.smooth(gr, 0.2, 0.9), REF["dragon_wood"], (0.060, 0.042, 0.032))
+    big = g.nfac(P, 2.0, 5.0, 0.6)
+    base = g.mix(g.m("MULTIPLY", big, 0.4), base, (0.022, 0.018, 0.016))
+    # 돌출부 마모(AO 반대: 열린 곳은 살짝 밝게)
+    ao = g.ao(0.12)
+    base = g.mix(g.m("MULTIPLY", g.smooth(ao, 0.9, 1.0), 0.35), base, (0.085, 0.055, 0.038))
+    base = _ao_dirt(g, base, (0.01, 0.008, 0.007), amount=0.9, dist=0.12)
+    vor = g.voronoi(P, 16.0, "DISTANCE_TO_EDGE")
+    scale_line = g.smooth(g.o(vor, "Distance"), 0.05, 0.0)
+    base = g.mix(g.m("MULTIPLY", scale_line, 0.5), base, (0.012, 0.010, 0.009))
+    rough = g.lin(big, 0, 1, 0.38, 0.6)
+    h = g.m("ADD", g.m("MULTIPLY", scale_line, -0.5), g.m("MULTIPLY", gr, 0.25))
+    nrm = g.bump(h, 0.3, 0.004)
+    b = g.principled(Base_Color=base, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.45,
+                     Coat_Weight=0.2, Coat_Roughness=0.35)
+    g.output(g.o(b, "BSDF"))
+    return mat
+
+
+def mat_dragon_head(name="dragon_head", style="wood"):
+    """style='wood'(기본, 사진) | 'dancheong'(구역 채색)."""
+    if style == "wood":
+        return mat_dragon_head_wood(name)
+    return mat_dragon_head_dancheong(name)
+
+
+def mat_dragon_head_dancheong(name="dragon_head"):
     """용두 단청 (구역 채색, Generated 좌표: x=폭, y=뒤(0)→주둥이(1), z=아래→위).
     목·정수리 녹청 / 갈기 군청+주홍 끝 / 볼 군청 / 뿔 황토 / 눈두덩 백 / 주둥이·입술·아래턱 주홍 / 배 백토,
     구역 경계 흑선, 비늘(Voronoi), 채도 −20%, 때 20%."""
@@ -574,7 +647,12 @@ def mat_dragon_head(name="dragon_head"):
     return mat
 
 
-def mat_ghost_face(name="ghost_face"):
+def mat_ghost_face(name="ghost_face", style="black"):
+    """style='black'(기본, 사진: 흑색 바탕+흰 눈·이빨, 붉은 입속) | 'dancheong'(주토 얼굴+녹청 갈기)."""
+    return _ghost_face(name, style)
+
+
+def _ghost_face(name, style):
     """귀면: Generated(x=가로 0..1, z=세로 0..1), 얼굴 = 메시 로컬 XZ 평면(법선 ±Y).
     주토(검붉은) 얼굴 + 흑청 바깥 테·녹/청 불꽃 갈기, 흰 눈자위+주홍 테+흑 눈동자, 녹 눈썹(백 테),
     주홍 코, 흰 이빨·송곳니, 부조 골 AO. (부조 위치는 modeling/build_ghost_face 와 일치)"""
@@ -587,7 +665,10 @@ def mat_ghost_face(name="ghost_face"):
     face_r = g.v("LENGTH", g.comb(g.m("MULTIPLY", dx, 2.0), g.m("MULTIPLY", dz, 2.0), 0.0))  # 0 중앙, ~1 가장자리
     jit = g.m("MULTIPLY", g.m("SUBTRACT", g.nfac(P, 6.0, 3.0), 0.5), 0.06)
     face_r = g.m("ADD", face_r, jit)
-    base = g.mix(g.m("MULTIPLY", g.nfac(P, 4.0, 4.0), 0.5), (0.26, 0.04, 0.025), (0.16, 0.03, 0.02))
+    if style == "black":
+        base = g.mix(g.m("MULTIPLY", g.nfac(P, 4.0, 4.0), 0.5), (0.020, 0.018, 0.017), (0.035, 0.028, 0.024))
+    else:
+        base = g.mix(g.m("MULTIPLY", g.nfac(P, 4.0, 4.0), 0.5), (0.26, 0.04, 0.025), (0.16, 0.03, 0.02))
     # 바깥 갈기: 각도별 녹/청 불꽃 혀 + 흑청 바탕
     ang = g.m("ARCTAN2", g.m("SUBTRACT", gx, 0.5), dz)
     fl = g.m("FRACT", g.m("MULTIPLY", ang, 14.0 / 6.2832))
@@ -595,6 +676,8 @@ def mat_ghost_face(name="ghost_face"):
     tongue = g.smooth(g.m("ADD", g.m("MULTIPLY", g.m("ABSOLUTE", g.m("SUBTRACT", fl, 0.5)), 0.5), face_r), 1.08, 1.02)
     outer = g.smooth(face_r, 0.80, 0.84)
     ring_c = g.mix(tongue, (0.018, 0.028, 0.040), flame_c)
+    if style == "black":
+        ring_c = g.mix(tongue, (0.012, 0.011, 0.010), (0.045, 0.034, 0.026))
     col = g.mix(outer, base, ring_c)
     col = g.mix(g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", face_r, 0.82)), 0.02, 0.008), 1.0), col,
                 (0.01, 0.01, 0.01))
@@ -603,7 +686,7 @@ def mat_ghost_face(name="ghost_face"):
     sclera = g.smooth(ed, 0.125, 0.115)
     pupil = g.smooth(ed, 0.06, 0.05)
     ring = g.m("MULTIPLY", g.smooth(ed, 0.16, 0.15), g.m("SUBTRACT", 1.0, sclera))
-    col = g.mix(ring, col, (0.50, 0.09, 0.035))
+    col = g.mix(ring, col, (0.50, 0.09, 0.035) if style != "black" else (0.012, 0.011, 0.010))
     col = g.mix(g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", ed, 0.125)), 0.008, 0.003), 1.0), col,
                 (0.01, 0.01, 0.01))
     col = g.mix(sclera, col, (0.46, 0.44, 0.38))
@@ -613,16 +696,19 @@ def mat_ghost_face(name="ghost_face"):
     bmask = g.m("MULTIPLY", g.smooth(dx, 0.38, 0.36), g.smooth(dx, 0.04, 0.06))
     brow_rim = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", bz), 0.055, 0.045), bmask)
     brow = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", bz), 0.04, 0.03), bmask)
-    col = g.mix(brow_rim, col, (0.40, 0.39, 0.34))
-    col = g.mix(brow, col, g.mix(g.nfac(P, 12.0, 3.0), (0.04, 0.16, 0.09), (0.03, 0.08, 0.17)))
+    col = g.mix(brow_rim, col, (0.40, 0.39, 0.34) if style != "black" else (0.06, 0.05, 0.04))
+    if style == "black":
+        col = g.mix(brow, col, (0.05, 0.04, 0.032))
+    else:
+        col = g.mix(brow, col, g.mix(g.nfac(P, 12.0, 3.0), (0.04, 0.16, 0.09), (0.03, 0.08, 0.17)))
     # 코 (주홍) + 콧구멍
     nose = g.v("LENGTH", g.comb(dx, g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.50), 0.8), 0.0))
-    col = g.mix(g.smooth(nose, 0.10, 0.085), col, (0.42, 0.07, 0.03))
+    col = g.mix(g.smooth(nose, 0.10, 0.085), col, (0.42, 0.07, 0.03) if style != "black" else (0.045, 0.035, 0.028))
     nd = g.v("LENGTH", g.comb(g.m("SUBTRACT", dx, 0.07), g.m("MULTIPLY", g.m("SUBTRACT", gz, 0.46), 1.6), 0.0))
     col = g.mix(g.smooth(nd, 0.04, 0.03), col, (0.02, 0.005, 0.004))
     # 입 + 이빨 + 송곳니
     mouth = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", gz, 0.27)), 0.11, 0.10), g.smooth(dx, 0.33, 0.31))
-    col = g.mix(mouth, col, (0.035, 0.006, 0.005))
+    col = g.mix(mouth, col, (0.035, 0.006, 0.005) if style != "black" else (0.30, 0.04, 0.025))
     tf = g.m("FRACT", g.m("MULTIPLY", gx, 11.0))
     tooth = g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", tf, 0.5)), 0.42, 0.36),
                 g.m("MULTIPLY", g.smooth(g.m("ABSOLUTE", g.m("SUBTRACT", gz, 0.27)), 0.085, 0.075), g.smooth(dx, 0.30, 0.28)))
@@ -644,7 +730,7 @@ def mat_ghost_face(name="ghost_face"):
     return mat
 
 
-def mat_wall_panel(name="wall_panel", panel_w=0.9, v_attr="wall_v"):
+def mat_wall_panel(name="wall_panel", panel_w=0.9, v_attr="wall_v", style="natural"):
     """방패판: 세로 판재(0.28m, 결=Z) 검붉은 도장, 패판 경계 세로 흑선(panel_w 간격, 3cm),
     상·하단 흑 테(각 ~8cm), 상단 띠에 녹·주홍 단청 반복(0.45m), 상단 흰 선 흔적, 풍화 15%.
     세로 위치 v = attribute `v_attr`(0 하단 → 1 상단, 권장) 없으면 Generated Z."""
@@ -654,9 +740,22 @@ def mat_wall_panel(name="wall_panel", panel_w=0.9, v_attr="wall_v"):
     x, y, z = g.sep(P)
     across = g.m("ADD", x, y)
     Pr = g.comb(across, z, g.m("SUBTRACT", x, y))
-    col, rv, h = _wood(g, Pr, (0.08, 0.03, 0.02), (0.15, 0.07, 0.045), plank_w=0.28, seg=50.0,
-                       grain_axis="Y", grey=0.25, seed=5.0, seam_w=0.010, seam_dark=0.6)
+    col, rv, h = _wood(g, Pr, REF["board_dark"], REF["board_light"], plank_w=0.28, seg=50.0,
+                       grain_axis="Y", grey=0.15, seed=5.0, seam_w=0.008, seam_dark=0.6, grain_k=0.7)
     wood = col
+    if style == "natural":
+        # 사진 기준: 꿀색~적갈 원목 + 패판 경계 흑선(철띠는 모델러가 iron_fitting 형상으로)
+        fp = g.m("FRACT", g.m("DIVIDE", across, panel_w))
+        pd = g.m("MULTIPLY", g.m("MINIMUM", fp, g.m("SUBTRACT", 1.0, fp)), panel_w)
+        vline = g.smooth(pd, 0.012, 0.008)
+        col = g.mix(g.m("MULTIPLY", vline, 0.8), col, (0.02, 0.012, 0.008))
+        col = _ao_dirt(g, col, amount=0.7, dist=0.3)
+        col, rough, _ = _waterline(g, col, g.lin(rv, 0, 1, 0.38, 0.62), strength=0.6)
+        nrm = g.bump(g.m("SUBTRACT", h, g.m("MULTIPLY", vline, 0.6)), 0.25, 0.01)
+        b = g.principled(Base_Color=col, Roughness=rough, Normal=nrm, Specular_IOR_Level=0.4,
+                         Coat_Weight=0.25, Coat_Roughness=0.35)
+        g.output(g.o(b, "BSDF"))
+        return mat
     paint = (0.075, 0.019, 0.014)
     pn = g.nfac(P, 1.2, 5.0, 0.6)
     painted = g.mix(g.lin(pn, 0.3, 0.8, 0.0, 0.4), paint, (0.06, 0.016, 0.012))
@@ -735,9 +834,9 @@ def mat_sail_cloth(name="sail_cloth"):
     pw = 0.55
     pidx = g.m("FLOOR", g.m("DIVIDE", across, pw))
     pr = g.o(g.white(pidx, dims="1D"), "Value")
-    base = g.mix(pr, (0.145, 0.120, 0.085), (0.20, 0.17, 0.125))
+    base = g.mix(pr, g.mix(1.0, REF["sail"], (0.72, 0.72, 0.72), "MULTIPLY"), REF["sail"])
     stain = g.nfac(P, 0.9, 5.0, 0.65, dist=0.5)
-    base = g.mix(g.smooth(stain, 0.4, 0.8), base, (0.075, 0.062, 0.045))
+    base = g.mix(g.m("MULTIPLY", g.smooth(stain, 0.4, 0.8), 0.6), base, (0.14, 0.10, 0.06))
     streak = g.nfac(g.comb(g.m("MULTIPLY", across, 3.0), g.m("MULTIPLY", z, 0.15), 0.0), 3.0, 3.0)
     base = g.mix(g.m("MULTIPLY", g.smooth(streak, 0.55, 0.8), 0.5), base, (0.18, 0.15, 0.11))
     fa = g.m("FRACT", g.m("DIVIDE", across, pw))
@@ -946,16 +1045,19 @@ def mat_ground(name="ground"):
 
 
 # ----------------------------------------------------------------------------------------------
-def build_all(hex_cell=0.9, hex_line_w=0.035, roof_arc_attr="roof_s", rebuild=True):
+def build_all(hex_cell=0.9, hex_line_w=0.035, roof_arc_attr="roof_s", rebuild=True,
+              dragon_style="wood", ghost_style="black", wall_style="natural"):
     """SPEC §4 재질 전부 생성. rebuild=False 면 이미 있는 재질은 노드를 다시 만들지 않고 재사용."""
     makers = {
         "hull_wood": mat_hull_wood,
         "hull_waterline": mat_hull_waterline,
         "roof_shell": lambda n: mat_roof_shell(n, hex_cell, hex_line_w, roof_arc_attr),
-        "iron_spike": mat_iron_spike,
-        "dragon_head": mat_dragon_head,
-        "ghost_face": mat_ghost_face,
-        "wall_panel": mat_wall_panel,
+        "iron_spike": lambda n: mat_iron(n, rust_amt=0.25, rough_base=0.5),
+        "iron_fitting": lambda n: mat_iron(n, rust_amt=0.15, rough_base=0.38, metal_base=0.75, bump_d=0.001),
+        "bamboo": mat_bamboo,
+        "dragon_head": lambda n: mat_dragon_head(n, dragon_style),
+        "ghost_face": lambda n: mat_ghost_face(n, ghost_style),
+        "wall_panel": lambda n: mat_wall_panel(n, style=wall_style),
         "oar_wood": lambda n: mat_pole_wood(n, (0.10, 0.075, 0.05), (0.21, 0.16, 0.11), 0.5, 7.0),
         "mast_wood": lambda n: mat_pole_wood(n, (0.08, 0.055, 0.035), (0.17, 0.12, 0.08), 0.4, 9.0),
         "sail_cloth": mat_sail_cloth,

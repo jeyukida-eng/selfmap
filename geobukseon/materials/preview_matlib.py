@@ -57,6 +57,10 @@ def build_scene(M):
     box("HullLow", (-1.2, -9.5, -1.0), (0.02, -3.8, 0.35), M["hull_waterline"])
     box("HullUp", (-1.2, -9.5, 0.35), (0.0, -3.8, 1.9), M["hull_wood"])
     box("Wall", (-1.3, -9.5, 1.9), (-0.15, -3.8, 3.0), M["wall_panel"], bevel=0.02)
+    # 방패판 철띠·꺾쇠 (iron_fitting)
+    for yy in (-9.45, -7.6, -5.75, -3.85):
+        box(f"IronBand{yy}", (-0.16, yy - 0.04, 1.9), (-0.11, yy + 0.04, 3.0), M["iron_fitting"])
+    box("IronRail", (-0.16, -9.5, 2.9), (-0.10, -3.8, 2.97), M["iron_fitting"])
     # 노
     for i, yy in enumerate((-8.6, -6.6, -4.8)):
         cyl(f"Oar{i}", (-0.2, yy, 1.3), (3.2, yy - 0.6, -0.4), 0.06, M["oar_wood"])
@@ -111,6 +115,11 @@ def build_scene(M):
     sail.rotation_euler = (math.radians(90), 0, math.radians(75))
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     sail.data.materials.append(M["sail_cloth"])
+    for k in range(7):
+        zz = 2.4 + k * 0.7
+        d = Vector((math.cos(math.radians(75)), math.sin(math.radians(75)), 0))
+        c = Vector((-1.85, 8.0, zz)) + Vector((0.06, -0.02, 0))
+        cyl(f"Batten{k}", c - d * 1.6, c + d * 1.6, 0.025, M["bamboo"], 10)
     cyl("Rope1", (-2.0, 8.0, 8.3), (1.2, 4.0, 0.7), 0.018, M["rope"], 12)
     cyl("Rope2", (-2.0, 8.0, 8.3), (1.2, 9.8, 0.7), 0.018, M["rope"], 12)
     bpy.ops.mesh.primitive_grid_add(x_subdivisions=12, y_subdivisions=8, size=1, location=(-2.0, 8.65, 8.1))

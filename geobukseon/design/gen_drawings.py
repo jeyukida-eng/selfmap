@@ -1,5 +1,5 @@
 """Generate plan / elevation drawings + flythrough clearance check from design/geobukseon_design.json.
-Run: /opt/bvenv/bin/python design/gen_drawings.py   (writes design/plan.png, design/elevation.png, copies to out/)
+Run: /opt/bvenv/bin/python design/gen_drawings.py   (writes design/plan.png, elevation.png, views_check.png; copies to out/)
 """
 import json
 import math
@@ -18,7 +18,7 @@ ROOT = os.path.dirname(HERE)
 DESIGN = os.path.join(HERE, "geobukseon_design.json")
 OUT = os.path.join(ROOT, "out")
 
-C_HULL = "#7a5230"
+C_HULL = "#b07a3c"
 C_WALL = "#a0522d"
 C_ROOF = "#3b2a20"
 C_WATER = "#cfe3f0"
@@ -50,20 +50,66 @@ def roof_profile(half, eave, ridge, p, n=60):
     return x, z
 
 
+def dragon_local_pts(dh):
+    """Head silhouette in local (u forward, v up) coords, origin = head_base."""
+    L, H, m = dh["length"], dh["height"], dh["mouth_open"]
+    return [(0, -H * 0.45), (L * 0.55, -H * 0.30), (L * 0.98, -m * 0.5 - 0.05), (L * 0.62, -0.02),
+            (L * 1.0, m * 0.5), (L * 0.85, H * 0.32), (L * 0.55, H * 0.55), (L * 0.35, H * 0.50),
+            (L * 0.2, H * 0.62), (0, H * 0.45)]
+
+
+def dragon_head_base(dh):
+    return dh.get("head_base", dh["base"])
+
+
 def dragon_polygon_side(dh):
-    """Side (YZ) silhouette of dragon head: simple neck+head wedge, pitched."""
-    bx, by, bz = dh["base"]
-    L, H = dh["length"], dh["height"]
-    m = dh["mouth_open"]
+    """Side (YZ) silhouette of dragon head (pitched), placed at head_base."""
+    _, by, bz = dragon_head_base(dh)
     a = math.radians(dh["pitch_deg"])
-    # local coords (u forward, v up)
-    pts = [(0, -H * 0.45), (L * 0.55, -H * 0.30), (L * 0.98, -m * 0.5 - 0.05), (L * 0.62, -0.02),
-           (L * 1.0, m * 0.5), (L * 0.85, H * 0.32), (L * 0.55, H * 0.55), (L * 0.35, H * 0.50),
-           (L * 0.2, H * 0.62), (0, H * 0.45)]
-    out = []
-    for u, v in pts:
-        out.append((by + u * math.cos(a) - v * math.sin(a), bz + u * math.sin(a) + v * math.cos(a)))
-    return out
+    return [(by + u * math.cos(a) - v * math.sin(a), bz + u * math.sin(a) + v * math.cos(a))
+            for u, v in dragon_local_pts(dh)]
+
+
+def dragon_neck_side(dh):
+    """Side (YZ) polygon of the neck from base to head_base (lean forward)."""
+    if "neck_height" not in dh:
+        return None
+    _, y0, z0 = dh["base"]
+    _, y1, z1 = dragon_head_base(dh)
+    r = dh["neck_radius"]
+    return [(y0 - r, z0), (y0 + r, z0), (y1 + r, z1), (y1 - r, z1)]
+
+
+def dragon_extent(dh):
+    pts = dragon_polygon_side(dh)
+    ys, zs = [p[0] for p in pts], [p[1] for p in pts]
+    top = max(zs) + dh.get("horns", {}).get("length", 0) * 0.8
+    return max(ys), top
+
+
+def stern_ext_curve(d, n=24):
+    """(y, z) points of each stern_extension rail (quadratic Bezier)."""
+    se = d["hull"].get("stern_extension")
+    if not se:
+        return None
+    p0, c, p1 = np.array(se["start"]), np.array(se["ctrl"]), np.array(se["end"])
+    t = np.linspace(0, 1, n)[:, None]
+    return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * c + t ** 2 * p1
+
+
+def sail_rect(m):
+    """3D corners of a raised sail (list of 4 xyz), or None."""
+    sl = m["sail"]
+    if sl.get("state") != "raised":
+        return None
+    yaw = math.radians(sl.get("yaw_deg", 90))
+    # unit vector along sail width: yaw 0 = fore-aft (+Y), 90 = athwartships (+X)
+    ux, uy = math.sin(yaw), math.cos(yaw)
+    a = -sl.get("mast_offset_frac", 0.5) * sl["w"]
+    b = a + sl["w"]
+    z0, z1 = sl["bottom_z"], sl["bottom_z"] + sl["h"]
+    return [(a * ux, m["y"] + a * uy, z0), (b * ux, m["y"] + b * uy, z0),
+            (b * ux, m["y"] + b * uy, z1), (a * ux, m["y"] + a * uy, z1)]
 
 
 def hull_bbox(d, include_oars=True):
@@ -72,21 +118,34 @@ def hull_bbox(d, include_oars=True):
     roof = d["superstructure"]["roof"]["stations"]
     dh = d["dragon_head"]
     xmax = max(max(r["sheer_half"] for r in hs), max(r["half"] for r in roof))
+    if "beam_heads" in d["hull"]:
+        xmax = max(xmax, max(r["half"] for r in d["superstructure"]["wall"]["stations"])
+                   + d["hull"]["beam_heads"]["protrude_beyond_wall"])
     ymin = min(r["y"] for r in hs)
-    ymax = max(max(r["y"] for r in hs), dh["base"][1] + dh["length"] * math.cos(math.radians(dh["pitch_deg"])))
+    dy, dz = dragon_extent(dh)
+    ymax = max(max(r["y"] for r in hs), dy)
     zmin = min(r["keel_z"] for r in hs)
-    zmax = max(r["ridge_z"] for r in roof)
-    zmax = max(zmax, dh["base"][2] + dh["length"] * math.sin(math.radians(dh["pitch_deg"])) + dh["height"] * 0.6)
+    zmax = max(max(r["ridge_z"] for r in roof), dz)
     boxes = {"hull": (-xmax, xmax, ymin, ymax, zmin, zmax)}
+    se = stern_ext_curve(d)
+    if se is not None:
+        xs = d["hull"]["stern_extension"]["x"]
+        boxes["stern_ext"] = (min(xs) - 0.3, max(xs) + 0.3, se[:, 0].min(), ymin, se[:, 1].min() - 0.3,
+                              se[:, 1].max() + 0.3)
     if include_oars:
         o = d["oars"]
         reach = max(r["half"] for r in d["superstructure"]["wall"]["stations"]) + \
             o["length"] * (1 - o["inboard_fraction"]) * math.cos(math.radians(o["angle_deg"]))
         boxes["oars"] = (-reach, reach, min(o["y"]) - o["blade_width"] - 0.5, max(o["y"]) + o["blade_width"] + 0.5,
-                         -0.3, o["port_z"] + 0.2)
+                         -0.6, o["port_z"] + 0.2)
     for i, m in enumerate(d["masts"]):
         r = 0.5
         boxes[f"mast{i}"] = (-r, r, m["y"] - r, m["y"] + r, m["base_z"], m["base_z"] + m["height"] + 1.0)
+        sr = sail_rect(m)
+        if sr:
+            a = np.array(sr)
+            boxes[f"sail{i}"] = (a[:, 0].min() - 0.3, a[:, 0].max() + 0.3, a[:, 1].min() - 0.3, a[:, 1].max() + 0.3,
+                                 a[:, 2].min(), a[:, 2].max())
     p = d["site"].get("pier")
     if p:
         boxes["pier"] = (p["x_min"], p["x_max"], p["y_min"], p["y_max"], p["bottom_z"], p["top_z"])
@@ -94,6 +153,117 @@ def hull_bbox(d, include_oars=True):
     if s:
         boxes["shore"] = (s["x_min"], s["x_max"], s["y_min"], s["y_max"], -5, s["z"])
     return boxes
+
+
+def wireframe(d):
+    """3D polylines (list of (N,3) arrays, color) of the design, for perspective view checks."""
+    L = []
+    hs = sorted(d["hull"]["stations"], key=lambda r: r["y"])
+    wall = sorted(d["superstructure"]["wall"]["stations"], key=lambda r: r["y"])
+    rf = d["superstructure"]["roof"]
+    roof = sorted(rf["stations"], key=lambda r: r["y"])
+    C_H, C_W, C_R = "#8a5a2b", "#b5651d", "#333333"
+    for s in (-1, 1):
+        L.append((np.array([[s * r["sheer_half"], r["y"], r["sheer_z"]] for r in hs]), C_H))
+        L.append((np.array([[s * r["bottom_half"], r["y"], r["keel_z"]] for r in hs]), C_H))
+        L.append((np.array([[s * r["half"], r["y"], r["top_z"]] for r in wall]), C_W))
+        L.append((np.array([[s * r["half"], r["y"], interp_station(hs, "sheer_z", r["y"])] for r in wall]), C_W))
+        L.append((np.array([[s * r["half"], r["y"], r["eave_z"]] for r in roof]), C_R))
+    for r in hs:
+        L.append((np.array([[-r["bottom_half"], r["y"], r["keel_z"]], [-r["sheer_half"], r["y"], r["sheer_z"]],
+                            [r["sheer_half"], r["y"], r["sheer_z"]], [r["bottom_half"], r["y"], r["keel_z"]],
+                            [-r["bottom_half"], r["y"], r["keel_z"]]]), C_H))
+    for r in roof:
+        x, z = roof_profile(r["half"], r["eave_z"], r["ridge_z"], rf["profile_exponent"], 24)
+        L.append((np.c_[x, np.full_like(x, r["y"]), z], C_R))
+    L.append((np.array([[0, r["y"], r["ridge_z"]] for r in roof]), C_R))
+    for r in (wall[0], wall[-1]):
+        sz = interp_station(hs, "sheer_z", r["y"])
+        L.append((np.array([[-r["half"], r["y"], sz], [-r["half"], r["y"], r["top_z"]], [r["half"], r["y"], r["top_z"]],
+                            [r["half"], r["y"], sz], [-r["half"], r["y"], sz]]), C_W))
+    # gun ports (as small squares)
+    g = d["gun_ports"]
+    for p in g["side"]:
+        wh = interp_station(wall, "half", p["y"])
+        for s in (-1, 1):
+            q = g["size"] / 2
+            L.append((np.array([[s * wh, p["y"] - q, p["z"] - q], [s * wh, p["y"] + q, p["z"] - q],
+                                [s * wh, p["y"] + q, p["z"] + q], [s * wh, p["y"] - q, p["z"] + q],
+                                [s * wh, p["y"] - q, p["z"] - q]]), "black"))
+    # oars
+    o = d["oars"]
+    a = math.radians(o["angle_deg"])
+    Lo = o["length"] * (1 - o["inboard_fraction"])
+    for y in o["y"]:
+        sh = interp_station(hs, "sheer_half", y)
+        for s in (-1, 1):
+            L.append((np.array([[s * sh, y, o["port_z"]], [s * (sh + Lo * math.cos(a)), y - 0.6, o["port_z"] - Lo * math.sin(a)]]),
+                      "#d2a86a"))
+    # dragon head
+    dh = d["dragon_head"]
+    hb = dragon_head_base(dh)
+    for xx in (-dh["width"] / 2, dh["width"] / 2):
+        L.append((np.array([[xx, y, z] for y, z in dragon_polygon_side(dh) + dragon_polygon_side(dh)[:1]]), "#2e7d4f"))
+    if "neck_height" in dh:
+        L.append((np.array([dh["base"], hb]), "#2e7d4f"))
+    # masts & sails
+    for m in d["masts"]:
+        L.append((np.array([[0, m["y"], m["base_z"]], [0, m["y"], m["base_z"] + m["height"]]]), "#8b5a2b"))
+        sr = sail_rect(m)
+        if sr:
+            L.append((np.array(sr + sr[:1]), "#c8a46e"))
+            n = m["sail"].get("battens", 0)
+            for k in range(1, n):
+                f = k / n
+                p0 = np.array(sr[0]) + (np.array(sr[3]) - np.array(sr[0])) * f
+                p1 = np.array(sr[1]) + (np.array(sr[2]) - np.array(sr[1])) * f
+                L.append((np.array([p0, p1]), "#a07a40"))
+    # stern extension
+    se = stern_ext_curve(d)
+    if se is not None:
+        for xx in d["hull"]["stern_extension"]["x"]:
+            L.append((np.c_[np.full(len(se), xx), se[:, 0], se[:, 1]], C_H))
+    # rudder
+    r = d["rudder"]
+    L.append((np.array([[0, r["y"], r["top_z"]], [0, r["y"], r["top_z"] - r["depth"]],
+                        [0, r["y"] - r["width"], r["top_z"] - r["depth"]], [0, r["y"] - r["width"], r["top_z"] - r["depth"] * 0.55],
+                        [0, r["y"], r["top_z"] - r["depth"] * 0.55]]), "#4a3420"))
+    return L
+
+
+def site_wireframe(d):
+    L = []
+    p = d["site"].get("pier")
+    if p:
+        for z in (p["top_z"], 0.0):
+            L.append((np.array([[p["x_max"], p["y_min"], z], [p["x_max"], p["y_max"], z]]), "#777777"))
+        for y in np.arange(p["y_min"], p["y_max"] + 0.1, 5):
+            L.append((np.array([[p["x_max"], y, 0], [p["x_max"], y, p["top_z"]], [p["x_min"], y, p["top_z"]]]), "#999999"))
+    # water grid
+    for v in np.arange(-60, 61, 10):
+        L.append((np.array([[v, -60, 0], [v, 60, 0]]), "#9ec5e0"))
+        L.append((np.array([[-60, v, 0], [60, v, 0]]), "#9ec5e0"))
+    return L
+
+
+def project(view, pts, aspect):
+    """Pinhole projection, sensor width fits image width. Returns (u,v) in [0,1] (v from top) and depth."""
+    c = np.array(view["cam"], float)
+    f = np.array(view["look_at"], float) - c
+    f /= np.linalg.norm(f)
+    r = np.cross(f, [0, 0, 1.0])
+    r /= np.linalg.norm(r)
+    up = np.cross(r, f)
+    roll = math.radians(view.get("roll_deg", 0))
+    r, up = r * math.cos(roll) + up * math.sin(roll), up * math.cos(roll) - r * math.sin(roll)
+    dpt = pts - c
+    X, Y, Z = dpt @ r, dpt @ up, dpt @ f
+    k = view["lens_mm"] / view.get("sensor_mm", 36)
+    sx, sy = view.get("shift_x", 0.0), view.get("shift_y", 0.0)
+    big = max(1.0, 1.0 / aspect)  # blender shift is in units of the larger image dimension (width = 1)
+    u = 0.5 + k * X / Z - sx * big
+    v = 0.5 - (k * Y / Z) * aspect + sy * max(1.0, aspect)
+    return u, v, Z
 
 
 # ----------------------------------------------------------------------------- flythrough
@@ -254,18 +424,42 @@ def draw_plan(d, path):
     o = d["oars"]
     out_len = o["length"] * (1 - o["inboard_fraction"]) * math.cos(math.radians(o["angle_deg"]))
     for yy in o["y"]:
-        w = interp_station(d["superstructure"]["wall"]["stations"], "half", yy)
+        w = interp_station(d["hull"]["stations"], "sheer_half", yy)
         for s in (-1, 1):
             ax.plot([s * w, s * (w + out_len)], [yy, yy - 0.6], color="#d2a86a", lw=1.6, zorder=6)
+    # beam heads
+    bh = d["hull"].get("beam_heads")
+    if bh:
+        for yy in bh["y"]:
+            wh = interp_station(d["superstructure"]["wall"]["stations"], "half", yy) + bh["protrude_beyond_wall"]
+            for s in (-1, 1):
+                x0 = (wh - 0.35) if s > 0 else -wh
+                ax.add_patch(Rectangle((x0, yy - bh["section"][1] / 2), 0.35, bh["section"][1], fc="#6b4520",
+                                       zorder=6.5))
+    # stern extension
+    se = stern_ext_curve(d)
+    if se is not None:
+        for xx in d["hull"]["stern_extension"]["x"]:
+            ax.plot([xx, xx], [se[0, 0], se[-1, 0]], color=C_HULL, lw=3, zorder=6, solid_capstyle="butt")
+        ax.annotate("stern extension rails", (d["hull"]["stern_extension"]["x"][1], se[-1, 0]), (6, -20), fontsize=7,
+                    arrowprops=dict(arrowstyle="->", lw=0.6))
     # dragon head
     dh = d["dragon_head"]
+    hb = dragon_head_base(dh)
     L = dh["length"] * math.cos(math.radians(dh["pitch_deg"]))
-    ax.add_patch(Polygon([(-dh["width"] / 2, dh["base"][1]), (dh["width"] / 2, dh["base"][1]),
-                          (dh["width"] * 0.3, dh["base"][1] + L), (-dh["width"] * 0.3, dh["base"][1] + L)],
+    ax.add_patch(Polygon([(-dh["width"] / 2, hb[1]), (dh["width"] / 2, hb[1]),
+                          (dh["width"] * 0.3, hb[1] + L), (-dh["width"] * 0.3, hb[1] + L)],
                          fc="#2e7d4f", ec="black", lw=0.8, zorder=10))
-    ax.annotate("dragon head (yongdu)", (0, dh["base"][1] + L), (6, 17), fontsize=8,
+    if "neck_radius" in dh:
+        ax.add_patch(plt.Circle((0, dh["base"][1]), dh["neck_radius"], fc="#2e7d4f", ec="black", zorder=10))
+    ax.annotate("dragon head on neck (yongdu)", (0, hb[1] + L), (6, 17), fontsize=8,
                 arrowprops=dict(arrowstyle="->", lw=0.7), zorder=11)
     for m in d["masts"]:
+        sr = sail_rect(m)
+        if sr:
+            ax.plot([sr[0][0], sr[1][0]], [sr[0][1], sr[1][1]], color="#c8a46e", lw=4, alpha=0.85, zorder=11,
+                    solid_capstyle="butt")
+            ax.text(sr[1][0] + 0.3, sr[1][1], "sail (raised, yaw %d°)" % m["sail"]["yaw_deg"], fontsize=6.5, zorder=11)
         ax.add_patch(plt.Circle((0, m["y"]), m["diameter"] * 1.5, fc="#e8c48a", ec="black", zorder=11))
     ax.text(5.2, -12.6, "rudder", fontsize=7)
     ax.add_patch(Rectangle((-0.1, d["rudder"]["y"] - 0.7), 0.2, 1.4, fc="black", zorder=11))
@@ -369,10 +563,42 @@ def draw_elevation(d, path):
         for f in (0.35, 0.7, 0.95):
             z = e + (r - e) * f
             ax.plot([yy, yy], [z, z + 0.12], color="#bbb", lw=0.5, zorder=5)
-    # panels
-    pw = d["superstructure"]["wall"]["panel_width"]
-    for yy in np.arange(wys[0], wys[-1], pw):
-        ax.plot([yy, yy], [np.interp(yy, ys, sz), np.interp(yy, wys, wtop)], color="#5a2e14", lw=0.4, zorder=4)
+    # wall panel pattern: roundels at gun ports, iron diamonds between, iron bands
+    wp = d["superstructure"]["wall"].get("panel_pattern")
+    gys = sorted(p["y"] for p in d["gun_ports"]["side"])
+    if wp:
+        for i, gy in enumerate(gys):
+            lo, hi = np.interp(gy, ys, sz), np.interp(gy, wys, wtop)
+            dia = min(wp["roundel_diameter_max"], (hi - lo) * wp["roundel_diameter_frac"])
+            ax.add_patch(plt.Circle((gy, (lo + hi) / 2), dia / 2, fc="#c98a4a", ec="#2a1a10",
+                                    lw=wp["roundel_ring_width"] * 20, zorder=4.5))
+            if i < len(gys) - 1:
+                my = (gy + gys[i + 1]) / 2
+                lo2, hi2 = np.interp(my, ys, sz), np.interp(my, wys, wtop)
+                hh = (hi2 - lo2) * wp["diamond_between"]["h_frac"] / 2
+                ww = wp["diamond_between"]["w"] / 2
+                mz = (lo2 + hi2) / 2
+                ax.add_patch(Polygon([(my - ww, mz), (my, mz + hh), (my + ww, mz), (my, mz - hh)], fc="#1b1b1b",
+                                     zorder=4.5))
+        ax.plot(wys, wtop - 0.04, color="#1b1b1b", lw=2, zorder=4.6)
+        ax.plot(wys, np.interp(wys, ys, sz) + 0.04, color="#1b1b1b", lw=2, zorder=4.6)
+    # beam heads
+    bh = d["hull"].get("beam_heads")
+    if bh:
+        for yy in bh["y"]:
+            zc = np.interp(yy, ys, sz) - bh["z_below_sheer"]
+            ax.add_patch(Rectangle((yy - bh["section"][0] / 2, zc - bh["section"][1] / 2), bh["section"][0],
+                                   bh["section"][1], fc="#6b4520", ec="black", lw=0.4, zorder=6))
+    # stern extension rails
+    se = stern_ext_curve(d)
+    if se is not None:
+        ax.plot(se[:, 0], se[:, 1], color=C_HULL, lw=5, zorder=2.5, solid_capstyle="butt")
+        ax.plot(se[:, 0], se[:, 1], color="black", lw=0.5, zorder=2.6)
+        for t in d["hull"]["stern_extension"]["crossbars_t"]:
+            k = int(round(t * (len(se) - 1)))
+            ax.plot(se[k, 0], se[k, 1], "s", color="#6b4520", ms=4, zorder=2.7)
+        ax.annotate("stern extension rails (R2,R3)", (se[-1, 0], se[-1, 1]), (-15.5, 7.5), fontsize=8,
+                    arrowprops=dict(arrowstyle="->", lw=0.7))
     # gun ports & oar ports
     g = d["gun_ports"]
     for p in g["side"]:
@@ -385,7 +611,10 @@ def draw_elevation(d, path):
         L = o["length"] * (1 - o["inboard_fraction"])
         # projected on side view: oar goes outward (toward viewer) and down, slight aft sweep
         ax.plot([yy, yy - 0.6], [o["port_z"], o["port_z"] - L * math.sin(a)], color="#d2a86a", lw=2.2, zorder=7)
-    # dragon head
+    # dragon head (+neck)
+    nk = dragon_neck_side(d["dragon_head"])
+    if nk:
+        ax.add_patch(Polygon(nk, closed=True, fc="#2e7d4f", ec="black", zorder=7.9))
     ax.add_patch(Polygon(dragon_polygon_side(d["dragon_head"]), closed=True, fc="#2e7d4f", ec="black", zorder=8))
     # ghost face
     gf = d["ghost_face"]
@@ -393,7 +622,9 @@ def draw_elevation(d, path):
                            angle=0, fc="#c0392b", ec="black", zorder=8))
     ax.annotate("ghost face (gwimyeon)", (gf["center"][1], gf["center"][2]), (13.5, -1.2), fontsize=8,
                 arrowprops=dict(arrowstyle="->", lw=0.7))
-    ax.annotate("dragon head (yongdu)", (13.5, 3.9), (13.8, 6.2), fontsize=8, arrowprops=dict(arrowstyle="->", lw=0.7))
+    _hb = dragon_head_base(d["dragon_head"])
+    ax.annotate("dragon head on neck (yongdu)", (_hb[1] + 0.8, _hb[2] + 0.3), (12.0, 8.5), fontsize=8,
+                arrowprops=dict(arrowstyle="->", lw=0.7))
     # masts
     for m in d["masts"]:
         ax.add_patch(Rectangle((m["y"] - m["diameter"] / 2, m["base_z"]), m["diameter"], m["height"], fc="#c79a5b",
@@ -402,6 +633,19 @@ def draw_elevation(d, path):
             top = m["base_z"] + m["height"]
             ax.add_patch(Rectangle((m["y"] - m["sail"]["w"] / 2, top - 1.2), m["sail"]["w"], 0.35, fc="#e8dcc0",
                                    ec="black", lw=0.5, zorder=3.6))
+        sr = sail_rect(m)
+        if sr:  # side view: project sail on YZ plane
+            ys_ = [p_[1] for p_ in sr]
+            y0, y1 = min(ys_), max(ys_)
+            if y1 - y0 < 0.3:
+                y0, y1 = m["y"] - 0.15, m["y"] + 0.15
+            z0, z1 = sr[0][2], sr[2][2]
+            ax.add_patch(Rectangle((y0, z0), y1 - y0, z1 - z0, fc="#c8a46e", ec="#6b4a20", lw=0.8, alpha=0.85,
+                                   zorder=3.4))
+            n = m["sail"].get("battens", 0)
+            for k in range(n + 1):
+                zz = z0 + (z1 - z0) * k / n
+                ax.plot([y0, y1], [zz, zz], color="#6b4a20", lw=0.8, zorder=3.45)
     for f in d["flags"]:
         x, y, z = f["pos"]
         if x <= 0:
@@ -425,8 +669,8 @@ def draw_elevation(d, path):
     yb0, yb1 = d["hull"]["stern_transom"]["y_bottom"], d["hull"]["bow_transom"]["y_bottom"]
     dim_line(ax, (yb0, zk - 0.35), (yb1, zk - 0.35), "bottom %.1f [est.] (S3: 64.8 cheok)" % (yb1 - yb0), fs=7)
     ax.text(0, 14.8, "", fontsize=1)
-    ax.set_xlim(-16, 17)
-    ax.set_ylim(-3.2, 14.5)
+    ax.set_xlim(-17.5, 17)
+    ax.set_ylim(-3.2, 16.5)
     ax.set_aspect("equal")
     ax.set_xlabel("Y (m)  <- stern | bow (north) ->")
     ax.set_ylabel("Z (m)")
@@ -455,6 +699,13 @@ def draw_elevation(d, path):
         axs.add_patch(Polygon(hull, closed=True, fc=C_HULL if fill else "none", ec="black", **kw))
         axs.add_patch(Polygon(wall, closed=True, fc=C_WALL if fill else "none", ec="black", **kw))
         axs.fill_between(rx, re_ - 0.0, rz, color=C_ROOF if fill else "none", ec="black", lw=lw, alpha=alpha)
+        bmh = d["hull"].get("beam_heads")
+        if bmh and fill:
+            zc = s - bmh["z_below_sheer"]
+            q = bmh["section"][1] / 2
+            axs.add_patch(Rectangle((-wh - bmh["protrude_beyond_wall"], zc - q),
+                                    2 * (wh + bmh["protrude_beyond_wall"]), 2 * q, fc="#6b4520", ec="black",
+                                    lw=0.4, zorder=0.9))
         return dict(bh=bh, shh=shh, k=k, s=s, wh=wh, wt=wt, rh=rh, re=re_, rr=rr)
 
     def prep(axs, title):
@@ -484,19 +735,35 @@ def draw_elevation(d, path):
     for p in d["gun_ports"]["bow"]:
         axf.add_patch(Rectangle((p["x"] - 0.16, p["z"] - 0.16), 0.32, 0.32, fc="black"))
     dh = d["dragon_head"]
-    tipz = dh["base"][2] + dh["length"] * math.sin(math.radians(dh["pitch_deg"]))
-    axf.add_patch(Polygon([(-dh["width"] / 2, dh["base"][2] - dh["height"] * 0.45),
-                           (dh["width"] / 2, dh["base"][2] - dh["height"] * 0.45),
+    hb = dragon_head_base(dh)
+    tipz = hb[2] + dh["length"] * math.sin(math.radians(dh["pitch_deg"]))
+    if "neck_radius" in dh:
+        axf.add_patch(Rectangle((-dh["neck_radius"], dh["base"][2]), 2 * dh["neck_radius"], hb[2] - dh["base"][2],
+                                fc="#2e7d4f", ec="black", zorder=3))
+    hz = dh.get("horns", {}).get("length", 0)
+    for sgn in (-1, 1):
+        axf.plot([sgn * dh["width"] * 0.3, sgn * (dh["width"] * 0.3 + hz * 0.6)],
+                 [tipz + dh["height"] * 0.5, tipz + dh["height"] * 0.5 + hz * 0.8], color="#2e7d4f", lw=2, zorder=3)
+    axf.add_patch(Polygon([(-dh["width"] / 2, hb[2] - dh["height"] * 0.45),
+                           (dh["width"] / 2, hb[2] - dh["height"] * 0.45),
                            (dh["width"] / 2, tipz + dh["height"] * 0.5), (0, tipz + dh["height"] * 0.65),
-                           (-dh["width"] / 2, tipz + dh["height"] * 0.5)], closed=True, fc="#2e7d4f", ec="black"))
+                           (-dh["width"] / 2, tipz + dh["height"] * 0.5)], closed=True, fc="#2e7d4f", ec="black",
+                          zorder=3))
     oa = math.radians(d["oars"]["angle_deg"])
     L = d["oars"]["length"] * (1 - d["oars"]["inboard_fraction"])
     for s in (-1, 1):
-        axf.plot([s * sec["wh"], s * (sec["wh"] + L * math.cos(oa))],
+        axf.plot([s * sec["shh"], s * (sec["shh"] + L * math.cos(oa))],
                  [d["oars"]["port_z"], d["oars"]["port_z"] - L * math.sin(oa)], color="#d2a86a", lw=2)
     for m in d["masts"]:
         axf.add_patch(Rectangle((-m["diameter"] / 2, m["base_z"]), m["diameter"], 7.2 - m["base_z"], fc="#c79a5b",
                                 ec="black", lw=0.5, zorder=0.5))
+        sr = sail_rect(m)
+        if sr:
+            xs_ = [p_[0] for p_ in sr]
+            axf.add_patch(Rectangle((min(xs_), sr[0][2]), max(xs_) - min(xs_), 7.2 - sr[0][2], fc="#c8a46e",
+                                    ec="#6b4a20", lw=0.6, alpha=0.5, zorder=0.4))
+    axf.text(-6.3, 6.8, "sails above z=%.1f cropped (raised batten sails)" % min(m["sail"].get("bottom_z", 99)
+             for m in d["masts"]), fontsize=7, color=C_TAG)
     dim_line(axf, (-pr["beam"] / 2, 6.0), (pr["beam"] / 2, 6.0), "beam %.2f [confirmed]" % pr["beam"], off=(0, 0.45),
              fs=7)
 
@@ -511,9 +778,9 @@ def draw_elevation(d, path):
     dim_line(axm, (-5.4, 0), (-5.4, sec0["s"]), "fb %.2f" % sec0["s"], off=(-0.6, 0), fs=7, rot=90)
     axm.text(-6.3, 6.6, "roof: superellipse p=%.1f [assumed]\nwall top %.2f, ridge %.2f [est.]" %
              (pexp, sec0["wt"], sec0["rr"]), fontsize=7, color=C_TAG)
-    oa_end = (sec0["wh"] + L * math.cos(oa))
+    oa_end = (sec0["shh"] + L * math.cos(oa))
     for s in (-1, 1):
-        axm.plot([s * sec0["wh"], s * oa_end], [d["oars"]["port_z"], d["oars"]["port_z"] - L * math.sin(oa)],
+        axm.plot([s * sec0["shh"], s * oa_end], [d["oars"]["port_z"], d["oars"]["port_z"] - L * math.sin(oa)],
                  color="#d2a86a", lw=2)
     for gp in d["gun_ports"]["side"][:1]:
         for s in (-1, 1):
@@ -536,6 +803,58 @@ def draw_elevation(d, path):
 
     fig.suptitle("Geobukseon design drawings (baseline: 2011 Gyeongnam 'Yi Sun-sin Project' replica 25.6 x 8.67 x 6.06 m;"
                  " proportions from Chungmugong Jeonseo 1795)", fontsize=12)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+    return path
+
+
+# ----------------------------------------------------------------------------- view check sheet
+def ref_aspect(d, v):
+    path = os.path.join(ROOT, v["ref"])
+    if os.path.exists(path):
+        img = plt.imread(path)
+        return img, img.shape[1] / img.shape[0]
+    return None, v.get("ref_aspect", 16 / 9)
+
+
+def draw_views_check(d, path, overlay=False):
+    """Per view: reference photo | wireframe perspective of the design from that camera (same aspect).
+    overlay=True draws the wireframe on top of the photo (local fitting aid only; refs are partly CC BY-NC-ND,
+    so the published sheet keeps them side by side, unmodified)."""
+    views = d["views"]
+    fig, axes = plt.subplots(len(views), 1 if overlay else 2, figsize=(7 if overlay else 12, (6.5 if overlay else 4.6) * len(views)),
+                             dpi=100, squeeze=False)
+    geo = wireframe(d) + site_wireframe(d)
+    for i, v in enumerate(views):
+        img, asp = ref_aspect(d, v)
+        a_ref = axes[i][0]
+        a_wf = axes[i][0] if overlay else axes[i][1]
+        if img is not None:
+            a_ref.imshow(img, extent=(0, 1, 1, 0), aspect=1 / asp)
+        else:
+            a_ref.text(0.5, 0.5, "no ref image", ha="center")
+        a_ref.set_title("%s  ref: %s" % (v["id"], v["ref"]), fontsize=9)
+        for pts, col in geo:
+            u, w, z = project(v, pts, asp)
+            if np.all(z <= 0.1):
+                continue
+            u = np.where(z > 0.1, u, np.nan)
+            a_wf.plot(u, w, color=col, lw=0.9 if overlay else 0.8, alpha=0.9)
+        for ax_ in {id(a_ref): a_ref, id(a_wf): a_wf}.values():
+            ax_.set_xlim(0, 1)
+            ax_.set_ylim(1, 0)
+            ax_.set_aspect(1 / asp)
+            for t in (1 / 3, 2 / 3):
+                ax_.axvline(t, color="#bbbbbb", lw=0.4)
+                ax_.axhline(t, color="#bbbbbb", lw=0.4)
+            ax_.set_xticks([])
+            ax_.set_yticks([])
+        if not overlay:
+            a_wf.set_facecolor("#f4f8fb")
+            a_wf.set_title("design wireframe  cam=(%.1f, %.1f, %.1f)  %gmm  shift=(%.2f, %.2f)" % (
+                *v["cam"], v["lens_mm"], v.get("shift_x", 0), v.get("shift_y", 0)), fontsize=8)
+    fig.suptitle("View check: reference photo vs design camera (sensor_fit HORIZONTAL, 36 mm)", fontsize=11)
     fig.tight_layout()
     fig.savefig(path)
     plt.close(fig)
@@ -570,7 +889,11 @@ def main():
     ok = consistency(d)
     problems = check_cameras(d)
     os.makedirs(OUT, exist_ok=True)
-    for fn, func in (("plan.png", draw_plan), ("elevation.png", draw_elevation)):
+    if "--overlay" in sys.argv:  # local fitting aid, not published
+        out = sys.argv[sys.argv.index("--overlay") + 1]
+        print("[write]", draw_views_check(d, out, overlay=True))
+        return
+    for fn, func in (("plan.png", draw_plan), ("elevation.png", draw_elevation), ("views_check.png", draw_views_check)):
         p = func(d, os.path.join(HERE, fn))
         shutil.copy(p, os.path.join(OUT, fn))
         print("[write]", p, "-> out/")
