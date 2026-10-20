@@ -1,0 +1,279 @@
+{
+ "round": 1,
+ "mode": "design-based (no reference photos available: refs/ref_*.jpg missing)",
+ "weights": {
+  "silhouette": 0.25,
+  "detail": 0.2,
+  "material": 0.2,
+  "lighting": 0.1,
+  "composition": 0.1,
+  "environment": 0.15
+ },
+ "render": {
+  "engine": "CYCLES",
+  "samples": 64,
+  "res": [
+   960,
+   540
+  ],
+  "quality": "preview"
+ },
+ "render_time_sec": {
+  "bow34": 70.0,
+  "side": 64.3,
+  "stern34": 63.1,
+  "aerial": 70.9
+ },
+ "design_checks": {
+  "ghost_face": {
+   "json_center_y": 11.75,
+   "transom_surface_y_at_center_z": 11.833,
+   "gap_m": 0.083,
+   "transom_rake_from_horizontal_deg": 50.0,
+   "transom_outward_normal_tilt_deg(+up)": -40.0,
+   "json_normal_tilt_deg": 38,
+   "verdict": "불일치: center 가 이물비우 면 안쪽 0.08 m, JSON normal_tilt(+38°, 위로) ↔ 실제 바깥 법선 -40.0°(아래로)"
+  },
+  "dragon_tip_y": 13.89
+ },
+ "views": {
+  "bow34": {
+   "axes": {
+    "silhouette": {
+     "score": 78.0,
+     "quant": 86.1,
+     "subjective": 70,
+     "basis": "[정량] IoU body 0.959 / dragon 0.632 | [주관] 선체·개판 비례는 복원선과 유사. 용두가 작고(폭 0.58 m, JSON 0.75 m) 얼굴이 도마뱀 주둥이처럼 납작해 복원선의 크고 위협적인 용두 존재감이 약함. 돛대가 프레임 위로 잘림."
+    },
+    "detail": {
+     "score": 55.0,
+     "quant": null,
+     "subjective": 55,
+     "basis": " | [주관] 노·놋좆 링·삭구·포혈 틀은 있음. 포혈 일부가 반대편 하늘이 비쳐 하얗게 뚫려 보임(막음판 없음). 철첨은 지름 ~1 px·높이 ~3 px의 바늘이라 잔털처럼 보임. 귀면은 평면 스티커 수준."
+    },
+    "material": {
+     "score": 45.0,
+     "quant": null,
+     "subjective": 45,
+     "basis": " | [주관] 개판 육각 무늬는 보이나 셀이 균일한 물고기 비늘 같고 색 변화가 적음. 용두는 녹색 바탕에 분홍 사선 띠가 반복돼 사탕 줄무늬처럼 보임. 귀면 채색이 만화풍. 방패판은 단색 적갈색으로 단청 흔적 없음."
+    },
+    "lighting": {
+     "score": 40.0,
+     "quant": null,
+     "subjective": 40,
+     "basis": " | [주관] 해(방위 230°)를 마주 보는 역광 구도라 선체 평균 휘도 36/255로 어둡고 선수판·귀면이 거의 검게 묻힘. 하늘은 구름 없는 단조 그라데이션."
+    },
+    "composition": {
+     "score": 78.8,
+     "quant": 92.7,
+     "subjective": 65,
+     "basis": "[정량] bbox 일치·잘림·채움율 {'cropped_by_frame': False, 'width_fill': 0.588, 'center_offset_x': -0.033} | [주관] 안벽 위 3/4 정면은 복원선 사진에서 흔한 구도로 적절. 돛대 끝·깃발이 잘리고 오른쪽 하단을 부두 포장이 크게 차지."
+    },
+    "environment": {
+     "score": 50.0,
+     "quant": null,
+     "subjective": 50,
+     "basis": " | [주관] 물결·반사는 그럴듯하나 물이 불투명하고 선체·노 주변 거품/접촉선이 없음. 부두 포장석이 같은 크기 격자 반복이라 CG 느낌. 배경 산이 화각에 없음."
+    }
+   },
+   "weighted_total": 58.9,
+   "iou": {
+    "body": 0.9585,
+    "hull": 0.8034,
+    "superstructure": 0.8681,
+    "dragon": 0.6322
+   },
+   "framing": {
+    "cropped_by_frame": false,
+    "width_fill": 0.588,
+    "center_offset_x": -0.033
+   },
+   "area_px": {
+    "render_body": 82644,
+    "design_body": 82050,
+    "render_only": 2041,
+    "design_only": 1447
+   },
+   "projection_check_px": 0.0
+  },
+  "side": {
+   "axes": {
+    "silhouette": {
+     "score": 77.8,
+     "quant": 83.7,
+     "subjective": 72,
+     "basis": "[정량] IoU body 0.962 / dragon 0.546 | [주관] 정측면 거북등 곡선·선수/선미 들림이 복원선과 유사. 용두가 개판 어깨에 묻혀 작게 보임(용두 IoU 0.55)."
+    },
+    "detail": {
+     "score": 55.0,
+     "quant": null,
+     "subjective": 55,
+     "basis": " | [주관] 포혈 11문·노 10자루 열은 읽힘. 방패판에 패널 분할 외 장식 없음. 철첨이 원경 잔털."
+    },
+    "material": {
+     "score": 50.0,
+     "quant": null,
+     "subjective": 50,
+     "basis": " | [주관] 적갈 방패판·목재 선체·흘수선은 무난. 개판은 비늘 무늬가 크게 반복되어 실제 육각 칠 무늬보다 규칙적."
+    },
+    "lighting": {
+     "score": 60.0,
+     "quant": null,
+     "subjective": 60,
+     "basis": " | [주관] 좌현이 해 쪽이라 비교적 밝으나 선체 평균 휘도 45/255로 여전히 어두움. 하늘 단조."
+    },
+    "composition": {
+     "score": 67.2,
+     "quant": 94.3,
+     "subjective": 40,
+     "basis": "[정량] bbox 일치·잘림·채움율 {'cropped_by_frame': False, 'width_fill': 0.905, 'center_offset_x': 0.004} | [주관] 프레임 아래 37%가 배 아래 영역이며 대부분 부두 포장석. 배가 화면 위 1/3 띠에 몰리고 돛대 끝 잘림."
+    },
+    "environment": {
+     "score": 40.0,
+     "quant": null,
+     "subjective": 40,
+     "basis": " | [주관] 배경 산이 매끈한 모래 언덕(사막 느낌)으로 통영 녹색 섬과 다름. 전경 포장 반복 패턴이 시선을 뺏음."
+    }
+   },
+   "weighted_total": 59.2,
+   "iou": {
+    "body": 0.9621,
+    "hull": 0.7152,
+    "superstructure": 0.8978,
+    "dragon": 0.5457
+   },
+   "framing": {
+    "cropped_by_frame": false,
+    "width_fill": 0.905,
+    "center_offset_x": 0.004
+   },
+   "area_px": {
+    "render_body": 109032,
+    "design_body": 110087,
+    "render_only": 1589,
+    "design_only": 2644
+   },
+   "projection_check_px": 0.0
+  },
+  "stern34": {
+   "axes": {
+    "silhouette": {
+     "score": 84.2,
+     "quant": 96.3,
+     "subjective": 72,
+     "basis": "[정량] IoU body 0.963 / dragon nan | [주관] 선미 현판 연장(꼬리)·고물 들림이 판옥선 계열답게 읽힘. 키 블레이드가 선미 뒤 수면 위에 떠 있는 상자처럼 보여 실루엣을 해침."
+    },
+    "detail": {
+     "score": 58.0,
+     "quant": null,
+     "subjective": 58,
+     "basis": " | [주관] 선미 통·깃대·키·노 열·흘수선 이끼 띠 등 디테일 밀도 양호. 철첨 원경 잔털."
+    },
+    "material": {
+     "score": 52.0,
+     "quant": null,
+     "subjective": 52,
+     "basis": " | [주관] 흘수선 오염 띠와 판재 결이 보여 가장 자연스러움. 개판 비늘 균일."
+    },
+    "lighting": {
+     "score": 62.0,
+     "quant": null,
+     "subjective": 62,
+     "basis": " | [주관] 순광으로 형태가 잘 읽힘. 선체 평균 휘도 50/255. 하늘 단조, 그림자 대비 강함(AgX Medium High Contrast)."
+    },
+    "composition": {
+     "score": 79.0,
+     "quant": 93.1,
+     "subjective": 65,
+     "basis": "[정량] bbox 일치·잘림·채움율 {'cropped_by_frame': False, 'width_fill': 0.535, 'center_offset_x': 0.034} | [주관] 3/4 선미 구도 적절. 돛대·깃발 상단이 잘리고 좌하단 부두가 넓음."
+    },
+    "environment": {
+     "score": 45.0,
+     "quant": null,
+     "subjective": 45,
+     "basis": " | [주관] 모래 언덕 배경, 물 불투명·거품 없음, 키 하단이 물 위 상자처럼 보임."
+    }
+   },
+   "weighted_total": 63.9,
+   "iou": {
+    "body": 0.9628,
+    "hull": 0.872,
+    "superstructure": 0.8859,
+    "dragon": NaN
+   },
+   "framing": {
+    "cropped_by_frame": false,
+    "width_fill": 0.535,
+    "center_offset_x": 0.034
+   },
+   "area_px": {
+    "render_body": 58855,
+    "design_body": 57958,
+    "render_only": 1556,
+    "design_only": 659
+   },
+   "projection_check_px": 0.0
+  },
+  "aerial": {
+   "axes": {
+    "silhouette": {
+     "score": 82.4,
+     "quant": 89.8,
+     "subjective": 75,
+     "basis": "[정량] IoU body 0.984 / dragon 0.697 | [주관] 평면상 거북등 타원·십자 통로·선미 연장이 잘 읽힘."
+    },
+    "detail": {
+     "score": 45.0,
+     "quant": null,
+     "subjective": 45,
+     "basis": " | [주관] 철첨 지름 0.7 px로 사실상 안 보임(가장자리 회색 털만). 육각 무늬도 구분 안 됨 — 조감의 핵심 볼거리가 사라짐."
+    },
+    "material": {
+     "score": 40.0,
+     "quant": null,
+     "subjective": 40,
+     "basis": " | [주관] 개판이 얼룩진 흙/때처럼 보임(대형 노이즈 오염이 육각 패턴을 덮음). 갑판 통로·해치 목재는 무난."
+    },
+    "lighting": {
+     "score": 50.0,
+     "quant": null,
+     "subjective": 50,
+     "basis": " | [주관] 프레임 평균 휘도 44/255, 물이 거의 검정. 해 고도 25°라 지붕 면 대비가 약함."
+    },
+    "composition": {
+     "score": 79.0,
+     "quant": 88.1,
+     "subjective": 70,
+     "basis": "[정량] bbox 일치·잘림·채움율 {'cropped_by_frame': False, 'width_fill': 0.417, 'center_offset_x': 0.026} | [주관] 배가 프레임 중앙, 부두가 사선 유도선. 좋음."
+    },
+    "environment": {
+     "score": 50.0,
+     "quant": null,
+     "subjective": 50,
+     "basis": " | [주관] 물결 법선이 규칙적 반복 무늬로 보이고, 선체·노 주변 거품/항적 없음. 해안 잔디 평면 단순."
+    }
+   },
+   "weighted_total": 58.0,
+   "iou": {
+    "body": 0.984,
+    "hull": 0.623,
+    "superstructure": 0.9702,
+    "dragon": 0.6971
+   },
+   "framing": {
+    "cropped_by_frame": false,
+    "width_fill": 0.417,
+    "center_offset_x": 0.026
+   },
+   "area_px": {
+    "render_body": 46334,
+    "design_body": 46280,
+    "render_only": 401,
+    "design_only": 347
+   },
+   "projection_check_px": 0.0
+  }
+ },
+ "notes": "점수 출처: [정량]=마스크 IoU/bbox 계산, [주관]=렌더 육안 평가(assessment.json). 같은 축에 둘 다 있으면 평균.",
+ "overall_weighted_total": 60.0
+}

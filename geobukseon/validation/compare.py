@@ -77,7 +77,18 @@ def design_geometry(d, dy=0.2):
         bh, sh, kz, sz = (interp(H, k, y) for k in ("bottom_half", "sheer_half", "keel_z", "sheer_z"))
         return np.array([[-sh, y, sz], [-bh, y, kz], [bh, y, kz], [sh, y, sz]])
 
-    clampz = lambda P: np.column_stack([P[:, 0], P[:, 1], np.maximum(P[:, 2], 0.0)])
+    def clampz(P):
+        """폴리곤을 수면(z=0) 위로 클리핑(Sutherland-Hodgman). 전부 물 아래면 빈 배열."""
+        out = []
+        n = len(P)
+        for i in range(n):
+            a, b = P[i], P[(i + 1) % n]
+            if a[2] >= 0:
+                out.append(a)
+            if (a[2] >= 0) != (b[2] >= 0):
+                t = a[2] / (a[2] - b[2])
+                out.append(a + t * (b - a))
+        return np.array(out) if len(out) >= 3 else np.zeros((0, 3))
     secs = [hsec(y) for y in ys]
     for a, b in zip(secs, secs[1:]):
         for i in range(3):
@@ -213,19 +224,25 @@ def convex_hull(P):
 
 
 def design_masks(cam, polys):
-    out = {}
-    for cls, lst in polys.items():
-        im = Image.new("L", (cam.w, cam.h), 0)
-        dr = ImageDraw.Draw(im)
+    """화가 알고리즘(먼 것부터)으로 클래스 라벨 이미지를 그려 가림을 반영한 클래스별 마스크."""
+    items = []
+    for ci, (cls, lst) in enumerate(polys.items(), start=1):
         for P in lst:
-            if isinstance(P, tuple):
-                uv = convex_hull(cam.proj(P[1]))
-            else:
-                uv = [tuple(x) for x in cam.proj(P)]
-            if len(uv) >= 3:
-                dr.polygon(uv, fill=255)
-        out[cls] = np.array(im) > 127
-    return out
+            P3 = P[1] if isinstance(P, tuple) else P
+            if len(P3) < 3:
+                continue
+            q = P3 @ cam.M[:3, :3].T + cam.M[:3, 3]
+            depth = float(-q[:, 2].mean())
+            uv = convex_hull(cam.proj(P3)) if isinstance(P, tuple) else [tuple(x) for x in cam.proj(P3)]
+            items.append((depth, ci, uv))
+    items.sort(key=lambda t: -t[0])
+    im = Image.new("L", (cam.w, cam.h), 0)
+    dr = ImageDraw.Draw(im)
+    for _, ci, uv in items:
+        if len(uv) >= 3:
+            dr.polygon(uv, fill=ci)
+    lab = np.array(im)
+    return {cls: lab == ci for ci, cls in enumerate(polys, start=1)}
 
 
 def render_masks(path, w, h):
@@ -371,10 +388,15 @@ def main():
 
         dm = design_masks(cam, polys)
         rm = render_masks(os.path.join(rd, f"mask_{vid}.png"), cam.w, cam.h)
-        d_body = dm["hull"] | dm["super"] | dm["dragon"]
+        # 렌더에서 노·삭구·키·깃발 등(설계 몸체 투영에 없는 것)이 몸체를 가린 픽셀은 비교에서 제외
+        occl = rm["oars"] | rm["rigging"] | rm["other"]
+        d_body = (dm["hull"] | dm["super"] | dm["dragon"]) & ~occl
         r_body = rm["hull"] | rm["super"] | rm["dragon"] | rm["ghost"]
+        for k in dm:
+            dm[k] = dm[k] & ~occl
+        res["occluded_px_excluded"] = int(occl.sum())
         res["iou"] = {"body": round(iou(d_body, r_body), 4),
-                      "hull": round(iou(dm["hull"] & ~dm["super"], rm["hull"] & ~rm["super"]), 4),
+                      "hull": round(iou(dm["hull"], rm["hull"]), 4),
                       "superstructure": round(iou(dm["super"], rm["super"]), 4),
                       "dragon": round(iou(dm["dragon"], rm["dragon"]), 4)}
         res["area_px"] = {"render_body": int(r_body.sum()), "design_body": int(d_body.sum()),
@@ -387,8 +409,9 @@ def main():
         cxo = ((rb[0] + rb[2]) / 2 - W / 2) / W if rb else 0
         res["framing"] = {"cropped_by_frame": bool(crop), "width_fill": round(fill, 3), "center_offset_x": round(cxo, 3)}
         # [정량] 실루엣 점수: 몸체 IoU 70% + 용두 IoU 30%
-        dr_iou = res["iou"]["dragon"] if not math.isnan(res["iou"]["dragon"]) else 0
-        sil_q = 100 * (0.7 * res["iou"]["body"] + 0.3 * dr_iou)
+        # (용두가 양쪽 다 가려져 안 보이는 뷰는 몸체 IoU 만)
+        dr_iou = res["iou"]["dragon"]
+        sil_q = 100 * (res["iou"]["body"] if math.isnan(dr_iou) else 0.7 * res["iou"]["body"] + 0.3 * dr_iou)
         # [정량] 구도 점수: 설계 의도(같은 카메라) bbox 대비 일치 + 잘림 패널티 + 채움율 (0.45~0.9 권장)
         if rb and db:
             ix = max(0, min(rb[2], db[2]) - max(rb[0], db[0])) * max(0, min(rb[3], db[3]) - max(rb[1], db[1]))
