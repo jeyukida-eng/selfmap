@@ -1,0 +1,89 @@
+{
+ "note": "Round 2 [주관] 평가. 참고: refs/ref_*.jpg (전쟁기념관 실내 복원선 — 배경·조명 비교 제외, 형상·고유색·구도·디테일만). lighting 은 '렌더 자체의 자연광 품질', environment 는 '물/항구 사실감'으로 채점. 렌더는 Read 로 전체+확대 크롭 확인.",
+ "summary": [
+  "고유색 [정량]: 렌더 알베도(DiffCol)와 사진 추정 알베도(흰 벽 WB, 0.8 가정)의 ΔE 는 bow34 7–14(목재), side/aerial 목재 16–29(채도 C* −13 ~ −26), 돛 L* −6 ~ −40, 개판 L* −12 ~ −27(사진은 차가운 회청 슬레이트). → 목재 채도·돛/개판 명도가 낮음.",
+  "보이는 색 [정량]: 렌더 beauty 의 배 영역 색은 WB 사진 대비 ΔE 21–47, ΔL* −7 ~ −48, ΔC* −13 ~ −41 (stern34 순광면만 ΔE 11). 관찰대로 '어두운 저채도 갈색' 확인 — 원인의 대부분은 알베도보다 조명(보이는 면이 그늘: sun 200°/35° 에서 bow34 좌현·선수, side 우현, aerial 선수면이 음영)과 노출.",
+  "실루엣 [정량]: 사진 다각형 IoU 0.57/0.61/0.69/0.77 (bow34/side/stern34/aerial; 수중 선체·돛·삭구 제외), 설계 투영 IoU 0.90–0.97. 사진 IoU 한계의 큰 부분은 실내 거치(수면 없음, 저판까지 보임)와 카메라 근사(bow34 눈높이 대체).",
+  "엣지 밀도(배 영역, 자기 정규화) 렌더/사진 = 1.25/1.48/1.01/1.38 — 렌더가 오히려 엣지가 많음(철첨·육각 홈). 사진의 촘촘한 목재 이음·나무못 같은 '작은 저대비 디테일'은 부족하고, 고대비 큰 디테일은 과함."
+ ],
+ "views": {
+  "bow34": {
+   "silhouette": {"score": 70, "why": "선체·개판 비례와 용두 위치(좌상단)는 사진과 일치. 용두 목이 고리 띠 두른 원통(파이프)이고 머리가 회색 도마뱀형 — 사진은 굵게 조각된 검은 목·크게 벌린 입·흰 송곳니."},
+   "detail": {"score": 62, "why": "원형 방패 문양·철첨·육각판·돛 활대 열 확인. 원형 문양 안 포혈이 큰 사각 상자 틀이라 투박(사진은 작은 원형 구멍). 문양 사이 검은 모서리 철물(나비형)·나무못 점열·돛 아딧줄 다발 없음."},
+   "material": {"score": 50, "why": "개판 회흑 육각은 사진과 비슷. 선체·방패판은 꿀색 원목이 아니라 어두운 탁한 갈색, 돛은 갈회색으로 사진의 밝은 베이지 마포와 다름."},
+   "lighting": {"score": 45, "why": "보이는 좌현·선수면이 그늘이라 배가 하늘 대비 실루엣처럼 어두움(보이는 색 ΔL* −7 ~ −35). 구름·하늘은 좋아짐."},
+   "composition": {"score": 72, "why": "사진 구도(용두 좌상단, 선체 오른쪽으로 뻗음) 재현. 돛·깃발 프레임 안."},
+   "environment": {"score": 62, "why": "물 반사·투명감·원경 녹색 산 개선. 선수 접촉 거품 약함."}
+  },
+  "side": {
+   "silhouette": {"score": 72, "why": "선미 연장 꼬리재(가룡) 곡선이 사진처럼 크게 읽힘. 왼쪽 끝이 프레임에 잘림."},
+   "detail": {"score": 58, "why": "원형 문양 열·노·철첨 확인. 하부 선체 판재가 단조, 나무못·이음 없음."},
+   "material": {"score": 42, "why": "우현이 그늘이라 방패판이 회갈색으로 탁함(알베도 C* −26, 보이는 색 ΔE 47). 사진은 선명한 주황 원목."},
+   "lighting": {"score": 38, "why": "역광(해 남남서, 카메라는 동쪽에서 우현을 봄) — 보이는 면 전부 음영."},
+   "composition": {"score": 60, "why": "선체 위치·크기는 사진과 비슷(bbox IoU 0.72)하나 꼬리재 잘림, 하단 40%가 빈 수면."},
+   "environment": {"score": 58, "why": "물·석축 안벽 무난, 키 주변 거품 있음. 수면 반사가 다소 불투명."}
+  },
+  "stern34": {
+   "silhouette": {"score": 72, "why": "선미면·꼬리재·우현 곡선이 사진과 일치(IoU 0.69). 배가 사진보다 작게·위쪽에 놓임."},
+   "detail": {"score": 65, "why": "선미 갑판 통·키 손잡이·깃대·개판 통로·철첨 등 디테일 밀도 사진과 비슷(엣지비 1.01)."},
+   "material": {"score": 62, "why": "순광면 목재는 꿀색에 가까움(보이는 색 ΔE 11). 개판 회색은 근접. 돛에 타원형 누빔 무늬가 반복되어 인공적."},
+   "lighting": {"score": 62, "why": "순광으로 형태가 잘 읽힘. 그림자 대비 적당."},
+   "composition": {"score": 55, "why": "사진은 배가 좌하단을 크게 채우는데 렌더는 배가 작고 하단 35%가 빈 물."},
+   "environment": {"score": 60, "why": "선미·키 주변 흰 거품, 안벽·포장 개선."}
+  },
+  "aerial": {
+   "silhouette": {"score": 75, "why": "선수 정면 조감에서 개판 타원·돛 2개 배치가 사진과 일치(IoU 0.77). 용두가 작고 가늘어 사진의 큰 검은 머리 존재감 부족."},
+   "detail": {"score": 62, "why": "육각판+철첨이 조감에서 잘 읽힘(라운드1 대비 큰 개선). 선수 방패판 문양은 그늘에 묻힘."},
+   "material": {"score": 58, "why": "개판 색은 사진과 근접(ΔE 13). 선수판 목재는 거의 검정, 돛은 회갈."},
+   "lighting": {"score": 50, "why": "선수면이 그늘, 지붕 위 돛 그림자. 수면 반짝임은 좋음."},
+   "composition": {"score": 70, "why": "선체 중앙 하단, 돛이 위로 — 사진 구도와 일치."},
+   "environment": {"score": 65, "why": "수면 하이라이트·선체 둘레 거품선·안벽. 물결 반복감 감소."}
+  }
+ },
+ "fixlist": [
+  {"id": "A1", "owner": "materials", "prio": "P1",
+   "problem": "고유색이 사진보다 어둡고 저채도: 목재 알베도 sRGB≈(90,60,40) vs 사진 추정 (117,42,19)~(149,73,32) (C* −13~−26, side/aerial); 돛 (152,130,100) vs (191,138,88)~(208,166,127) (L* −6~−40); 개판 (57,54,49) vs (85,82,88)~(115,118,125) (L* −12~−27, 사진은 차가운 회청).",
+   "fix": "matlib.py: hull_wood·wall_panel 기본색을 sRGB (140,68,30)(선형 ≈0.26,0.058,0.012) 중심 ±15% 결 변이로, 물때·오염 mix 비율 30%↓; sail_cloth 기본색 sRGB (205,165,115)(선형 ≈0.61,0.38,0.17) + Translucent 0.2 mix(역광 시 빛 투과); roof_shell 판 색 sRGB (95,95,102) 회청, 홈은 현행 유지.",
+   "effect": "알베도 ΔE 평균 15–30 → <10 목표, 보이는 색도 동반 상승. 렌더 시간 무관."},
+  {"id": "L1", "owner": "materials", "prio": "P1",
+   "problem": "보이는 색 ΔL* −7~−48 / ΔC* −13~−41: 그늘면이 하늘빛만 받아 회색으로 죽음(배가 하늘 앞 실루엣).",
+   "fix": "world.py: setup_world exposure_bias +0.6, sky(Background) strength 1.0→1.6(그늘면 보조광) 또는 약한 반구 fill(Sun 반대 방향, 0.15×, 그림자 없음); setup_render look 'AgX - Base Contrast'. 렌더 후 stern34 순광면 휘도가 클리핑되지 않는지 확인.",
+   "effect": "그늘면 ΔL* 절반 이하, lighting·material 축 +10. 렌더 시간 무관."},
+  {"id": "D1", "owner": "design", "prio": "P1",
+   "problem": "sun 200°/35° 에서 4뷰 중 3뷰(bow34 좌현·선수, side 우현, aerial 선수면)의 보이는 면이 음영 — 사진(실내 확산광)과 가장 큰 차이.",
+   "fix": "geobukseon_design.json views[*] 에 뷰별 'sun': {azimuth_deg, elevation_deg} 추가(카메라 방위 기준 해가 카메라 뒤 30–50° 옆): bow34 {300,40}, side {110,40}, stern34 {160,40}, aerial {20,50}; 전역 sun 은 flythrough 용으로 유지. render_views.py 는 다음 라운드에서 view['sun'] 이 있으면 world.setup_world 를 뷰마다 재호출하도록 지원(검증 측 작업). final/render_still.py 도 동일 키 사용.",
+   "effect": "모든 스틸에서 주제면 측광·순광 → 보이는 색 ΔE 대폭 감소, lighting +15. 렌더 시간 무관."},
+  {"id": "M1", "owner": "modeling", "prio": "P1",
+   "problem": "용두 목이 고리 띠 두른 파이프, 머리가 작고 회색 도마뱀형(사진 용두 IoU 0.34/0.55). 사진은 굵고 조각된 검은 목·크게 벌린 입·흰 송곳니·뿔.",
+   "fix": "build_scene.py build_dragon(): 목을 원통+링 대신 단면 반경 0.38(밑)→0.26(위) 테이퍼 + 앞으로 S자(neck_lean_deg 분포) 휘는 tube, 등 쪽 지느러미 돌기 7–9개(높이 0.08–0.15), 비늘 띠는 링 대신 변위(noise) 0.02 m; 머리 단면 폭을 JSON width 0.8 에 맞추고 입 벌림 mouth_open 0.3 실제 반영, 송곳니 4개(길이 0.15, 흰색) 앞으로. 재질은 dragon_head 를 흑칠+적색 입안·흰 이빨로(materials 협조).",
+   "effect": "bow34·aerial 주인공 요소가 사진처럼 읽힘, 용두 IoU 0.6+ 기대. 폴리 증가 소."},
+  {"id": "M2", "owner": "modeling", "prio": "P1",
+   "problem": "세운 돛에 아딧줄(sheet)·버팀줄이 생략 — 사진의 돛 뒤 부채꼴 줄 다발이 없어 돛이 판자처럼 보임.",
+   "fix": "build_rigging(): 각 batten 뒤끝에서 2–3개씩 묶어 한 점(선미 쪽 갑판 y−4~−8, 활대 수만큼)으로 모이는 sheet 다발(rope_curve, 반지름 0.012, 처짐 sag 0.05), 돛대 꼭대기→선수/선미 앞뒤 stay 각 1, 돛대 좌우 shroud 2쌍 복원(라운드1에 있던 것). parrel 은 유지.",
+   "effect": "돛·삭구 실루엣이 사진과 일치, detail +5. 곡선 수십 개 → 렌더 영향 미미."},
+  {"id": "M3", "owner": "modeling", "prio": "P1",
+   "problem": "원형 방패 문양 안 포혈의 사각 상자 테가 크고 투박(bow34·side 근경에서 가장 눈에 띄는 오차). 사진은 원판 중앙의 작은 둥근 구멍.",
+   "fix": "build_wall(): 원형 문양(WallRoundels) 안 포혈을 지름 0.18–0.22 m 원형 개구 + 두께 0.03 m 얇은 철테(WallIronFittings 재질)로 교체, 사각 PortFrames 는 원형 문양 없는 위치에만 두께 0.04 m 로 축소; 뒤쪽 어두운 공동(PortCavities) 유지.",
+   "effect": "방패판이 사진의 원형 문양 패턴처럼 정돈됨. 폴리 변화 소."},
+  {"id": "T1", "owner": "materials", "prio": "P2",
+   "problem": "Cycles 경고 'Maximum number of closures exceeded: 68 > 64' (매 렌더) — 일부 재질의 BSDF 가 잘려 음영이 틀릴 수 있음.",
+   "fix": "matlib.py: Mix Shader 체인이 긴 재질(roof_shell·hull_wood·water 후보)을 Principled 하나 + 색/거칠기 Mix(값 수준 혼합)로 재구성, 재질당 BSDF ≤ 8. preview_matlib.py 로 경고 사라짐 확인.",
+   "effect": "음영 오류 제거·셰이딩 속도 소폭 향상."},
+  {"id": "T2", "owner": "materials", "prio": "P2",
+   "problem": "사진의 작은 저대비 디테일 부족: 선체 판재 나무못 점열, 방패판 원형 문양 사이 검은 나비형 모서리 철물, 판재 이음.",
+   "fix": "hull_wood: Object 좌표 기반 Voronoi(scale 1/0.3 m, 판 폭 간격) 점 마스크로 지름 3 cm 진한 나무못, 판 이음 선(plank_width 0.3) 홈; wall_panel: 원형 문양 사이(panel_width 0.9 m 주기) 마름모/나비형 흑색 패치(크기 0.35 m) — 또는 modeling 이 얇은 판으로.",
+   "effect": "근경 사실감 상승, detail +5. 렌더 무관."},
+  {"id": "T3", "owner": "materials", "prio": "P2",
+   "problem": "돛 면에 타원형 누빔(베개) 음영이 활대 칸마다 반복돼 인공적(stern34).",
+   "fix": "sail_cloth: 칸별 타원 bump 제거, 대신 마포 직조 노이즈(scale 400/m, bump 0.05) + 활대 사이 완만한 처짐 음영(Object z 주기 = 활대 간격, 진폭 작게) + 얼룩 10%.",
+   "effect": "돛이 천처럼 보임. 렌더 무관."},
+  {"id": "D2", "owner": "design", "prio": "P2",
+   "problem": "stern34: 사진은 배가 좌하단을 크게 채우는데 렌더는 작고 하단 35% 빈 물. side: 선미 꼬리재가 왼쪽 프레임에 잘림(bbox x=0).",
+   "fix": "views.stern34: lens 43→50, look_at z 0.74→0.2(배를 아래로); views.side: lens 26→24 또는 cam 을 +Y 쪽으로 1 m.",
+   "effect": "composition +10(stern34), 꼬리재 프레임 안. 렌더 무관."},
+  {"id": "M4", "owner": "modeling", "prio": "P3",
+   "problem": "용두 아래 선수 귀면이 그늘·작아서 4뷰 모두 거의 안 보임(사진에서는 선수 상장 아래 귀면 안내판 영역).",
+   "fix": "D1 의 뷰별 해로 해결되는지 우선 확인. 그래도 약하면 GhostFace 부조 깊이 ×1.5, 크기 JSON 그대로.",
+   "effect": "선수 디테일 회복(소)."}
+ ]
+}

@@ -1,5 +1,8 @@
 """검증 렌더: design views 4개 카메라로 최종 렌더 + 클래스 마스크 렌더 → validation/round<N>/render_<id>.png, mask_<id>.png, render_meta.json
-실행: /opt/bvenv/bin/python validation/render_views.py --round 1 [--engine CYCLES] [--samples 64] [--res 960x540] [--quality preview] [--views bow34,side]
+실행: /opt/bvenv/bin/python validation/render_views.py --round 2 [--engine CYCLES] [--samples 64] [--long 960] [--res 960x540] [--quality preview] [--views bow34,side]
+
+해상도: 카메라 custom property `ref_aspect`(= 참고 사진 가로/세로)가 있으면 긴 변 --long(기본 960) 으로 그 비율,
+없으면 --res. 최종 렌더 시 Diffuse Color(알베도) 패스도 albedo_<id>.npy(float16, 선형 RGB)로 저장 → compare.py 고유색 비교.
 
 마스크 렌더(mask_<id>.png): 같은 카메라, 1 spp, 재질 오버라이드(Object Info Color → Emission),
 Site 컬렉션(부두·물·땅·산)은 holdout → 알파=0. 즉 '물 위로 보이고 부두에 가려지지 않은' 배 부분만 남는다.
@@ -21,15 +24,19 @@ DESIGN = os.path.join(ROOT, "design", "geobukseon_design.json")
 ORDER = ["bow34", "side", "stern34", "aerial"]
 
 # 클래스 → (RGB 0/1 조합). compare.py 와 동일해야 함.
+# 선형값 0/0.5/1 → Standard 뷰 변환 sRGB 0/188/255. compare.py 는 최근접 팔레트로 분류.
 CLASS_COLORS = {
     "hull": (1, 0, 0),
-    "super": (0, 1, 0),      # 상장 벽 + 개판 지붕 + 철첨 + 통로/해치
+    "wall": (0, 1, 0),       # 상장 벽(방패판·원형 문양·포혈 틀·띠)
+    "roof": (0.5, 1, 0),     # 개판 + 철첨 + 통로/해치
     "dragon": (0, 0, 1),
     "ghost": (1, 1, 0),
     "oars": (1, 0, 1),
-    "rigging": (0, 1, 1),
+    "rigging": (0, 1, 1),    # 돛대·삭구·깃발
+    "sail": (1, 0.5, 0),     # 돛 + 활대(batten)
     "other": (1, 1, 1),      # 키, 통, 닻 등
 }
+ROOF_NAMES = ("Roof", "Walkways", "Hatches", "Spikes")
 
 
 def classify(ob):
@@ -40,7 +47,7 @@ def classify(ob):
     if "Hull" in cols:
         return "hull"
     if "Superstructure" in cols:
-        return "super"
+        return "roof" if n.startswith(ROOF_NAMES) else "wall"
     if n.startswith("Dragon"):
         return "dragon"
     if n.startswith("GhostFace"):
@@ -48,7 +55,7 @@ def classify(ob):
     if n.startswith("Oar"):
         return "oars"
     if "Rigging" in cols:
-        return "rigging"
+        return "sail" if n.startswith("Sail") else "rigging"
     return "other"
 
 
@@ -56,16 +63,82 @@ def cam_meta(sc, cam):
     """compare.py 용 카메라 행렬(월드→카메라, 내부 파라미터)."""
     cd = cam.data
     w, h = sc.render.resolution_x, sc.render.resolution_y
-    fx = cd.lens / cd.sensor_width * w  # sensor_fit HORIZONTAL
+    fit = cd.sensor_fit
+    if fit == "AUTO":
+        fit = "HORIZONTAL" if w >= h else "VERTICAL"
+    if fit == "HORIZONTAL":
+        S = w
+        fx = cd.lens / cd.sensor_width * w
+    else:
+        S = h
+        fx = cd.lens / cd.sensor_height * h
+    cx = w / 2 - cd.shift_x * S
+    cy = h / 2 + cd.shift_y * S
     m = cam.matrix_world.inverted()
     # 자기검증용 점: 원점·용두 기준점 투영(Blender 계산)
     from bpy_extras.object_utils import world_to_camera_view
     probes = {}
-    for k, p in {"origin": (0, 0, 0), "bow_top": (0, 12.8, 2.45), "stern_top": (0, -12.8, 2.7)}.items():
+    for k, p in PROBES.items():
         v = world_to_camera_view(sc, cam, Vector(p))
         probes[k] = [v.x * w, (1 - v.y) * h, v.z]
-    return {"world_to_cam": [list(r) for r in m], "fx": fx, "fy": fx, "cx": w / 2, "cy": h / 2,
+    return {"world_to_cam": [list(r) for r in m], "fx": fx, "fy": fx, "cx": cx, "cy": cy,
             "width": w, "height": h, "lens_mm": cd.lens, "sensor_mm": cd.sensor_width, "probes_px": probes}
+
+
+PROBES = {"origin": (0, 0, 0), "bow_top": (0, 12.8, 2.45), "stern_top": (0, -12.8, 2.7),
+          "port_mid": (-4.3, 0, 2.7), "stbd_mid": (4.3, 0, 2.7), "ridge": (0, 3, 4.6)}
+
+
+def view_res(cam, long_side, default):
+    asp = cam.get("ref_aspect") or cam.data.get("ref_aspect")
+    if not asp:
+        return default
+    asp = float(asp)
+    if asp >= 1:
+        return long_side, int(round(long_side / asp / 2)) * 2
+    return int(round(long_side * asp / 2)) * 2, long_side
+
+
+def setup_albedo_output(sc, outdir):
+    """컴포지터 File Output 으로 DiffCol 패스를 EXR 로 저장(bpy 5.x API)."""
+    sc.view_layers[0].use_pass_diffuse_color = True
+    ng = bpy.data.node_groups.new("VAL_Comp", "CompositorNodeTree")
+    sc.compositing_node_group = ng
+    rl = ng.nodes.new("CompositorNodeRLayers")
+    fo = ng.nodes.new("CompositorNodeOutputFile")
+    fo.directory = os.path.join(outdir, "_passes") + os.sep
+    fo.format.media_type = "IMAGE"
+    fo.format.file_format = "OPEN_EXR"
+    fo.format.color_depth = "16"
+    fo.file_output_items.new("RGBA", "DiffCol")
+    src = [o for o in rl.outputs if "Diff" in o.name and "Col" in o.name][0]
+    ng.links.new(src, fo.inputs["DiffCol"])
+    # 컴포지터 결과(Combined)는 그대로 통과시켜야 렌더 PNG 가 정상
+    try:
+        go = ng.nodes.new("NodeGroupOutput")
+        ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+        ng.links.new(rl.outputs["Image"], go.inputs[0])
+    except Exception as ex:  # noqa
+        print("[render_views] compositor passthrough warning", ex)
+    sc.render.use_compositing = True
+    return fo
+
+
+def save_albedo(fo, outdir, vid, w, h):
+    import numpy as np
+    d = fo.directory
+    cand = [f for f in os.listdir(d) if f.endswith(".exr")]
+    if not cand:
+        print("[render_views] WARNING: albedo EXR 없음")
+        return None
+    p = os.path.join(d, sorted(cand, key=lambda f: os.path.getmtime(os.path.join(d, f)))[-1])
+    im = bpy.data.images.load(p)
+    a = np.array(im.pixels[:], dtype=np.float32).reshape(h, w, 4)[::-1, :, :3]
+    bpy.data.images.remove(im)
+    out = os.path.join(outdir, f"albedo_{vid}.npy")
+    np.save(out, a.astype(np.float16))
+    os.remove(p)
+    return out
 
 
 def setup_beauty(sc, engine, samples, w, h):
@@ -127,6 +200,7 @@ def setup_mask(sc):
     sc.view_settings.gamma = 1.0
     sc.render.image_settings.file_format = "PNG"
     sc.render.image_settings.color_mode = "RGBA"
+    sc.render.use_compositing = False
     return counts
 
 
@@ -135,7 +209,9 @@ def main():
     ap.add_argument("--round", type=int, required=True)
     ap.add_argument("--engine", default="CYCLES", choices=["CYCLES", "EEVEE"])
     ap.add_argument("--samples", type=int, default=64)
-    ap.add_argument("--res", default="960x540")
+    ap.add_argument("--res", default="960x540", help="ref_aspect 없는 카메라용")
+    ap.add_argument("--long", type=int, default=960, help="ref_aspect 있을 때 긴 변 px")
+    ap.add_argument("--no-albedo", action="store_true")
     ap.add_argument("--quality", default="preview", choices=["preview", "final"])
     ap.add_argument("--views", default="")
     ap.add_argument("--no-mask", action="store_true")
@@ -154,21 +230,28 @@ def main():
         views = [v["id"] for v in json.load(f)["views"]]
     views = [v for v in views if v in want]
 
-    meta = {"round": a.round, "engine": sc.render.engine, "samples": a.samples, "res": [w, h],
+    meta = {"round": a.round, "engine": sc.render.engine, "samples": a.samples, "res": [w, h], "long_side": a.long,
             "quality": a.quality, "build_sec": round(t_build, 1), "views": {}}
     metap = os.path.join(outdir, "render_meta.json")
     if os.path.exists(metap):  # 일부 뷰만 재렌더 시 기존 기록 보존
         with open(metap) as f:
             old = json.load(f)
         meta["views"] = old.get("views", {})
+    fo = None if a.no_albedo or a.engine != "CYCLES" else setup_albedo_output(sc, outdir)
+    res_of = {}
     for vid in views:
         cam = sc.objects["CAM_" + vid]
         sc.camera = cam
+        vw, vh = view_res(cam, a.long, (w, h))
+        res_of[vid] = (vw, vh)
+        sc.render.resolution_x, sc.render.resolution_y = vw, vh
         sc.render.filepath = os.path.join(outdir, f"render_{vid}.png")
         t = time.time()
         bpy.ops.render.render(write_still=True)
         dt = time.time() - t
         meta["views"][vid] = {"render_sec": round(dt, 1), **cam_meta(sc, cam)}
+        if fo is not None:
+            meta["views"][vid]["albedo"] = save_albedo(fo, outdir, vid, vw, vh)
         print(f"[render_views] {vid}: {dt:.1f} s -> {sc.render.filepath}", flush=True)
 
     if not a.no_mask:
@@ -176,6 +259,7 @@ def main():
         meta["mask_class_counts"] = counts
         for vid in views:
             sc.camera = sc.objects["CAM_" + vid]
+            sc.render.resolution_x, sc.render.resolution_y = res_of[vid]
             sc.render.filepath = os.path.join(outdir, f"mask_{vid}.png")
             t = time.time()
             bpy.ops.render.render(write_still=True)

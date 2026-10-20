@@ -1,12 +1,18 @@
 """검증 비교: 렌더 vs 참고사진(있으면) 또는 설계 JSON 투영 → round<N>/compare_<id>.png, contact_sheet.png, scores.json, fixlist.md
-실행: /opt/bvenv/bin/python validation/compare.py --round 1
+실행: /opt/bvenv/bin/python validation/compare.py --round 2
 
 입력: round<N>/render_<id>.png, mask_<id>.png, render_meta.json (render_views.py 산출)
       round<N>/assessment.json (선택) — 사람이/에이전트가 렌더를 직접 보고 쓴 [주관] 점수·근거·수정목록.
       없으면 assessment_template.json 을 써 두고 [정량] 축만 채운다.
 
 모드
- * refs/ref_<id>.jpg 가 있으면: 참고|렌더 나란히(같은 높이) + 엣지밀도/색 히스토그램 보조 지표.
+ * refs/ref_<id>.jpg 가 있으면(참고 모드): 참고|렌더 나란히(참고 사진은 리사이즈만 — 사진 위에 선·라벨을 그리지 않음,
+   라벨은 별도 띠에) + 보조 지표:
+   - 실루엣 IoU: validation/ref_masks/<id>.json 의 수동 다각형(사진과 별도 파일) vs 렌더 클래스 마스크
+   - 고유색 ΔE: 사진 흰 벽/바닥 patch 로 화이트밸런스 정규화(albedo≈px/white*0.8) vs 렌더 Diffuse Color 패스
+     (albedo_<id>.npy) 의 같은 클래스 평균; 보이는 색(렌더 beauty vs WB 사진)도 L*·C* 로 병기
+   - 엣지 밀도: 배 영역 안 그래디언트>임계 비율
+   설계 투영 비교(와이어 오버레이·IoU)는 렌더 쪽에만 그려 병기.
  * 없으면(현재 컨테이너: Wikimedia 차단): 설계 기반 비교.
    설계 JSON 의 선체·상장벽·개판 스테이션 단면을 같은 카메라 행렬로 투영 →
    (a) 렌더 (b) 설계 와이어 (c) 렌더+와이어 오버레이 (d) 마스크 차이(초록=일치, 빨강=렌더만, 파랑=설계만)
@@ -27,9 +33,13 @@ REFS = os.path.join(ROOT, "refs")
 AXES = ["silhouette", "detail", "material", "lighting", "composition", "environment"]
 WEIGHTS = {"silhouette": 0.25, "detail": 0.20, "material": 0.20, "lighting": 0.10,
            "composition": 0.10, "environment": 0.15}
-CLASS_COLORS = {"hull": (1, 0, 0), "super": (0, 1, 0), "dragon": (0, 0, 1), "ghost": (1, 1, 0),
-                "oars": (1, 0, 1), "rigging": (0, 1, 1), "other": (1, 1, 1)}
-BODY = ("hull", "super", "dragon", "ghost")
+# render_views.py 와 동일 (선형 0/0.5/1)
+CLASS_COLORS = {"hull": (1, 0, 0), "wall": (0, 1, 0), "roof": (0.5, 1, 0), "dragon": (0, 0, 1), "ghost": (1, 1, 0),
+                "oars": (1, 0, 1), "rigging": (0, 1, 1), "sail": (1, 0.5, 0), "other": (1, 1, 1)}
+BODY = ("hull", "wall", "roof", "dragon", "ghost")
+OCCLUDERS = ("oars", "rigging", "sail", "other")
+REF_MASKS = os.path.join(HERE, "ref_masks")
+COLOR_CLASSES = ("hull", "wall", "roof", "sail", "dragon")
 
 
 def font(sz):
@@ -77,7 +87,21 @@ def design_geometry(d, dy=0.2):
         bh, sh, kz, sz = (interp(H, k, y) for k in ("bottom_half", "sheer_half", "keel_z", "sheer_z"))
         return np.array([[-sh, y, sz], [-bh, y, kz], [bh, y, kz], [sh, y, sz]])
 
+    def below(P):
+        """수면 아래 부분 (참고 모드에서 실내 거치 사진과 비교 제외 영역 계산용)."""
+        Q = P.copy()
+        Q[:, 2] = -Q[:, 2]
+        R = clampz_(Q)
+        if len(R):
+            R[:, 2] = -R[:, 2]
+        return R
+
     def clampz(P):
+        if len(P) >= 3:
+            polys.setdefault("submerged", []).append(below(P))
+        return clampz_(P)
+
+    def clampz_(P):
         """폴리곤을 수면(z=0) 위로 클리핑(Sutherland-Hodgman). 전부 물 아래면 빈 배열."""
         out = []
         n = len(P)
@@ -158,18 +182,25 @@ def design_geometry(d, dy=0.2):
     for i in (0, -1):
         lines.append((np.array([g[i] for g in rings]), (255, 200, 40), 2))  # 처마
 
-    # 용두: 기준점에서 pitch 방향으로 length, 타원체
+    # 용두: v2 = 목(base→head_base 원기둥) + 머리(head_base 에서 pitch 방향 length 타원체). v1 = base 에서 머리.
     dh = d["dragon_head"]
     p = math.radians(dh["pitch_deg"])
     ax = np.array([0, math.cos(p), math.sin(p)])
     up = np.array([0, -math.sin(p), math.cos(p)])
-    c0 = np.array(dh["base"]) + ax * dh["length"] / 2
+    h0 = np.array(dh.get("head_base", dh["base"]), float)
+    c0 = h0 + ax * dh["length"] / 2
     uu, vv = np.meshgrid(np.linspace(0, 2 * math.pi, 24), np.linspace(-math.pi / 2, math.pi / 2, 12))
     pts = (c0[None, :] + (np.cos(vv) * np.cos(uu)).reshape(-1, 1) * ax * dh["length"] / 2
            + (np.cos(vv) * np.sin(uu)).reshape(-1, 1) * np.array([1, 0, 0]) * dh.get("width", 0.75) / 2
            + np.sin(vv).reshape(-1, 1) * up * dh["height"] / 2)
     polys["dragon"].append(("hull3d", pts))
-    lines.append((np.array([dh["base"], list(np.array(dh["base"]) + ax * dh["length"])]), (90, 140, 255), 3))
+    if "head_base" in dh:
+        b0 = np.array(dh["base"], float)
+        r = dh.get("neck_radius", 0.3)
+        ring = np.array([[r * math.cos(t), r * math.sin(t), 0] for t in np.linspace(0, 2 * math.pi, 16)])
+        polys["dragon"].append(("hull3d", np.vstack([b0 + ring, h0 + ring])))
+        lines.append((np.array([b0, h0]), (90, 140, 255), 3))
+    lines.append((np.array([h0, h0 + ax * dh["length"]]), (90, 140, 255), 3))
 
     # 귀면 사각형 (JSON 해석 그대로: 법선 = +Y 에서 위로 tilt)
     gf = d["ghost_face"]
@@ -245,13 +276,55 @@ def design_masks(cam, polys):
     return {cls: lab == ci for ci, cls in enumerate(polys, start=1)}
 
 
-def render_masks(path, w, h):
-    m = np.array(Image.open(path).convert("RGBA").resize((w, h), Image.NEAREST))
+
+def srgb2lin(c):
+    c = np.asarray(c, float)
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+
+def lin2srgb(c):
+    c = np.clip(np.asarray(c, float), 0, 1)
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)
+
+
+def lin2lab(rgb):
+    M = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]])
+    xyz = M @ np.asarray(rgb, float) / np.array([0.95047, 1.0, 1.08883])
+    f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
+    L, a, b = 116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])
+    return np.array([L, a, b])
+
+
+def lab_desc(lab):
+    return {"L": round(float(lab[0]), 1), "C": round(float(math.hypot(lab[1], lab[2])), 1),
+            "h_deg": round(float(math.degrees(math.atan2(lab[2], lab[1])) % 360), 1)}
+
+
+def palette_classify(path, w, h):
+    m = np.array(Image.open(path).convert("RGBA").resize((w, h), Image.NEAREST)).astype(float)
     alpha = m[..., 3] > 127
-    rgb = (m[..., :3] > 127).astype(int)
-    out = {}
-    for k, c in CLASS_COLORS.items():
-        out[k] = alpha & (rgb[..., 0] == c[0]) & (rgb[..., 1] == c[1]) & (rgb[..., 2] == c[2])
+    names = list(CLASS_COLORS)
+    pal = np.array([lin2srgb(np.array(CLASS_COLORS[k], float)) * 255 for k in names])
+    d = ((m[..., None, :3] - pal[None, None]) ** 2).sum(-1)
+    idx = d.argmin(-1)
+    return {k: alpha & (idx == i) for i, k in enumerate(names)}
+
+
+def poly_mask(polys, src_size, w, h):
+    sx, sy = w / src_size[0], h / src_size[1]
+    im = Image.new("L", (w, h), 0)
+    dr = ImageDraw.Draw(im)
+    for P in polys:
+        dr.polygon([(x * sx, y * sy) for x, y in P], fill=255)
+    return np.array(im) > 127
+
+
+def erode(m, n=2):
+    out = m.copy()
+    for _ in range(n):
+        o = out.copy()
+        o[1:] &= out[:-1]; o[:-1] &= out[1:]; o[:, 1:] &= out[:, :-1]; o[:, :-1] &= out[:, 1:]
+        out = o
     return out
 
 
@@ -267,13 +340,27 @@ def bbox(m):
     return [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
 
 
-def label(im, text, xy=(10, 8), sz=22):
-    dr = ImageDraw.Draw(im)
-    f = font(sz)
-    x0, y0, x1, y1 = dr.textbbox(xy, text, font=f)
-    dr.rectangle((x0 - 5, y0 - 3, x1 + 5, y1 + 3), fill=(0, 0, 0))
-    dr.text(xy, text, fill=(255, 255, 255), font=f)
+def bbox_iou(a, b):
+    if not a or not b:
+        return 0.0
+    ix = max(0, min(a[2], b[2]) - max(a[0], b[0])) * max(0, min(a[3], b[3]) - max(a[1], b[1]))
+    ua = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - ix
+    return ix / ua if ua else 0.0
+
+
+def strip(w, text, sz=16, h=26):
+    im = Image.new("RGB", (w, h), (0, 0, 0))
+    ImageDraw.Draw(im).text((6, 4), text, fill=(255, 255, 255), font=font(sz))
     return im
+
+
+def tile(im, text, sz=15):
+    """라벨을 이미지 위가 아니라 위쪽 띠에 붙임(참고 사진 비변형)."""
+    s = strip(im.width, text, sz)
+    out = Image.new("RGB", (im.width, im.height + s.height))
+    out.paste(s, (0, 0))
+    out.paste(im, (0, s.height))
+    return out
 
 
 def draw_lines(im, cam, lines, scale=1.0):
@@ -284,43 +371,31 @@ def draw_lines(im, cam, lines, scale=1.0):
     return im
 
 
-# ------------------------------------------------------------------------------------------------
-# 참고사진 모드 보조 지표
-# ------------------------------------------------------------------------------------------------
-def edge_density(gray):
+def edge_density(gray, mask=None):
     g = gray.astype(float) / 255
+    ref_px = g[mask] if mask is not None and mask.any() else g
+    g = g / max(np.percentile(ref_px, 98), 1e-3)  # 노출 차이 정규화(배 영역 기준)
     gx = np.abs(np.diff(g, axis=1))[:-1, :]
     gy = np.abs(np.diff(g, axis=0))[:, :-1]
-    mag = np.hypot(gx, gy)
-    return float((mag > 0.08).mean())
+    mag = np.hypot(gx, gy) > 0.08
+    if mask is not None:
+        mk = mask[:-1, :-1]
+        return float(mag[mk].mean()) if mk.any() else float("nan")
+    return float(mag.mean())
 
 
-def hist_corr(a, b, bins=32):
-    ha, _ = np.histogram(a, bins=bins, range=(0, 255), density=True)
-    hb, _ = np.histogram(b, bins=bins, range=(0, 255), density=True)
-    ha, hb = ha - ha.mean(), hb - hb.mean()
-    den = math.sqrt((ha ** 2).sum() * (hb ** 2).sum())
-    return float((ha * hb).sum() / den) if den else float("nan")
-
-
-def ref_metrics(ref, ren):
-    r = np.array(ref.convert("HSV")).reshape(-1, 3)
-    q = np.array(ren.convert("HSV")).reshape(-1, 3)
-    return {"edge_density_ref": edge_density(np.array(ref.convert("L"))),
-            "edge_density_render": edge_density(np.array(ren.convert("L"))),
-            "hue_hist_corr": hist_corr(r[:, 0], q[:, 0]), "sat_hist_corr": hist_corr(r[:, 1], q[:, 1]),
-            "val_hist_corr": hist_corr(r[:, 2], q[:, 2])}
-
-
-def side_by_side(ref, ren, vid):
-    h = ren.height
-    rr = ref.resize((int(ref.width * h / ref.height), h), Image.LANCZOS)
-    out = Image.new("RGB", (rr.width + ren.width, h))
-    out.paste(rr, (0, 0))
-    out.paste(ren, (rr.width, 0))
-    label(out, f"REFERENCE ({vid})")
-    label(out, "RENDER", (rr.width + 10, 8))
-    return out
+def diff_image(ren, a, b, valid=None):
+    """초록=둘 다, 빨강=렌더만(a), 파랑=비교대상만(b), 회색 점=비교 제외."""
+    W, H = ren.size
+    g = np.array(ren.convert("L")) // 3
+    out = np.repeat(g[..., None], 3, 2).astype(np.uint8)
+    out[a & b] = (40, 170, 60)
+    out[a & ~b] = (230, 50, 50)
+    out[b & ~a] = (50, 90, 240)
+    if valid is not None:
+        inv = ~valid
+        out[inv & ((np.indices((H, W)).sum(0) % 4) == 0)] = (150, 150, 150)
+    return Image.fromarray(out)
 
 
 # ------------------------------------------------------------------------------------------------
@@ -334,24 +409,86 @@ def design_checks(d):
     t = (cz - bt["z_bottom"]) / (bt["z_top"] - bt["z_bottom"])
     y_surf = bt["y_bottom"] + t * (bt["y_top"] - bt["y_bottom"])
     rake = math.degrees(math.atan2(bt["z_top"] - bt["z_bottom"], bt["y_top"] - bt["y_bottom"]))
-    # 이물비우 바깥 법선: 면 방향 (0, dy, dz) 에 수직이며 +Y 성분 양수 → (0, dz, -dy) → 아래로 기울어짐
     n_tilt = -(90 - rake)
     out["ghost_face"] = {
         "json_center_y": gf["center"][1], "transom_surface_y_at_center_z": round(y_surf, 3),
         "gap_m": round(y_surf - gf["center"][1], 3), "transom_rake_from_horizontal_deg": round(rake, 1),
         "transom_outward_normal_tilt_deg(+up)": round(n_tilt, 1), "json_normal_tilt_deg": gf.get("normal_tilt_deg"),
-        "verdict": ("불일치: center 가 이물비우 면 안쪽 %.2f m, JSON normal_tilt(+%s°, 위로) ↔ 실제 바깥 법선 %.1f°(아래로)"
-                    % (y_surf - gf["center"][1], gf.get("normal_tilt_deg"), n_tilt))}
-    dh = d["dragon_head"]
-    tip = dh["base"][1] + dh["length"] * math.cos(math.radians(dh["pitch_deg"]))
-    out["dragon_tip_y"] = round(tip, 2)
+        "consistent": bool(abs(y_surf - gf["center"][1]) < 0.03 and gf.get("normal_tilt_deg") is not None
+                           and abs(gf["normal_tilt_deg"] - n_tilt) < 3)}
     return out
 
 
-# ------------------------------------------------------------------------------------------------
-def composite_score(q, s):
-    vals = [v for v in (q, s) if v is not None]
+def composite_score(*vals):
+    vals = [v for v in vals if v is not None and not (isinstance(v, float) and math.isnan(v))]
     return round(sum(vals) / len(vals), 1) if vals else None
+
+
+# ------------------------------------------------------------------------------------------------
+def color_compare(vid, ref, ren, alb, rm, rj, W, H):
+    """고유색: 사진 patch(WB 정규화) vs 렌더 클래스 마스크 평균(알베도/보이는 색)."""
+    rw, rh = rj["size"]
+    ref_lin = srgb2lin(np.array(ref.convert("RGB"), float) / 255)
+    wm = poly_mask([rj["patches"]["white"]], (rw, rh), rw, rh)
+    wp = ref_lin[wm]
+    lum = wp @ np.array([0.2126, 0.7152, 0.0722])
+    wp = wp[lum >= np.median(lum)]
+    white = np.median(wp, 0)
+    gains = white.mean() / white  # WB(밝기 유지)
+    ren_lin = srgb2lin(np.array(ren, float) / 255)
+    out = {"white_patch_lin": [round(float(x), 3) for x in white], "classes": {}}
+    for cls in COLOR_CLASSES:
+        if cls not in rj["patches"]:
+            continue
+        pm = poly_mask([rj["patches"][cls]], (rw, rh), rw, rh)
+        r_alb = np.median(ref_lin[pm] / white * rj.get("white_albedo_assumed", 0.8), 0)
+        r_disp = np.median(ref_lin[pm] * gains, 0)
+        mk = erode(rm[cls], 2)
+        if mk.sum() < 30:
+            out["classes"][cls] = {"note": "렌더에서 이 클래스가 거의 안 보임", "render_px": int(mk.sum())}
+            continue
+        e = {"render_px": int(mk.sum())}
+        la_ref = lin2lab(r_alb)
+        e["ref_albedo_est"] = {"srgb": [int(x) for x in lin2srgb(r_alb) * 255], **lab_desc(la_ref)}
+        if alb is not None:
+            a_r = np.median(alb[mk].astype(float), 0)
+            la_r = lin2lab(a_r)
+            e["render_albedo"] = {"srgb": [int(x) for x in lin2srgb(a_r) * 255], **lab_desc(la_r)}
+            e["dE_albedo"] = round(float(np.linalg.norm(la_r - la_ref)), 1)
+            e["dL_albedo"] = round(float(la_r[0] - la_ref[0]), 1)
+            e["dC_albedo"] = round(float(math.hypot(*la_r[1:]) - math.hypot(*la_ref[1:])), 1)
+        d_r = np.median(ren_lin[mk], 0)
+        la_d, la_rd = lin2lab(d_r), lin2lab(r_disp)
+        e["render_display"] = {"srgb": [int(x) for x in lin2srgb(d_r) * 255], **lab_desc(la_d)}
+        e["ref_display_wb"] = {"srgb": [int(x) for x in lin2srgb(r_disp) * 255], **lab_desc(la_rd)}
+        e["dE_display"] = round(float(np.linalg.norm(la_d - la_rd)), 1)
+        e["dL_display"] = round(float(la_d[0] - la_rd[0]), 1)
+        e["dC_display"] = round(float(math.hypot(*la_d[1:]) - math.hypot(*la_rd[1:])), 1)
+        out["classes"][cls] = e
+    des = [c["dE_albedo"] for c in out["classes"].values() if "dE_albedo" in c]
+    out["mean_dE_albedo"] = round(float(np.mean(des)), 1) if des else None
+    dd = [c["dE_display"] for c in out["classes"].values() if "dE_display" in c]
+    out["mean_dE_display"] = round(float(np.mean(dd)), 1) if dd else None
+    return out
+
+
+def swatch_strip(cc, w):
+    """고유색 견본(사진 추정 알베도 vs 렌더 알베도, 사진 WB 보이는 색 vs 렌더 보이는 색) — 별도 이미지."""
+    rows = [(k, v) for k, v in cc["classes"].items() if "render_display" in v]
+    h = 30 * (len(rows) + 1)
+    im = Image.new("RGB", (w, h), (25, 25, 25))
+    dr = ImageDraw.Draw(im)
+    f = font(13)
+    dr.text((6, 8), "class | ref albedo est | render albedo | ref WB display | render display   dE(albedo) dE(display) dL dC", fill=(255, 255, 255), font=f)
+    for i, (k, v) in enumerate(rows):
+        y = 30 * (i + 1)
+        dr.text((6, y + 8), k, fill=(255, 255, 255), font=f)
+        for j, key in enumerate(("ref_albedo_est", "render_albedo", "ref_display_wb", "render_display")):
+            if key in v:
+                dr.rectangle((70 + j * 70, y + 3, 130 + j * 70, y + 27), fill=tuple(v[key]["srgb"]))
+        dr.text((360, y + 8), f"{v.get('dE_albedo', '-')}  {v['dE_display']}  dL {v['dL_display']:+}  dC {v['dC_display']:+}  (albedo dL {v.get('dL_albedo', '-')} dC {v.get('dC_albedo', '-')})",
+                fill=(255, 255, 255), font=f)
+    return im
 
 
 def main():
@@ -363,11 +500,16 @@ def main():
         d = json.load(f)
     with open(os.path.join(rd, "render_meta.json")) as f:
         meta = json.load(f)
-    asp = os.path.join(rd, "assessment.json")
     assess = None
+    asp = os.path.join(rd, "assessment.json")
     if os.path.exists(asp):
         with open(asp, encoding="utf-8") as f:
             assess = json.load(f)
+    prev = None
+    pp = os.path.join(HERE, f"round{a.round - 1}", "scores.json")
+    if os.path.exists(pp):
+        with open(pp, encoding="utf-8") as f:
+            prev = json.load(f)
 
     polys, lines = design_geometry(d)
     order = [v["id"] for v in d["views"] if v["id"] in meta["views"]]
@@ -375,113 +517,139 @@ def main():
     for vid in order:
         vm = meta["views"][vid]
         cam = Cam(vm)
+        W, H = cam.w, cam.h
         ren = Image.open(os.path.join(rd, f"render_{vid}.png")).convert("RGB")
         refp = os.path.join(REFS, f"ref_{vid}.jpg")
+        rjp = os.path.join(REF_MASKS, f"{vid}.json")
         res = {"mode": "reference" if os.path.exists(refp) else "design"}
-        # 투영 자기검증 (Blender world_to_camera_view 와 비교)
-        perr = []
-        for k, pt in {"origin": (0, 0, 0), "bow_top": (0, 12.8, 2.45), "stern_top": (0, -12.8, 2.7)}.items():
-            mine = cam.proj(pt)[0]
-            bl = vm["probes_px"][k]
-            perr.append(float(np.hypot(*(mine - np.array(bl[:2])))))
+        perr = [float(np.hypot(*(cam.proj(pt)[0] - np.array(vm["probes_px"][k][:2]))))
+                for k, pt in {"origin": (0, 0, 0), "bow_top": (0, 12.8, 2.45), "stern_top": (0, -12.8, 2.7)}.items()]
         res["projection_check_px"] = round(max(perr), 3)
 
-        dm = design_masks(cam, polys)
-        rm = render_masks(os.path.join(rd, f"mask_{vid}.png"), cam.w, cam.h)
-        # 렌더에서 노·삭구·키·깃발 등(설계 몸체 투영에 없는 것)이 몸체를 가린 픽셀은 비교에서 제외
-        occl = rm["oars"] | rm["rigging"] | rm["other"]
-        d_body = (dm["hull"] | dm["super"] | dm["dragon"]) & ~occl
-        r_body = rm["hull"] | rm["super"] | rm["dragon"] | rm["ghost"]
+        rm = palette_classify(os.path.join(rd, f"mask_{vid}.png"), W, H)
+        occl = np.zeros((H, W), bool)
+        for k in OCCLUDERS:
+            occl |= rm[k]
+        r_body = np.zeros((H, W), bool)
+        for k in BODY:
+            r_body |= rm[k]
+        # --- 설계 투영 ---
+        dm = design_masks(cam, {k: v for k, v in polys.items() if k != "submerged"})
         for k in dm:
-            dm[k] = dm[k] & ~occl
-        res["occluded_px_excluded"] = int(occl.sum())
-        res["iou"] = {"body": round(iou(d_body, r_body), 4),
-                      "hull": round(iou(dm["hull"], rm["hull"]), 4),
-                      "superstructure": round(iou(dm["super"], rm["super"]), 4),
-                      "dragon": round(iou(dm["dragon"], rm["dragon"]), 4)}
-        res["area_px"] = {"render_body": int(r_body.sum()), "design_body": int(d_body.sum()),
-                          "render_only": int((r_body & ~d_body).sum()), "design_only": int((d_body & ~r_body).sum())}
-        rb, db = bbox(r_body), bbox(d_body)
-        res["bbox"] = {"render": rb, "design": db}
-        W, Hh = cam.w, cam.h
-        crop = rb is not None and (rb[0] <= 0 or rb[2] >= W - 1 or rb[1] <= 0 or rb[3] >= Hh - 1)
-        fill = (rb[2] - rb[0]) / W if rb else 0
-        cxo = ((rb[0] + rb[2]) / 2 - W / 2) / W if rb else 0
-        res["framing"] = {"cropped_by_frame": bool(crop), "width_fill": round(fill, 3), "center_offset_x": round(cxo, 3)}
-        # [정량] 실루엣 점수: 몸체 IoU 70% + 용두 IoU 30%
-        # (용두가 양쪽 다 가려져 안 보이는 뷰는 몸체 IoU 만)
-        dr_iou = res["iou"]["dragon"]
-        sil_q = 100 * (res["iou"]["body"] if math.isnan(dr_iou) else 0.7 * res["iou"]["body"] + 0.3 * dr_iou)
-        # [정량] 구도 점수: 설계 의도(같은 카메라) bbox 대비 일치 + 잘림 패널티 + 채움율 (0.45~0.9 권장)
-        if rb and db:
-            ix = max(0, min(rb[2], db[2]) - max(rb[0], db[0])) * max(0, min(rb[3], db[3]) - max(rb[1], db[1]))
-            ua = (rb[2] - rb[0]) * (rb[3] - rb[1]) + (db[2] - db[0]) * (db[3] - db[1]) - ix
-            bi = ix / ua if ua else 0
-            comp_q = 100 * bi - (15 if crop else 0) - (10 if not (0.45 <= fill <= 0.92) else 0)
-        else:
-            comp_q = 0
-        res["quant"] = {"silhouette": round(max(0, min(100, sil_q)), 1), "composition": round(max(0, min(100, comp_q)), 1)}
+            dm[k] &= ~occl
+        d_body = dm["hull"] | dm["super"] | dm["dragon"]
+        # 수면 아래 선체(설계 투영) 중 수면 위 몸체에 안 가린 부분 — 사진(거치대 위 선체)과 비교 시 제외
+        sub = design_masks(cam, {"submerged": polys["submerged"]})["submerged"] & ~d_body & ~r_body
+        res["design_iou"] = {"body": round(iou(d_body, r_body), 4), "hull": round(iou(dm["hull"], rm["hull"]), 4),
+                             "superstructure": round(iou(dm["super"], rm["wall"] | rm["roof"]), 4),
+                             "dragon": round(iou(dm["dragon"], rm["dragon"]), 4)}
+        dr_i = res["design_iou"]["dragon"]
+        sil_design = 100 * (res["design_iou"]["body"] if math.isnan(dr_i) else 0.7 * res["design_iou"]["body"] + 0.3 * dr_i)
+        rb = bbox(r_body)
+        res["framing"] = {"render_bbox": rb, "cropped_by_frame": bool(rb and (rb[0] <= 0 or rb[2] >= W - 1 or rb[1] <= 0 or rb[3] >= H - 1)),
+                          "width_fill": round((rb[2] - rb[0]) / W, 3) if rb else 0}
+        quant = {"silhouette_design": round(sil_design, 1)}
+        over = draw_lines(ren.copy(), cam, lines)
+        ddiff = diff_image(ren, r_body, d_body)
 
-        # ---- 패널 ----
+        alb = None
+        ap_ = os.path.join(rd, f"albedo_{vid}.npy")
+        if os.path.exists(ap_):
+            alb = np.load(ap_)
+            if alb.shape[:2] != (H, W):
+                alb = None
         if res["mode"] == "reference":
             ref = Image.open(refp).convert("RGB")
-            res["ref_metrics"] = ref_metrics(ref, ren)
-            sbs = side_by_side(ref, ren, vid)
-        wire = Image.new("RGB", (W, Hh), (18, 18, 24))
-        wire.paste(Image.fromarray((d_body * 50).astype(np.uint8)).convert("RGB"), (0, 0))
-        draw_lines(wire, cam, lines)
-        over = draw_lines(ren.copy(), cam, lines)
-        diff = np.zeros((Hh, W, 3), np.uint8)
-        g = np.array(ren.convert("L")) // 3
-        diff[...] = g[..., None]
-        diff[r_body & d_body] = (40, 170, 60)
-        diff[r_body & ~d_body] = (230, 50, 50)
-        diff[d_body & ~r_body] = (50, 90, 240)
-        diffim = Image.fromarray(diff)
-        label(ren, f"[{vid}] RENDER  ({meta['engine']} {meta['samples']}spp, {vm['render_sec']}s)")
-        label(wire, "DESIGN JSON PROJECTION (hull red / wall green / roof yellow / dragon blue / ghost magenta / oars orange / masts cyan)", sz=15)
-        label(over, "OVERLAY: render + design wire")
-        label(diffim, f"MASK  green=both red=render-only blue=design-only   IoU body {res['iou']['body']:.3f}  "
-                      f"hull {res['iou']['hull']:.3f}  super {res['iou']['superstructure']:.3f}  dragon {res['iou']['dragon']:.3f}", sz=15)
-        panel = Image.new("RGB", (W * 2, Hh * 2))
-        panel.paste(ren, (0, 0))
-        panel.paste(wire, (W, 0))
-        panel.paste(over, (0, Hh))
-        panel.paste(diffim, (W, Hh))
-        if res["mode"] == "reference":
-            p2 = Image.new("RGB", (max(panel.width, sbs.width), panel.height + sbs.height))
-            p2.paste(sbs, (0, 0))
-            p2.paste(panel, (0, sbs.height))
-            panel = p2
+            rj = json.load(open(rjp, encoding="utf-8"))
+            ref_r = ref.resize((W, H), Image.LANCZOS)  # 리사이즈만
+            P = rj["polygons"]
+            f_body = poly_mask([P["body"]], rj["size"], W, H)
+            f_sail = poly_mask([P["sail"]], rj["size"], W, H) if "sail" in P else np.zeros_like(f_body)
+            valid = ~(f_sail | occl | sub)
+            rb_v, fb_v = r_body & valid, f_body & valid
+            res["ref_iou"] = {"body": round(iou(rb_v, fb_v), 4)}
+            if "dragon" in P:
+                f_dr = poly_mask([P["dragon"]], rj["size"], W, H)
+                res["ref_iou"]["dragon"] = round(iou(rm["dragon"] & valid, f_dr & valid), 4)
+            fbb = bbox(f_body)
+            res["ref_bbox"] = fbb
+            res["bbox_iou_vs_ref"] = round(bbox_iou(rb, fbb), 4)
+            ed_r = edge_density(np.array(ren.convert("L")), r_body)
+            ed_f = edge_density(np.array(ref_r.convert("L")), f_body)
+            res["edge_density"] = {"render_body": round(ed_r, 4), "ref_body": round(ed_f, 4),
+                                   "ratio": round(ed_r / ed_f, 3) if ed_f else None}
+            cc = color_compare(vid, ref, ren, alb, rm, rj, W, H)
+            res["color"] = cc
+            quant["silhouette_ref"] = round(100 * res["ref_iou"]["body"], 1)
+            quant["silhouette"] = round(0.6 * quant["silhouette_ref"] + 0.4 * sil_design, 1)
+            cx_off = abs(((rb[0] + rb[2]) - (fbb[0] + fbb[2])) / 2 / W) if rb and fbb else 1
+            quant["composition"] = round(max(0, 100 * res["bbox_iou_vs_ref"] - 100 * cx_off - (10 if res["framing"]["cropped_by_frame"] and not (fbb and (fbb[0] <= 1 or fbb[2] >= W - 2)) else 0)), 1)
+            r = res["edge_density"]["ratio"]
+            quant["detail"] = round(100 * min(r, 1 / r), 1) if r else None
+            mde = cc["mean_dE_albedo"] if cc["mean_dE_albedo"] is not None else cc["mean_dE_display"]
+            quant["material"] = round(max(0, 100 - 2.5 * mde), 1) if mde is not None else None
+            # ---- 패널 ----
+            fm = np.zeros((H, W, 3), np.uint8)
+            fm[f_body] = (60, 160, 60)
+            fm[f_sail] = (200, 180, 60)
+            fdiff = diff_image(ren, rb_v, fb_v, valid)
+            T = [tile(ref_r, f"REFERENCE {vid} (resized only) - {next((v['author'] + ', ' + v['license']) for v in json.load(open(os.path.join(REFS, 'refs_manifest.json'), encoding='utf-8'))['views'] if v['id'] == vid)}"),
+                 tile(ren, f"RENDER {meta['engine']} {meta['samples']}spp {vm['render_sec']}s"),
+                 tile(Image.fromarray(fm), "REF POLYGON MASK (validation/ref_masks, separate file)"),
+                 tile(over, "RENDER + DESIGN JSON WIRE"),
+                 tile(fdiff, f"RENDER vs REF MASK  IoU {res['ref_iou']['body']:.3f}  (grey dots = excluded: sails/rigging/oars/underwater hull)"),
+                 tile(ddiff, f"RENDER vs DESIGN PROJ  IoU {res['design_iou']['body']:.3f}")]
+            tw, th = T[0].size
+            sw = swatch_strip(cc, tw * 3)
+            panel = Image.new("RGB", (tw * 3, th * 2 + sw.height))
+            for i, t in enumerate(T):
+                panel.paste(t, ((i % 3) * tw, (i // 3) * th))
+            panel.paste(sw, (0, th * 2))
+            row_tiles = (T[0], T[1], T[4])
+        else:
+            quant["silhouette"] = round(sil_design, 1)
+            T = [tile(ren, f"RENDER {vid}"), tile(over, "RENDER + DESIGN WIRE"), tile(ddiff, f"vs DESIGN IoU {res['design_iou']['body']:.3f}")]
+            tw, th = T[0].size
+            panel = Image.new("RGB", (tw * 3, th))
+            for i, t in enumerate(T):
+                panel.paste(t, (i * tw, 0))
+            row_tiles = T
+        res["quant"] = quant
         panel.save(os.path.join(rd, f"compare_{vid}.png"))
-        sw = 640
-        row = Image.new("RGB", (sw * 3, int(Hh * sw / W)))
-        for i, im in enumerate((ren, over, diffim)):
-            row.paste(im.resize((sw, row.height), Image.LANCZOS), (i * sw, 0))
+        rh = 330
+        row = Image.new("RGB", (sum(int(t.width * rh / t.height) for t in row_tiles), rh))
+        x = 0
+        for t in row_tiles:
+            tw2 = int(t.width * rh / t.height)
+            row.paste(t.resize((tw2, rh), Image.LANCZOS), (x, 0))
+            x += tw2
         sheet_rows.append(row)
         results[vid] = res
 
-    sheet = Image.new("RGB", (sheet_rows[0].width, sum(r.height for r in sheet_rows) + 40), (0, 0, 0))
-    dr = ImageDraw.Draw(sheet)
-    mode = "reference photos" if any(r["mode"] == "reference" for r in results.values()) else \
-        "design-based (no reference photos available: refs/ref_*.jpg missing)"
-    dr.text((10, 8), f"Round {a.round} contact sheet  |  mode: {mode}  |  columns: render / overlay / mask diff",
-            fill=(255, 255, 255), font=font(20))
-    y = 40
+    SW = max(r.width for r in sheet_rows)
+    mode = "reference photos (indoor museum replica: background/lighting excluded)" if any(r["mode"] == "reference" for r in results.values()) \
+        else "design-based (no reference photos)"
+    sheet = Image.new("RGB", (SW, sum(r.height for r in sheet_rows) + 34), (0, 0, 0))
+    ImageDraw.Draw(sheet).text((8, 6), f"Round {a.round} | {mode} | columns: reference / render / render-vs-ref-mask",
+                               fill=(255, 255, 255), font=font(18))
+    y = 34
     for r in sheet_rows:
         sheet.paste(r, (0, y))
         y += r.height
     sheet.save(os.path.join(rd, "contact_sheet.png"))
 
     # ---- 점수 ----
-    scores = {"round": a.round, "mode": mode, "weights": WEIGHTS, "render": {k: meta[k] for k in ("engine", "samples", "res", "quality")},
-              "render_time_sec": {v: meta["views"][v]["render_sec"] for v in order}, "design_checks": design_checks(d),
-              "views": {}, "notes": "점수 출처: [정량]=마스크 IoU/bbox 계산, [주관]=렌더 육안 평가(assessment.json). 같은 축에 둘 다 있으면 평균."}
+    scores = {"round": a.round, "mode": mode, "weights": WEIGHTS,
+              "render": {k: meta.get(k) for k in ("engine", "samples", "res", "long_side", "quality")},
+              "render_time_sec": {v: meta["views"][v]["render_sec"] for v in order},
+              "design_checks": design_checks(d), "views": {},
+              "notes": "[정량]=마스크 IoU·bbox·엣지밀도·ΔE 계산, [주관]=렌더 육안 평가(assessment.json). 같은 축에 둘 다 있으면 평균. "
+                       "참고 사진은 실내 전시 복원선이라 lighting·environment 는 [주관](항구/물 사실감)만."}
     if assess is None:
-        tmpl = {"views": {v: {ax: {"score": None, "why": ""} for ax in AXES} for v in order}, "fixlist": []}
         with open(os.path.join(rd, "assessment_template.json"), "w", encoding="utf-8") as f:
-            json.dump(tmpl, f, ensure_ascii=False, indent=1)
-    tot_all = []
+            json.dump({"views": {v: {ax: {"score": None, "why": ""} for ax in AXES} for v in order}, "fixlist": []},
+                      f, ensure_ascii=False, indent=1)
+    tots = []
     for vid in order:
         r = results[vid]
         av = (assess or {}).get("views", {}).get(vid, {})
@@ -489,30 +657,69 @@ def main():
         for ax in AXES:
             q = r["quant"].get(ax)
             s = av.get(ax, {}).get("score")
-            axes[ax] = {"score": composite_score(q, s), "quant": q, "subjective": s,
-                        "basis": ("[정량] " + ("IoU body %.3f / dragon %.3f" % (r["iou"]["body"], r["iou"]["dragon"]) if ax == "silhouette"
-                                              else "bbox 일치·잘림·채움율 %s" % r["framing"]) if q is not None else "")
-                        + ((" | [주관] " + av[ax].get("why", "")) if s is not None else "")}
+            basis = []
+            if q is not None:
+                if ax == "silhouette":
+                    basis.append(f"[정량] ref IoU {r.get('ref_iou', {}).get('body', float('nan')):.3f}, design IoU {r['design_iou']['body']:.3f}")
+                elif ax == "composition":
+                    basis.append(f"[정량] bbox IoU vs ref {r.get('bbox_iou_vs_ref')}")
+                elif ax == "detail":
+                    basis.append(f"[정량] edge density ratio {r['edge_density']['ratio']}")
+                elif ax == "material":
+                    basis.append(f"[정량] mean ΔE albedo {r['color']['mean_dE_albedo']} / display {r['color']['mean_dE_display']}")
+            if s is not None:
+                basis.append("[주관] " + av[ax].get("why", ""))
+            axes[ax] = {"score": composite_score(q, s), "quant": q, "subjective": s, "basis": " | ".join(basis)}
         have = [(WEIGHTS[k], v["score"]) for k, v in axes.items() if v["score"] is not None]
         tot = round(sum(w * s for w, s in have) / sum(w for w, _ in have), 1) if have else None
-        tot_all.append(tot)
-        scores["views"][vid] = {"axes": axes, "weighted_total": tot, "iou": r["iou"], "framing": r["framing"],
-                                "area_px": r["area_px"], "projection_check_px": r["projection_check_px"],
-                                **({"ref_metrics": r["ref_metrics"]} if "ref_metrics" in r else {})}
-    vals = [t for t in tot_all if t is not None]
+        tots.append(tot)
+        ent = {"axes": axes, "weighted_total": tot, "quant": r["quant"], "design_iou": r["design_iou"],
+               "framing": r["framing"], "projection_check_px": r["projection_check_px"]}
+        for k in ("ref_iou", "ref_bbox", "bbox_iou_vs_ref", "edge_density", "color"):
+            if k in r:
+                ent[k] = r[k]
+        if prev and vid in prev.get("views", {}):
+            pv = prev["views"][vid]
+            ent["delta_vs_prev"] = {ax: (round(axes[ax]["score"] - pv["axes"][ax]["score"], 1)
+                                         if axes[ax]["score"] is not None and pv["axes"].get(ax, {}).get("score") is not None else None)
+                                    for ax in AXES}
+            ent["delta_vs_prev"]["weighted_total"] = round(tot - pv["weighted_total"], 1) if tot is not None and pv.get("weighted_total") is not None else None
+        scores["views"][vid] = ent
+    vals = [t for t in tots if t is not None]
     scores["overall_weighted_total"] = round(sum(vals) / len(vals), 1) if vals else None
+    if prev:
+        scores["overall_delta_vs_prev"] = round(scores["overall_weighted_total"] - prev["overall_weighted_total"], 1) \
+            if scores["overall_weighted_total"] is not None and prev.get("overall_weighted_total") is not None else None
+        scores["delta_caveat"] = (f"round{a.round - 1} 은 참고 사진 없이 설계 투영만으로 채점, 카메라도 설계 v1(안벽 구도). "
+                                  f"round{a.round} 은 사진 기준·카메라 v2 — Δ 는 같은 축 정의의 점수 차이일 뿐 같은 화면 비교가 아님.")
     with open(os.path.join(rd, "scores.json"), "w", encoding="utf-8") as f:
         json.dump(scores, f, ensure_ascii=False, indent=1)
 
     # ---- fixlist.md ----
     L = [f"# Round {a.round} 수정목록", "",
-         f"모드: {mode}. 총점(가중 평균) **{scores['overall_weighted_total']}** / 100. "
+         f"모드: {mode}. 총점(가중 평균) **{scores['overall_weighted_total']}** / 100"
+         + (f" (Δ {scores['overall_delta_vs_prev']:+} vs round{a.round - 1})" if prev and scores.get('overall_delta_vs_prev') is not None else "") + ". "
          "형식: `[ID] [담당] [우선순위] 문제 → 수정 지시 → 기대 효과`. 렌더 시간 대비 효과 큰 순.", "",
-         "| 뷰 | " + " | ".join(AXES) + " | 총점 |", "|---|" + "---|" * (len(AXES) + 1)]
+         "| 뷰 | " + " | ".join(AXES) + " | 총점 | Δ총점 |", "|---|" + "---|" * (len(AXES) + 2)]
     for vid in order:
-        ax = scores["views"][vid]["axes"]
-        L.append(f"| {vid} | " + " | ".join(str(ax[k]["score"]) for k in AXES) + f" | {scores['views'][vid]['weighted_total']} |")
-    L += ["", "IoU(렌더 마스크 vs 설계 투영): " + ", ".join(f"{v} body {results[v]['iou']['body']:.3f}/dragon {results[v]['iou']['dragon']:.3f}" for v in order), ""]
+        e = scores["views"][vid]
+        dl = e.get("delta_vs_prev", {})
+        L.append(f"| {vid} | " + " | ".join(
+            f"{e['axes'][k]['score']}" + (f" ({dl[k]:+})" if dl.get(k) is not None else "") for k in AXES)
+            + f" | {e['weighted_total']} | {dl.get('weighted_total', '-') if dl.get('weighted_total') is None else format(dl['weighted_total'], '+')} |")
+    L.append("")
+    if any("ref_iou" in results[v] for v in order):
+        L.append("정량: " + "; ".join(
+            f"{v} refIoU {results[v]['ref_iou']['body']:.3f} / designIoU {results[v]['design_iou']['body']:.3f} / "
+            f"edge {results[v]['edge_density']['ratio']} / ΔE albedo {results[v]['color']['mean_dE_albedo']} display {results[v]['color']['mean_dE_display']}"
+            for v in order if "ref_iou" in results[v]))
+        L.append("")
+    if prev:
+        L += ["> " + scores["delta_caveat"], ""]
+    for note in (assess or {}).get("summary", []):
+        L.append(f"- {note}")
+    if (assess or {}).get("summary"):
+        L.append("")
     items = (assess or {}).get("fixlist", [])
     for prio in ("P1", "P2", "P3"):
         sel = [it for it in items if it["prio"] == prio]
@@ -528,7 +735,9 @@ def main():
     with open(os.path.join(rd, "fixlist.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(L) + "\n")
     for vid in order:
-        print(f"[compare] {vid}: IoU {results[vid]['iou']}  quant {results[vid]['quant']}  proj_err {results[vid]['projection_check_px']} px")
+        r = results[vid]
+        print(f"[compare] {vid}: quant {r['quant']} refIoU {r.get('ref_iou')} designIoU {r['design_iou']} "
+              f"edge {r.get('edge_density')} dE {r.get('color', {}).get('mean_dE_albedo')}/{r.get('color', {}).get('mean_dE_display')} proj {r['projection_check_px']}")
     print("[compare] overall", scores["overall_weighted_total"], "->", rd)
 
 
