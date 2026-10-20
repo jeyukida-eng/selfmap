@@ -1,1084 +1,490 @@
 {
- "meta": {
-  "units": "m",
-  "axes": {
-   "+X": "east",
-   "+Y": "north",
-   "+Z": "up"
+  "meta": {
+    "units": "m",
+    "axes": {"+X": "east", "+Y": "north", "+Z": "up"},
+    "origin": "midship, centerline, waterline",
+    "version": 2,
+    "evidence_tags": "각 수치에 [확정]/[추정]/[가정] 태그를 *_tag 필드로",
+    "baseline": "경상남도 '이순신 프로젝트'(2010~2011) 재현 거북선(거제 조선해양전시관 전시, 2023 철거) 25.6 x 8.67 x 6.06 m (S1,S2). 형태 비례는 『이충무공전서』(1795) 귀선도설(S3,S4)과 국립해양유산연구소 학술복원(S5) 참고.",
+    "conventions": {
+      "loa": "선체 전장: 선수 이물비우 상단(y=+12.8) ~ 선미 꼬리 현판 끝(y=-12.8). 용두·hull.stern_extension 난간재(~-16.4)는 제외.",
+      "height_keel_to_roof": "저판 하면(keel_z 최저) ~ 개판 용마루(ridge_z 최고). 돛대·용두 제외.",
+      "beam": "상장(방패판 벽) 최대 외폭. 선체 현측(sheer_half*2)보다 약간 넓음(가룡 돌출 갑판 위에 상장이 얹힘).",
+      "stations": "hull/wall/roof stations는 y 내림차순(선수 +Y → 선미 -Y). 스테이션 사이는 y에 대해 선형 또는 Catmull-Rom 보간.",
+      "hull_section": "각 hull station 단면: (±bottom_half, keel_z) 평저 → (±sheer_half, sheer_z) 직선/약한 볼록 현측. bottom 끝(y>bow_transom.y_bottom 또는 y<stern_transom.y_bottom)에서는 keel_z가 호판(transom) 경사선 위의 하단 높이를 뜻함.",
+      "wall_section": "상장 벽은 hull sheer_z 높이에서 수평 갑판 돌출(sheer_half→wall.half) 후 수직으로 top_z까지. 양 끝(첫/끝 스테이션)은 수직 막음판.",
+      "roof_section": "개판 단면 z(x)=eave_z+(ridge_z-eave_z)*(1-(|x|/half)^p)^(1/p), p=roof.profile_exponent. half는 처마 반폭(벽보다 overhang만큼 넓음).",
+      "mirrored": "oars.y, gun_ports.side는 좌·우현 대칭(x=±)으로 적용.",
+      "angles": "sun.azimuth_deg: 북=0, 동=90 시계방향. pitch_deg: +는 선수 쪽 위로 들림.",
+      "views": "views: 핀홀, sensor_fit HORIZONTAL(36 mm 폭 기준 lens), 렌더 해상도 비율은 ref_aspect(참고 사진 W/H)와 같게 하면 구도가 일치. shift_x/shift_y는 Blender 의미(큰 변 단위). gen_drawings.project()가 기준 구현, design/views_check.png에서 사진과 나란히 확인.",
+      "view_sun": "views[*].sun (선택): 스틸 컷별 '촬영 시각'의 해 방위/고도(북=0 시계). 있으면 그 뷰 렌더 시 world.setup_world를 이 값으로 재호출, 없으면 전역 sun 사용. 전역 sun은 플라이스루·기본값. 규칙: 해는 카메라 방위에서 15–35° 옆(카메라 뒤쪽 반구), 보이는 주요 면의 Lambert cos ≥0.3, 고도 25–42°(귀면이 있는 이물비우는 법선이 아래 40°라 고도가 낮을수록 밝음). lambert 필드는 확인용 계산값."
+    },
+    "label_font_note": "컨테이너에 CJK 폰트 없음 → 도면 라벨은 영어/로마자",
+    "changelog": ["v2 (round1 D1-D4): 실사 참고 R1–R4 반영 — 세운 대살 돛, 긴 목 용두, 방패판 원형 문양, 선미 연장재, 가룡 머리, 현호 완화, 노 포트 하향, 카메라 4종 재지정, 태양 260/32, 철첨·귀면 수정"]
   },
-  "origin": "midship, centerline, waterline",
-  "version": 2,
-  "evidence_tags": "각 수치에 [확정]/[추정]/[가정] 태그를 *_tag 필드로",
-  "baseline": "경상남도 '이순신 프로젝트'(2010~2011) 재현 거북선(거제 조선해양전시관 전시, 2023 철거) 25.6 x 8.67 x 6.06 m (S1,S2). 형태 비례는 『이충무공전서』(1795) 귀선도설(S3,S4)과 국립해양유산연구소 학술복원(S5) 참고.",
-  "conventions": {
-   "loa": "선체 전장: 선수 이물비우 상단(y=+12.8) ~ 선미 꼬리 현판 끝(y=-12.8). 용두·hull.stern_extension 난간재(~-16.4)는 제외.",
-   "height_keel_to_roof": "저판 하면(keel_z 최저) ~ 개판 용마루(ridge_z 최고). 돛대·용두 제외.",
-   "beam": "상장(방패판 벽) 최대 외폭. 선체 현측(sheer_half*2)보다 약간 넓음(가룡 돌출 갑판 위에 상장이 얹힘).",
-   "stations": "hull/wall/roof stations는 y 내림차순(선수 +Y → 선미 -Y). 스테이션 사이는 y에 대해 선형 또는 Catmull-Rom 보간.",
-   "hull_section": "각 hull station 단면: (±bottom_half, keel_z) 평저 → (±sheer_half, sheer_z) 직선/약한 볼록 현측. bottom 끝(y>bow_transom.y_bottom 또는 y<stern_transom.y_bottom)에서는 keel_z가 호판(transom) 경사선 위의 하단 높이를 뜻함.",
-   "wall_section": "상장 벽은 hull sheer_z 높이에서 수평 갑판 돌출(sheer_half→wall.half) 후 수직으로 top_z까지. 양 끝(첫/끝 스테이션)은 수직 막음판.",
-   "roof_section": "개판 단면 z(x)=eave_z+(ridge_z-eave_z)*(1-(|x|/half)^p)^(1/p), p=roof.profile_exponent. half는 처마 반폭(벽보다 overhang만큼 넓음).",
-   "mirrored": "oars.y, gun_ports.side는 좌·우현 대칭(x=±)으로 적용.",
-   "angles": "sun.azimuth_deg: 북=0, 동=90 시계방향. pitch_deg: +는 선수 쪽 위로 들림.",
-   "views": "views: 핀홀, sensor_fit HORIZONTAL(36 mm 폭 기준 lens), 렌더 해상도 비율은 ref_aspect(참고 사진 W/H)와 같게 하면 구도가 일치. shift_x/shift_y는 Blender 의미(큰 변 단위). gen_drawings.project()가 기준 구현, design/views_check.png에서 사진과 나란히 확인."
+  "principal": {
+    "loa": 25.6,
+    "loa_tag": "[확정]",
+    "beam": 8.67,
+    "beam_tag": "[확정]",
+    "height_keel_to_roof": 6.06,
+    "height_keel_to_roof_tag": "[확정]",
+    "height_definition_tag": "[가정]",
+    "draft": 1.4,
+    "draft_tag": "[가정]",
+    "draft_note": "평저 판옥선 계열 140t급 추정치(S5)를 25.6m급으로 축소 시 흘수 1.2~1.6m 범위로 판단, 1.4m 채택.",
+    "bottom_length": 19.5,
+    "bottom_length_tag": "[추정]",
+    "bottom_length_note": "귀선도설 저판 64척8촌(영조척 30.8cm 가정 → 19.96m)과 상장/저판 비 0.76을 25.6m에 적용.",
+    "chuck_m": 0.308,
+    "chuck_m_tag": "[가정]",
+    "source_ids": ["S1", "S2", "S3", "S4", "S5", "S6"]
   },
-  "label_font_note": "컨테이너에 CJK 폰트 없음 → 도면 라벨은 영어/로마자",
-  "changelog": [
-   "v2 (round1 D1-D4): 실사 참고 R1–R4 반영 — 세운 대살 돛, 긴 목 용두, 방패판 원형 문양, 선미 연장재, 가룡 머리, 현호 완화, 노 포트 하향, 카메라 4종 재지정, 태양 260/32, 철첨·귀면 수정"
-  ]
- },
- "principal": {
-  "loa": 25.6,
-  "loa_tag": "[확정]",
-  "beam": 8.67,
-  "beam_tag": "[확정]",
-  "height_keel_to_roof": 6.06,
-  "height_keel_to_roof_tag": "[확정]",
-  "height_definition_tag": "[가정]",
-  "draft": 1.4,
-  "draft_tag": "[가정]",
-  "draft_note": "평저 판옥선 계열 140t급 추정치(S5)를 25.6m급으로 축소 시 흘수 1.2~1.6m 범위로 판단, 1.4m 채택.",
-  "bottom_length": 19.5,
-  "bottom_length_tag": "[추정]",
-  "bottom_length_note": "귀선도설 저판 64척8촌(영조척 30.8cm 가정 → 19.96m)과 상장/저판 비 0.76을 25.6m에 적용.",
-  "chuck_m": 0.308,
-  "chuck_m_tag": "[가정]",
-  "source_ids": [
-   "S1",
-   "S2",
-   "S3",
-   "S4",
-   "S5",
-   "S6"
-  ]
- },
- "hull": {
-  "stations": [
-   {
-    "y": 12.8,
-    "bottom_half": 2.6,
-    "sheer_half": 2.7,
-    "keel_z": 2.3,
-    "sheer_z": 2.45
-   },
-   {
-    "y": 11.8,
-    "bottom_half": 2.2,
-    "sheer_half": 3.0,
-    "keel_z": 1.26,
-    "sheer_z": 2.25
-   },
-   {
-    "y": 11.0,
-    "bottom_half": 1.9,
-    "sheer_half": 3.3,
-    "keel_z": 0.31,
-    "sheer_z": 2.0
-   },
-   {
-    "y": 9.9,
-    "bottom_half": 1.62,
-    "sheer_half": 3.55,
-    "keel_z": -1.0,
-    "sheer_z": 1.75
-   },
-   {
-    "y": 8.0,
-    "bottom_half": 1.8,
-    "sheer_half": 3.85,
-    "keel_z": -1.25,
-    "sheer_z": 1.55
-   },
-   {
-    "y": 5.0,
-    "bottom_half": 1.93,
-    "sheer_half": 4.05,
-    "keel_z": -1.38,
-    "sheer_z": 1.38
-   },
-   {
-    "y": 2.0,
-    "bottom_half": 1.96,
-    "sheer_half": 4.1,
-    "keel_z": -1.4,
-    "sheer_z": 1.28
-   },
-   {
-    "y": 0.0,
-    "bottom_half": 1.96,
-    "sheer_half": 4.1,
-    "keel_z": -1.4,
-    "sheer_z": 1.25
-   },
-   {
-    "y": -3.0,
-    "bottom_half": 1.93,
-    "sheer_half": 4.08,
-    "keel_z": -1.4,
-    "sheer_z": 1.25
-   },
-   {
-    "y": -6.0,
-    "bottom_half": 1.8,
-    "sheer_half": 3.95,
-    "keel_z": -1.36,
-    "sheer_z": 1.3
-   },
-   {
-    "y": -8.5,
-    "bottom_half": 1.6,
-    "sheer_half": 3.7,
-    "keel_z": -1.25,
-    "sheer_z": 1.45
-   },
-   {
-    "y": -9.6,
-    "bottom_half": 1.43,
-    "sheer_half": 3.5,
-    "keel_z": -1.1,
-    "sheer_z": 1.6
-   },
-   {
-    "y": -10.8,
-    "bottom_half": 1.5,
-    "sheer_half": 3.2,
-    "keel_z": 0.3,
-    "sheer_z": 1.85
-   },
-   {
-    "y": -11.8,
-    "bottom_half": 1.9,
-    "sheer_half": 2.9,
-    "keel_z": 1.9,
-    "sheer_z": 2.1
-   },
-   {
-    "y": -12.8,
-    "bottom_half": 2.55,
-    "sheer_half": 2.65,
-    "keel_z": 2.35,
-    "sheer_z": 2.6
-   }
-  ],
-  "stations_tag": "[추정]",
-  "stations_note": "저판 폭비(머리12척:허리14척5촌:꼬리10척6촌, S3) → bottom_half 1.62:1.96:1.43. 현측 반폭·현호(sheer)는 사진 비례 판단([가정] 성분 포함). y=-12.8은 판옥선식 선미 연장 현판(꼬리 뿔). v2: 현호(sheer)를 낮고 평탄하게 수정 — R1/R2에서 방패판 띠 높이가 선수미까지 거의 일정 [추정].",
-  "plank_width": 0.3,
-  "plank_width_tag": "[가정]",
-  "plank_thickness": 0.12,
-  "plank_thickness_tag": "[가정]",
-  "bottom_planks": 10,
-  "bottom_planks_tag": "[확정]",
-  "bottom_planks_note": "귀선도설: 저판은 10쪽을 이어 붙임(S3).",
-  "bow_transom": {
-   "y_bottom": 9.9,
-   "z_bottom": -1.0,
-   "y_top": 12.8,
-   "z_top": 2.45,
-   "half_bottom": 1.62,
-   "half_top": 2.7,
-   "plank_direction": "horizontal",
-   "plank_count": 15,
-   "tag": "[추정]",
-   "note": "판옥선 계열 평판 이물비우(호판). 경사 약 50°. 귀면(ghost_face)이 이 면에 붙음."
-  },
-  "stern_transom": {
-   "y_bottom": -9.6,
-   "z_bottom": -1.1,
-   "y_top": -11.8,
-   "z_top": 2.1,
-   "half_bottom": 1.43,
-   "half_top": 2.9,
-   "plank_direction": "horizontal",
-   "plank_count": 14,
-   "overhang_to_y": -12.8,
-   "tag": "[추정]",
-   "note": "선미 고물비우(약한 오목 곡면: 하단은 hull stations keel_z를 따름). 현판은 -12.8까지 연장되어 키 위를 감쌈. 그 뒤로 stern_extension 난간재."
-  },
-  "waterline_stain_band": [
-   -0.25,
-   0.35
-  ],
-  "waterline_stain_band_tag": "[가정]",
-  "finish": "밝은 꿀색 소나무 원목(무도장 니스 느낌), 판재 수평 이음 + 검은 철 못·꺾쇠. 흑칠 아님 [추정: R1–R3]",
-  "beam_heads": {
-   "y": [
-    10.0,
-    8.0,
-    6.0,
-    4.0,
-    2.0,
-    0.0,
-    -2.0,
-    -4.0,
-    -6.0,
-    -8.0,
-    -9.6
-   ],
-   "z_below_sheer": 0.12,
-   "section": [
-    0.22,
-    0.22
-   ],
-   "protrude_beyond_wall": 0.25,
-   "tag": "[추정]",
-   "note": "가룡(가로 들보) 머리: 좌우 현측에서 사각 단면으로 돌출(상장 벽 외면 + 0.25 m). 위치 z = 해당 y의 sheer_z - 0.12. R1·R2에서 방패판 띠 바로 아래 줄지어 보임.",
-   "source_ids": [
-    "R1",
-    "R2"
-   ]
-  },
-  "stern_extension": {
-   "rails": 2,
-   "x": [
-    -1.5,
-    1.5
-   ],
-   "start": [
-    -11.2,
-    1.7
-   ],
-   "ctrl": [
-    -14.0,
-    2.4
-   ],
-   "end": [
-    -16.0,
-    4.4
-   ],
-   "curve": "quadratic_bezier in (y,z) per rail",
-   "section": [
-    0.22,
-    0.28
-   ],
-   "crossbars_t": [
-    0.35,
-    0.65,
-    0.95
-   ],
-   "crossbar_section": [
-    0.14,
-    0.14
-   ],
-   "tag": "[추정]",
-   "note": "선미 꼬리 연장 난간재(판옥선식 고물 연장). R2 좌측·R3 좌하단에서 선미 뒤로 길게 위로 휘어 뻗는 2줄 각재 + 가로대. LOA 25.6에는 미포함(돌출 3.6 m 추가).",
-   "source_ids": [
-    "R2",
-    "R3"
-   ]
-  }
- },
- "superstructure": {
-  "wall": {
-   "stations": [
-    {
-     "y": 12.2,
-     "half": 2.9,
-     "top_z": 3.0
-    },
-    {
-     "y": 11.5,
-     "half": 3.4,
-     "top_z": 2.95
-    },
-    {
-     "y": 10.0,
-     "half": 3.9,
-     "top_z": 2.85
-    },
-    {
-     "y": 8.0,
-     "half": 4.2,
-     "top_z": 2.75
-    },
-    {
-     "y": 5.0,
-     "half": 4.32,
-     "top_z": 2.7
-    },
-    {
-     "y": 2.0,
-     "half": 4.335,
-     "top_z": 2.7
-    },
-    {
-     "y": 0.0,
-     "half": 4.335,
-     "top_z": 2.7
-    },
-    {
-     "y": -3.0,
-     "half": 4.32,
-     "top_z": 2.7
-    },
-    {
-     "y": -6.0,
-     "half": 4.2,
-     "top_z": 2.72
-    },
-    {
-     "y": -8.5,
-     "half": 3.95,
-     "top_z": 2.78
-    },
-    {
-     "y": -10.5,
-     "half": 3.5,
-     "top_z": 2.85
-    },
-    {
-     "y": -11.6,
-     "half": 3.0,
-     "top_z": 2.9
-    }
-   ],
-   "stations_tag": "[추정]",
-   "stations_note": "최대 half 4.335 = beam 8.67/2 [확정]. 벽 높이(~1.4m)와 평면 곡선은 사진 비례 [추정].",
-   "thickness": 0.15,
-   "thickness_tag": "[가정]",
-   "panel_width": 1.9,
-   "panel_width_tag": "[추정]",
-   "panel_note": "방패판 칸 = 현측 포혈 간격(≈1.9 m)마다 1칸. 칸 안 세로 판재 폭 0.3 m.",
-   "panel_pattern": {
-    "type": "roundel_with_gunport",
-    "cell_centers": "gun_ports.side[].y (칸 중심 = 포혈)",
-    "roundel_diameter_frac": 0.78,
-    "roundel_diameter_max": 1.15,
-    "roundel_ring_width": 0.08,
-    "roundel_relief": 0.03,
-    "diamond_between": {
-     "w": 0.45,
-     "h_frac": 0.7,
-     "relief": 0.02,
-     "color": "#1b1b1b"
-    },
-    "iron_band_width": 0.08,
-    "iron_band_rows": [
-     "top",
-     "bottom"
+  "hull": {
+    "stations": [
+      {"y": 12.8, "bottom_half": 2.6, "sheer_half": 2.7, "keel_z": 2.3, "sheer_z": 2.45},
+      {"y": 11.8, "bottom_half": 2.2, "sheer_half": 3.0, "keel_z": 1.26, "sheer_z": 2.25},
+      {"y": 11.0, "bottom_half": 1.9, "sheer_half": 3.3, "keel_z": 0.31, "sheer_z": 2.0},
+      {"y": 9.9, "bottom_half": 1.62, "sheer_half": 3.55, "keel_z": -1.0, "sheer_z": 1.75},
+      {"y": 8.0, "bottom_half": 1.8, "sheer_half": 3.85, "keel_z": -1.25, "sheer_z": 1.55},
+      {"y": 5.0, "bottom_half": 1.93, "sheer_half": 4.05, "keel_z": -1.38, "sheer_z": 1.38},
+      {"y": 2.0, "bottom_half": 1.96, "sheer_half": 4.1, "keel_z": -1.4, "sheer_z": 1.28},
+      {"y": 0.0, "bottom_half": 1.96, "sheer_half": 4.1, "keel_z": -1.4, "sheer_z": 1.25},
+      {"y": -3.0, "bottom_half": 1.93, "sheer_half": 4.08, "keel_z": -1.4, "sheer_z": 1.25},
+      {"y": -6.0, "bottom_half": 1.8, "sheer_half": 3.95, "keel_z": -1.36, "sheer_z": 1.3},
+      {"y": -8.5, "bottom_half": 1.6, "sheer_half": 3.7, "keel_z": -1.25, "sheer_z": 1.45},
+      {"y": -9.6, "bottom_half": 1.43, "sheer_half": 3.5, "keel_z": -1.1, "sheer_z": 1.6},
+      {"y": -10.8, "bottom_half": 1.5, "sheer_half": 3.2, "keel_z": 0.3, "sheer_z": 1.85},
+      {"y": -11.8, "bottom_half": 1.9, "sheer_half": 2.9, "keel_z": 1.9, "sheer_z": 2.1},
+      {"y": -12.8, "bottom_half": 2.55, "sheer_half": 2.65, "keel_z": 2.35, "sheer_z": 2.6}
     ],
-    "post_width": 0.14,
-    "corner_bracket_size": 0.18,
-    "iron_color": "#1b1b1b",
+    "stations_tag": "[추정]",
+    "stations_note": "저판 폭비(머리12척:허리14척5촌:꼬리10척6촌, S3) → bottom_half 1.62:1.96:1.43. 현측 반폭·현호(sheer)는 사진 비례 판단([가정] 성분 포함). y=-12.8은 판옥선식 선미 연장 현판(꼬리 뿔). v2: 현호(sheer)를 낮고 평탄하게 수정 — R1/R2에서 방패판 띠 높이가 선수미까지 거의 일정 [추정].",
+    "plank_width": 0.3,
+    "plank_width_tag": "[가정]",
+    "plank_thickness": 0.12,
+    "plank_thickness_tag": "[가정]",
+    "bottom_planks": 10,
+    "bottom_planks_tag": "[확정]",
+    "bottom_planks_note": "귀선도설: 저판은 10쪽을 이어 붙임(S3).",
+    "bow_transom": {
+      "y_bottom": 9.9,
+      "z_bottom": -1.0,
+      "y_top": 12.8,
+      "z_top": 2.45,
+      "half_bottom": 1.62,
+      "half_top": 2.7,
+      "plank_direction": "horizontal",
+      "plank_count": 15,
+      "tag": "[추정]",
+      "note": "판옥선 계열 평판 이물비우(호판). 경사 약 50°. 귀면(ghost_face)이 이 면에 붙음."
+    },
+    "stern_transom": {
+      "y_bottom": -9.6,
+      "z_bottom": -1.1,
+      "y_top": -11.8,
+      "z_top": 2.1,
+      "half_bottom": 1.43,
+      "half_top": 2.9,
+      "plank_direction": "horizontal",
+      "plank_count": 14,
+      "overhang_to_y": -12.8,
+      "tag": "[추정]",
+      "note": "선미 고물비우(약한 오목 곡면: 하단은 hull stations keel_z를 따름). 현판은 -12.8까지 연장되어 키 위를 감쌈. 그 뒤로 stern_extension 난간재."
+    },
+    "waterline_stain_band": [-0.25, 0.35],
+    "waterline_stain_band_tag": "[가정]",
+    "finish": "밝은 꿀색 소나무 원목(무도장 니스 느낌), 판재 수평 이음 + 검은 철 못·꺾쇠. 흑칠 아님 [추정: R1–R3]",
+    "beam_heads": {
+      "y": [10.0, 8.0, 6.0, 4.0, 2.0, 0.0, -2.0, -4.0, -6.0, -8.0, -9.6],
+      "z_below_sheer": 0.12,
+      "section": [0.22, 0.22],
+      "protrude_beyond_wall": 0.25,
+      "tag": "[추정]",
+      "note": "가룡(가로 들보) 머리: 좌우 현측에서 사각 단면으로 돌출(상장 벽 외면 + 0.25 m). 위치 z = 해당 y의 sheer_z - 0.12. R1·R2에서 방패판 띠 바로 아래 줄지어 보임.",
+      "source_ids": ["R1", "R2"]
+    },
+    "stern_extension": {
+      "rails": 2,
+      "x": [-1.5, 1.5],
+      "start": [-11.2, 1.7],
+      "ctrl": [-14.0, 2.4],
+      "end": [-16.0, 4.4],
+      "curve": "quadratic_bezier in (y,z) per rail",
+      "section": [0.22, 0.28],
+      "crossbars_t": [0.35, 0.65, 0.95],
+      "crossbar_section": [0.14, 0.14],
+      "tag": "[추정]",
+      "note": "선미 꼬리 연장 난간재(판옥선식 고물 연장). R2 좌측·R3 좌하단에서 선미 뒤로 길게 위로 휘어 뻗는 2줄 각재 + 가로대. LOA 25.6에는 미포함(돌출 3.6 m 추가).",
+      "source_ids": ["R2", "R3"]
+    }
+  },
+  "superstructure": {
+    "wall": {
+      "stations": [
+        {"y": 12.2, "half": 2.9, "top_z": 3.0},
+        {"y": 11.5, "half": 3.4, "top_z": 2.95},
+        {"y": 10.0, "half": 3.9, "top_z": 2.85},
+        {"y": 8.0, "half": 4.2, "top_z": 2.75},
+        {"y": 5.0, "half": 4.32, "top_z": 2.7},
+        {"y": 2.0, "half": 4.335, "top_z": 2.7},
+        {"y": 0.0, "half": 4.335, "top_z": 2.7},
+        {"y": -3.0, "half": 4.32, "top_z": 2.7},
+        {"y": -6.0, "half": 4.2, "top_z": 2.72},
+        {"y": -8.5, "half": 3.95, "top_z": 2.78},
+        {"y": -10.5, "half": 3.5, "top_z": 2.85},
+        {"y": -11.6, "half": 3.0, "top_z": 2.9}
+      ],
+      "stations_tag": "[추정]",
+      "stations_note": "최대 half 4.335 = beam 8.67/2 [확정]. 벽 높이(~1.4m)와 평면 곡선은 사진 비례 [추정].",
+      "thickness": 0.15,
+      "thickness_tag": "[가정]",
+      "panel_width": 1.9,
+      "panel_width_tag": "[추정]",
+      "panel_note": "방패판 칸 = 현측 포혈 간격(≈1.9 m)마다 1칸. 칸 안 세로 판재 폭 0.3 m.",
+      "panel_pattern": {
+        "type": "roundel_with_gunport",
+        "cell_centers": "gun_ports.side[].y (칸 중심 = 포혈)",
+        "roundel_diameter_frac": 0.78,
+        "roundel_diameter_max": 1.15,
+        "roundel_ring_width": 0.08,
+        "roundel_relief": 0.03,
+        "diamond_between": {"w": 0.45, "h_frac": 0.7, "relief": 0.02, "color": "#1b1b1b"},
+        "iron_band_width": 0.08,
+        "iron_band_rows": ["top", "bottom"],
+        "post_width": 0.14,
+        "corner_bracket_size": 0.18,
+        "iron_color": "#1b1b1b",
+        "tag": "[추정]",
+        "note": "R1·R2: 칸마다 원형 판(원 안 중앙에 포혈, 링은 짙은 테), 칸 사이 검은 마름모(철장식), 상·하단 검은 철띠, 기둥 모서리 꺾쇠. 지름 = 국소 벽 높이(sheer_z~top_z) × frac, 최대 1.15 m.",
+        "source_ids": ["R1", "R2"]
+      }
+    },
+    "roof": {
+      "stations": [
+        {"y": 12.2, "half": 3.0, "eave_z": 3.0, "ridge_z": 3.45},
+        {"y": 11.5, "half": 3.5, "eave_z": 2.95, "ridge_z": 4.05},
+        {"y": 10.0, "half": 4.0, "eave_z": 2.85, "ridge_z": 4.45},
+        {"y": 8.0, "half": 4.3, "eave_z": 2.75, "ridge_z": 4.62},
+        {"y": 5.0, "half": 4.42, "eave_z": 2.7, "ridge_z": 4.66},
+        {"y": 2.0, "half": 4.44, "eave_z": 2.7, "ridge_z": 4.64},
+        {"y": 0.0, "half": 4.44, "eave_z": 2.7, "ridge_z": 4.6},
+        {"y": -3.0, "half": 4.42, "eave_z": 2.7, "ridge_z": 4.55},
+        {"y": -6.0, "half": 4.3, "eave_z": 2.72, "ridge_z": 4.45},
+        {"y": -8.5, "half": 4.05, "eave_z": 2.78, "ridge_z": 4.25},
+        {"y": -10.5, "half": 3.6, "eave_z": 2.85, "ridge_z": 3.85},
+        {"y": -11.6, "half": 3.1, "eave_z": 2.9, "ridge_z": 3.3}
+      ],
+      "stations_tag": "[추정]",
+      "stations_note": "ridge 최고 4.66 = 6.06 - draft 1.4 (총높이 [확정] + 흘수 [가정]). 선수 쪽(y≈+5)이 최고, 선미로 낮아짐 [추정].",
+      "overhang": 0.1,
+      "overhang_tag": "[가정]",
+      "profile_exponent": 2.0,
+      "profile_exponent_tag": "[가정]",
+      "thickness": 0.1,
+      "thickness_tag": "[가정]",
+      "spikes": {
+        "spacing": 0.35,
+        "height": 0.15,
+        "exclude_ridge_lane": 0.6,
+        "base_radius": 0.035,
+        "placement": "hex_vertices",
+        "placement_options": ["hex_vertices", "grid"],
+        "tag": "[추정]",
+        "height_tag": "[추정]",
+        "base_radius_tag": "[가정]",
+        "placement_tag": "[추정]",
+        "note": "철첨(송곳). placement=hex_vertices: roof.hex_cell(맞변거리 0.5 m) 육각 격자 꼭짓점에 배치(재질 roof_shell 패턴과 동일 원점·스케일), 그 경우 spacing은 무시. grid는 spacing 정방 격자(구버전). 십자 통로(용마루 길이방향 + 중앙 횡방향) 폭 안에는 배치 안 함. round1 D2: 원경 잔털 방지 위해 base_radius 0.018→0.035, height 0.12→0.15 (S8 사진의 굵은 송곳 인상 기준, 정확 실측 없음)."
+      },
+      "hex_cell": 0.5,
+      "hex_cell_tag": "[추정]",
+      "hex_cell_note": "거북등 육각 무늬 셀 맞변거리(flat-to-flat). 재질 roof_shell의 절차 패턴 스케일.",
+      "cross_walkway_width": 0.6,
+      "cross_walkway_width_tag": "[추정]",
+      "cross_walkway_y": 0.0,
+      "cross_walkway_y_tag": "[가정]",
+      "hatches": [{"y": 6.5, "w": 0.8, "l": 1.0}, {"y": -6.5, "w": 0.8, "l": 1.0}],
+      "hatches_tag": "[가정]"
+    }
+  },
+  "dragon_head": {
+    "base": [0.0, 12.3, 2.95],
+    "neck_height": 1.6,
+    "neck_radius": 0.3,
+    "neck_lean_deg": 10,
+    "head_base": [0.0, 12.58, 4.55],
+    "length": 1.6,
+    "height": 0.95,
+    "width": 0.8,
+    "pitch_deg": 8,
+    "mouth_open": 0.3,
+    "horns": {"count": 2, "length": 0.55, "angle_deg": 35},
+    "whiskers": {"count": 2, "length": 0.6},
     "tag": "[추정]",
-    "note": "R1·R2: 칸마다 원형 판(원 안 중앙에 포혈, 링은 짙은 테), 칸 사이 검은 마름모(철장식), 상·하단 검은 철띠, 기둥 모서리 꺾쇠. 지름 = 국소 벽 높이(sheer_z~top_z) × frac, 최대 1.15 m.",
-    "source_ids": [
-     "R1",
-     "R2"
-    ]
-   }
+    "note": "v2: base = 목 밑동(선수 상장 상단 중앙), 목은 neck_lean_deg 만큼 앞으로 기운 원기둥(반경 neck_radius)으로 head_base까지 솟음. 머리는 head_base에서 +Y로 length, pitch_deg 들림, 입 벌림 mouth_open(m, 입 안 포혈). 머리 상단 z≈5.0~5.6으로 용마루(4.66)보다 높음(R1·R4). 끝 y≈14.2.",
+    "source_ids": ["S3", "S6", "R1", "R4"]
   },
-  "roof": {
-   "stations": [
-    {
-     "y": 12.2,
-     "half": 3.0,
-     "eave_z": 3.0,
-     "ridge_z": 3.45
-    },
-    {
-     "y": 11.5,
-     "half": 3.5,
-     "eave_z": 2.95,
-     "ridge_z": 4.05
-    },
-    {
-     "y": 10.0,
-     "half": 4.0,
-     "eave_z": 2.85,
-     "ridge_z": 4.45
-    },
-    {
-     "y": 8.0,
-     "half": 4.3,
-     "eave_z": 2.75,
-     "ridge_z": 4.62
-    },
-    {
-     "y": 5.0,
-     "half": 4.42,
-     "eave_z": 2.7,
-     "ridge_z": 4.66
-    },
-    {
-     "y": 2.0,
-     "half": 4.44,
-     "eave_z": 2.7,
-     "ridge_z": 4.64
-    },
-    {
-     "y": 0.0,
-     "half": 4.44,
-     "eave_z": 2.7,
-     "ridge_z": 4.6
-    },
-    {
-     "y": -3.0,
-     "half": 4.42,
-     "eave_z": 2.7,
-     "ridge_z": 4.55
-    },
-    {
-     "y": -6.0,
-     "half": 4.3,
-     "eave_z": 2.72,
-     "ridge_z": 4.45
-    },
-    {
-     "y": -8.5,
-     "half": 4.05,
-     "eave_z": 2.78,
-     "ridge_z": 4.25
-    },
-    {
-     "y": -10.5,
-     "half": 3.6,
-     "eave_z": 2.85,
-     "ridge_z": 3.85
-    },
-    {
-     "y": -11.6,
-     "half": 3.1,
-     "eave_z": 2.9,
-     "ridge_z": 3.3
-    }
-   ],
-   "stations_tag": "[추정]",
-   "stations_note": "ridge 최고 4.66 = 6.06 - draft 1.4 (총높이 [확정] + 흘수 [가정]). 선수 쪽(y≈+5)이 최고, 선미로 낮아짐 [추정].",
-   "overhang": 0.1,
-   "overhang_tag": "[가정]",
-   "profile_exponent": 2.0,
-   "profile_exponent_tag": "[가정]",
-   "thickness": 0.1,
-   "thickness_tag": "[가정]",
-   "spikes": {
-    "spacing": 0.35,
-    "height": 0.15,
-    "exclude_ridge_lane": 0.6,
-    "base_radius": 0.035,
-    "placement": "hex_vertices",
-    "placement_options": [
-     "hex_vertices",
-     "grid"
-    ],
+  "ghost_face": {
+    "center": [0.0, 11.83, 1.3],
+    "width": 1.6,
+    "height": 1.2,
+    "normal_tilt_deg": -40,
+    "outward_normal": [0.0, 0.766, -0.643],
     "tag": "[추정]",
-    "height_tag": "[추정]",
-    "base_radius_tag": "[가정]",
-    "placement_tag": "[추정]",
-    "note": "철첨(송곳). placement=hex_vertices: roof.hex_cell(맞변거리 0.5 m) 육각 격자 꼭짓점에 배치(재질 roof_shell 패턴과 동일 원점·스케일), 그 경우 spacing은 무시. grid는 spacing 정방 격자(구버전). 십자 통로(용마루 길이방향 + 중앙 횡방향) 폭 안에는 배치 안 함. round1 D2: 원경 잔털 방지 위해 base_radius 0.018→0.035, height 0.12→0.15 (S8 사진의 굵은 송곳 인상 기준, 정확 실측 없음)."
-   },
-   "hex_cell": 0.5,
-   "hex_cell_tag": "[추정]",
-   "hex_cell_note": "거북등 육각 무늬 셀 맞변거리(flat-to-flat). 재질 roof_shell의 절차 패턴 스케일.",
-   "cross_walkway_width": 0.6,
-   "cross_walkway_width_tag": "[추정]",
-   "cross_walkway_y": 0.0,
-   "cross_walkway_y_tag": "[가정]",
-   "hatches": [
+    "note": "귀면(鬼面) 판: 이물비우(bow_transom) 경사면 위, center는 z=1.30에서의 면 위(y=9.9+(1.30+1.0)/1.19=11.83). 이물비우는 상단이 앞으로 나온 경사면(수평 대비 50°) → 바깥 법선은 +Y에서 아래로 40° (normal_tilt_deg 음수=아래). 귀면 판은 면에 붙이고 두께는 바깥 법선 방향으로 0.05~0.1 m 돌출.",
+    "source_ids": ["S3"]
+  },
+  "oars": {
+    "per_side": 10,
+    "per_side_tag": "[추정]",
+    "y": [6.5, 5.05, 3.6, 2.15, 0.7, -0.75, -2.2, -3.65, -5.1, -6.55],
+    "y_tag": "[가정]",
+    "port_z": 0.85,
+    "port_z_tag": "[추정]",
+    "port_x": "hull 외판(sheer_half 기준) at y — 상장 벽 아래 선체에서 나옴 (좌우 ±)",
+    "length": 7.0,
+    "length_tag": "[추정]",
+    "length_note": "기존 복원안 7~8m(S5 보도). 학술복원은 5m 내외 단노 주장도 있음 → 불확실.",
+    "inboard_fraction": 0.3,
+    "angle_deg": 14,
+    "angle_deg_tag": "[가정]",
+    "angle_note": "수평 아래 14°: 날 끝이 수면 아래 약 0.3 m. R1/R2(실내 전시)는 ~35°로 바닥에 닿게 세워져 있으나 항구 정박 연출에선 14° [가정].",
+    "blade_width": 0.22,
+    "blade_length": 1.4,
+    "source_ids": ["S3", "S5", "S6", "R1", "R2"]
+  },
+  "gun_ports": {
+    "side": [
+      {"y": 10.4, "z": 2.37},
+      {"y": 8.4, "z": 2.18},
+      {"y": 6.5, "z": 2.09},
+      {"y": 4.6, "z": 2.03},
+      {"y": 2.7, "z": 2.0},
+      {"y": 0.8, "z": 1.98},
+      {"y": -1.1, "z": 1.98},
+      {"y": -3.0, "z": 1.98},
+      {"y": -4.9, "z": 2.0},
+      {"y": -6.8, "z": 2.04},
+      {"y": -8.7, "z": 2.13}
+    ],
+    "side_tag": "[추정]",
+    "side_note": "현측 각 11문(S6, R1/R2에서 원형 문양 수와 일치). z = 국소 벽 높이 중앙(원형 문양 중심) [추정].",
+    "bow": [{"x": -1.05, "y": 12.2, "z": 2.72}, {"x": 1.05, "y": 12.2, "z": 2.72}],
+    "bow_tag": "[추정]",
+    "bow_note": "선수 막음벽 2문 + 용두 입(dragon_head) 1문.",
+    "stern": [{"x": -0.9, "y": -11.6, "z": 2.6}, {"x": 0.9, "y": -11.6, "z": 2.6}],
+    "stern_tag": "[추정]",
+    "size": 0.32,
+    "size_tag": "[가정]",
+    "shape": "square_with_frame",
+    "source_ids": ["S6"]
+  },
+  "masts": [
     {
-     "y": 6.5,
-     "w": 0.8,
-     "l": 1.0
+      "y": 5.8,
+      "base_z": 1.38,
+      "height": 12.0,
+      "diameter": 0.32,
+      "lowered": false,
+      "sail": {
+        "w": 5.6,
+        "h": 7.0,
+        "bottom_z": 4.9,
+        "state": "raised",
+        "type": "batten_lug",
+        "battens": 11,
+        "batten_diameter": 0.07,
+        "yaw_deg": 45,
+        "mast_offset_frac": 0.4,
+        "color": "#C8A46E"
+      }
     },
     {
-     "y": -6.5,
-     "w": 0.8,
-     "l": 1.0
+      "y": -1.2,
+      "base_z": 1.25,
+      "height": 14.5,
+      "diameter": 0.38,
+      "lowered": false,
+      "sail": {
+        "w": 6.6,
+        "h": 8.5,
+        "bottom_z": 5.0,
+        "state": "raised",
+        "type": "batten_lug",
+        "battens": 13,
+        "batten_diameter": 0.08,
+        "yaw_deg": 135,
+        "mast_offset_frac": 0.4,
+        "color": "#C8A46E"
+      }
     }
-   ],
-   "hatches_tag": "[가정]"
-  }
- },
- "dragon_head": {
-  "base": [
-   0.0,
-   12.3,
-   2.95
   ],
-  "neck_height": 1.6,
-  "neck_radius": 0.3,
-  "neck_lean_deg": 10,
-  "head_base": [
-   0.0,
-   12.58,
-   4.55
-  ],
-  "length": 1.6,
-  "height": 0.95,
-  "width": 0.8,
-  "pitch_deg": 8,
-  "mouth_open": 0.3,
-  "horns": {
-   "count": 2,
-   "length": 0.55,
-   "angle_deg": 35
+  "masts_tag": "[추정]",
+  "masts_note": "돛대 2개(S5 눕힘 가능 구조, lowered=false). v2: R1/R4에서 세운 대살 돛(batten sail: 황갈 마포 + 수평 대나무 살 10여 개) 2폭 → state 'raised'. sail: 직사각 w×h, 하단 bottom_z, 상단 yard·하단 boom 포함, 살(battens) 등간격. yaw_deg = 돛 평면이 선체 중심선(전후 방향)과 이루는 각(0=전후, 90=횡방향), 사진 비례로 추정. mast_offset_frac = 돛 폭 방향에서 돛대 위치(앞전 기준 비율). height는 base_z부터. h/w 비는 R1(≈1.25~1.3). v2 yaw: 앞돛 45°(R1에서 정면, R4에서 좁게), 큰돛 135°(R1·R2에서 거의 모서리로 보임) — 두 돛을 서로 다르게 돌린 상태 [추정].",
+  "masts_source_ids": ["S5", "R1", "R4"],
+  "rudder": {
+    "y": -12.0,
+    "top_z": 2.4,
+    "depth": 3.3,
+    "width": 1.4,
+    "thickness": 0.15,
+    "stock_diameter": 0.3,
+    "tag": "[가정]",
+    "note": "선미 중앙 수직 키. 하단 z = top_z - depth = -0.9 (저판보다 얕게)."
   },
-  "whiskers": {
-   "count": 2,
-   "length": 0.6
+  "flags": [
+    {"pos": [0.0, 5.8, 13.3], "size": [1.6, 1.0], "color": "#C8102E", "pole": "mast0_top"},
+    {"pos": [0.0, -1.2, 15.7], "size": [2.0, 1.3], "color": "#F2C300", "pole": "mast1_top"},
+    {"pos": [-1.6, -11.2, 5.4], "size": [1.4, 1.0], "color": "#1F4E9C", "pole": "stern_port", "pole_base_z": 2.9},
+    {"pos": [1.6, -11.2, 5.4], "size": [1.4, 1.0], "color": "#C8102E", "pole": "stern_starboard", "pole_base_z": 2.9}
+  ],
+  "flags_tag": "[가정]",
+  "flags_note": "pos = 깃발 상단 깃대측 모서리. 바람 방향(+X 쪽으로 펄럭) 가정. 색은 오방색 계열. v2: 돛대 높이 변경에 맞춰 상단 깃발 z 조정(돛 상단보다 위).",
+  "site": {
+    "water_z": 0.0,
+    "water_size": 400.0,
+    "pier": {
+      "type": "stone_quay",
+      "x_min": -22.0,
+      "x_max": -10.5,
+      "y_min": -30.0,
+      "y_max": 30.0,
+      "top_z": 1.2,
+      "bottom_z": -3.0,
+      "cap_stone": {"height": 0.3, "depth": 0.6},
+      "block_size": [1.2, 0.6, 0.5],
+      "bollards": [{"x": -11.3, "y": 9.0}, {"x": -11.3, "y": -9.0}],
+      "mooring_lines": [{"from_bollard": 0, "to": [-4.2, 9.5, 2.0]}, {"from_bollard": 1, "to": [-3.7, -9.5, 2.0]}],
+      "tag": "[가정]",
+      "note": "선체 서쪽(좌현) 석축 안벽. 안벽 끝 x=-10.5 (노 끝 x≈-8.9보다 1.6m 바깥). 촬영 카메라는 이 안벽 위."
+    },
+    "shore": {
+      "type": "flat_ground",
+      "x_min": -60.0,
+      "x_max": -22.0,
+      "y_min": -60.0,
+      "y_max": 60.0,
+      "z": 1.2,
+      "tag": "[가정]",
+      "note": "안벽 뒤 평지(포장/잔디). 단순 평면."
+    },
+    "background_hills": {"direction_deg": 70, "distance": 900, "height": 120, "tag": "[가정]", "note": "선택 사항: 동북쪽 원경 섬 실루엣(통영 느낌)."}
   },
-  "tag": "[추정]",
-  "note": "v2: base = 목 밑동(선수 상장 상단 중앙), 목은 neck_lean_deg 만큼 앞으로 기운 원기둥(반경 neck_radius)으로 head_base까지 솟음. 머리는 head_base에서 +Y로 length, pitch_deg 들림, 입 벌림 mouth_open(m, 입 안 포혈). 머리 상단 z≈5.0~5.6으로 용마루(4.66)보다 높음(R1·R4). 끝 y≈14.2.",
-  "source_ids": [
-   "S3",
-   "S6",
-   "R1",
-   "R4"
-  ]
- },
- "ghost_face": {
-  "center": [
-   0.0,
-   11.83,
-   1.3
-  ],
-  "width": 1.6,
-  "height": 1.2,
-  "normal_tilt_deg": -40,
-  "outward_normal": [
-   0.0,
-   0.766,
-   -0.643
-  ],
-  "tag": "[추정]",
-  "note": "귀면(鬼面) 판: 이물비우(bow_transom) 경사면 위, center는 z=1.30에서의 면 위(y=9.9+(1.30+1.0)/1.19=11.83). 이물비우는 상단이 앞으로 나온 경사면(수평 대비 50°) → 바깥 법선은 +Y에서 아래로 40° (normal_tilt_deg 음수=아래). 귀면 판은 면에 붙이고 두께는 바깥 법선 방향으로 0.05~0.1 m 돌출.",
-  "source_ids": [
-   "S3"
-  ]
- },
- "oars": {
-  "per_side": 10,
-  "per_side_tag": "[추정]",
-  "y": [
-   6.5,
-   5.05,
-   3.6,
-   2.15,
-   0.7,
-   -0.75,
-   -2.2,
-   -3.65,
-   -5.1,
-   -6.55
-  ],
-  "y_tag": "[가정]",
-  "port_z": 0.85,
-  "port_z_tag": "[추정]",
-  "port_x": "hull 외판(sheer_half 기준) at y — 상장 벽 아래 선체에서 나옴 (좌우 ±)",
-  "length": 7.0,
-  "length_tag": "[추정]",
-  "length_note": "기존 복원안 7~8m(S5 보도). 학술복원은 5m 내외 단노 주장도 있음 → 불확실.",
-  "inboard_fraction": 0.3,
-  "angle_deg": 14,
-  "angle_deg_tag": "[가정]",
-  "angle_note": "수평 아래 14°: 날 끝이 수면 아래 약 0.3 m. R1/R2(실내 전시)는 ~35°로 바닥에 닿게 세워져 있으나 항구 정박 연출에선 14° [가정].",
-  "blade_width": 0.22,
-  "blade_length": 1.4,
-  "source_ids": [
-   "S3",
-   "S5",
-   "S6",
-   "R1",
-   "R2"
-  ]
- },
- "gun_ports": {
-  "side": [
-   {
-    "y": 10.4,
-    "z": 2.37
-   },
-   {
-    "y": 8.4,
-    "z": 2.18
-   },
-   {
-    "y": 6.5,
-    "z": 2.09
-   },
-   {
-    "y": 4.6,
-    "z": 2.03
-   },
-   {
-    "y": 2.7,
-    "z": 2.0
-   },
-   {
-    "y": 0.8,
-    "z": 1.98
-   },
-   {
-    "y": -1.1,
-    "z": 1.98
-   },
-   {
-    "y": -3.0,
-    "z": 1.98
-   },
-   {
-    "y": -4.9,
-    "z": 2.0
-   },
-   {
-    "y": -6.8,
-    "z": 2.04
-   },
-   {
-    "y": -8.7,
-    "z": 2.13
-   }
-  ],
-  "side_tag": "[추정]",
-  "side_note": "현측 각 11문(S6, R1/R2에서 원형 문양 수와 일치). z = 국소 벽 높이 중앙(원형 문양 중심) [추정].",
-  "bow": [
-   {
-    "x": -1.05,
-    "y": 12.2,
-    "z": 2.72
-   },
-   {
-    "x": 1.05,
-    "y": 12.2,
-    "z": 2.72
-   }
-  ],
-  "bow_tag": "[추정]",
-  "bow_note": "선수 막음벽 2문 + 용두 입(dragon_head) 1문.",
-  "stern": [
-   {
-    "x": -0.9,
-    "y": -11.6,
-    "z": 2.6
-   },
-   {
-    "x": 0.9,
-    "y": -11.6,
-    "z": 2.6
-   }
-  ],
-  "stern_tag": "[추정]",
-  "size": 0.32,
-  "size_tag": "[가정]",
-  "shape": "square_with_frame",
-  "source_ids": [
-   "S6"
-  ]
- },
- "masts": [
-  {
-   "y": 5.8,
-   "base_z": 1.38,
-   "height": 12.0,
-   "diameter": 0.32,
-   "lowered": false,
-   "sail": {
-    "w": 5.6,
-    "h": 7.0,
-    "bottom_z": 4.9,
-    "state": "raised",
-    "type": "batten_lug",
-    "battens": 11,
-    "batten_diameter": 0.07,
-    "yaw_deg": 45,
-    "mast_offset_frac": 0.4,
-    "color": "#C8A46E"
-   }
+  "sun": {
+    "azimuth_deg": 200,
+    "elevation_deg": 35,
+    "tag": "[가정]",
+    "note": "늦은 오후 서쪽 해(round1 D4: 230°/25° → 260°/32°, bow34 역광 완화). 좌현(서) 쪽 순광. | v2 오케스트레이터: 참고사진 side·stern34가 우현 선미 3/4라 260°(서)는 우현을 그늘지게 함 → 200°/35°로 좌현 선수(bow34)와 선미면(side·stern34)을 모두 순광~측광으로."
   },
-  {
-   "y": -1.2,
-   "base_z": 1.25,
-   "height": 14.5,
-   "diameter": 0.38,
-   "lowered": false,
-   "sail": {
-    "w": 6.6,
-    "h": 8.5,
-    "bottom_z": 5.0,
-    "state": "raised",
-    "type": "batten_lug",
-    "battens": 13,
-    "batten_diameter": 0.08,
-    "yaw_deg": 135,
-    "mast_offset_frac": 0.4,
-    "color": "#C8A46E"
-   }
-  }
- ],
- "masts_tag": "[추정]",
- "masts_note": "돛대 2개(S5 눕힘 가능 구조, lowered=false). v2: R1/R4에서 세운 대살 돛(batten sail: 황갈 마포 + 수평 대나무 살 10여 개) 2폭 → state 'raised'. sail: 직사각 w×h, 하단 bottom_z, 상단 yard·하단 boom 포함, 살(battens) 등간격. yaw_deg = 돛 평면이 선체 중심선(전후 방향)과 이루는 각(0=전후, 90=횡방향), 사진 비례로 추정. mast_offset_frac = 돛 폭 방향에서 돛대 위치(앞전 기준 비율). height는 base_z부터. h/w 비는 R1(≈1.25~1.3). v2 yaw: 앞돛 45°(R1에서 정면, R4에서 좁게), 큰돛 135°(R1·R2에서 거의 모서리로 보임) — 두 돛을 서로 다르게 돌린 상태 [추정].",
- "masts_source_ids": [
-  "S5",
-  "R1",
-  "R4"
- ],
- "rudder": {
-  "y": -12.0,
-  "top_z": 2.4,
-  "depth": 3.3,
-  "width": 1.4,
-  "thickness": 0.15,
-  "stock_diameter": 0.3,
-  "tag": "[가정]",
-  "note": "선미 중앙 수직 키. 하단 z = top_z - depth = -0.9 (저판보다 얕게)."
- },
- "flags": [
-  {
-   "pos": [
-    0.0,
-    5.8,
-    13.3
-   ],
-   "size": [
-    1.6,
-    1.0
-   ],
-   "color": "#C8102E",
-   "pole": "mast0_top"
-  },
-  {
-   "pos": [
-    0.0,
-    -1.2,
-    15.7
-   ],
-   "size": [
-    2.0,
-    1.3
-   ],
-   "color": "#F2C300",
-   "pole": "mast1_top"
-  },
-  {
-   "pos": [
-    -1.6,
-    -11.2,
-    5.4
-   ],
-   "size": [
-    1.4,
-    1.0
-   ],
-   "color": "#1F4E9C",
-   "pole": "stern_port",
-   "pole_base_z": 2.9
-  },
-  {
-   "pos": [
-    1.6,
-    -11.2,
-    5.4
-   ],
-   "size": [
-    1.4,
-    1.0
-   ],
-   "color": "#C8102E",
-   "pole": "stern_starboard",
-   "pole_base_z": 2.9
-  }
- ],
- "flags_tag": "[가정]",
- "flags_note": "pos = 깃발 상단 깃대측 모서리. 바람 방향(+X 쪽으로 펄럭) 가정. 색은 오방색 계열. v2: 돛대 높이 변경에 맞춰 상단 깃발 z 조정(돛 상단보다 위).",
- "site": {
-  "water_z": 0.0,
-  "water_size": 400.0,
-  "pier": {
-   "type": "stone_quay",
-   "x_min": -22.0,
-   "x_max": -10.5,
-   "y_min": -30.0,
-   "y_max": 30.0,
-   "top_z": 1.2,
-   "bottom_z": -3.0,
-   "cap_stone": {
-    "height": 0.3,
-    "depth": 0.6
-   },
-   "block_size": [
-    1.2,
-    0.6,
-    0.5
-   ],
-   "bollards": [
+  "views": [
     {
-     "x": -11.3,
-     "y": 9.0
+      "id": "bow34",
+      "name": "Port bow 3/4, low eye level (small boat just off quay)",
+      "cam": [-9.9, 14.62, 1.3],
+      "look_at": [2.29, 4.32, 5.69],
+      "lens_mm": 23,
+      "sensor_mm": 36,
+      "sensor_fit": "HORIZONTAL",
+      "shift_x": 0.0,
+      "shift_y": 0.0,
+      "ref_aspect": 1.3333,
+      "ref": "refs/ref_bow34.jpg",
+      "tag": "[추정]",
+      "ref_match_note": "R1: 좌현 선수 3/4. 랜드마크 4점(선수·선미 벽 상단 모서리, 선수·선미 저판 끝) LM 피팅 → 선수 벽 모서리 오차 ≈1 px@500. 선체가 화면 폭 u 0.21–0.96, 용두 좌상단(u≈0.05–0.18, v≈0.37–0.45), 앞돛 u 0.42–0.60. 사진은 거치대 위 선체를 바닥에서 올려본 시점(눈≈저판+0.6 m)이라 수면 위 z=1.3(소형 보트 높이)으로 대체, 위로 약 15° 올려봄. 저판 쪽 점은 실내 거치 차이로 큰 잔차(무시).",
+      "source_ids": ["R1"],
+      "sun": {
+        "azimuth_deg": 310,
+        "elevation_deg": 25,
+        "tag": "[가정]",
+        "note": "카메라 방위 326° 기준 16° 옆·뒤. 좌현 cos≈0.69, 선수면 0.58, 이물비우(귀면, 법선 아래 40°) 0.17로 겨우 순광 — 고도를 25°로 낮춘 이유. 제안값 300/40은 귀면이 그늘(−0.1).",
+        "lambert": {"port": 0.69, "stb": -0.69, "bow": 0.58, "stern": -0.58, "transom": 0.17, "up": 0.42}
+      }
     },
     {
-     "x": -11.3,
-     "y": -9.0
-    }
-   ],
-   "mooring_lines": [
-    {
-     "from_bollard": 0,
-     "to": [
-      -4.2,
-      9.5,
-      2.0
-     ]
+      "id": "side",
+      "name": "Starboard quarter, near-broadside low view (montage-like wide)",
+      "cam": [13.06, -17.83, 1.8],
+      "look_at": [-3.29, -3.55, 1.16],
+      "lens_mm": 24,
+      "sensor_mm": 36,
+      "sensor_fit": "HORIZONTAL",
+      "shift_x": 0.0,
+      "shift_y": 0.0,
+      "ref_aspect": 1.8868,
+      "ref": "refs/ref_side.jpg",
+      "tag": "[추정]",
+      "ref_match_note": "R2: 선미가 화면 왼쪽·선수가 오른쪽 → 좌현이 아니라 **우현** 측면(선미 쪽에서 비스듬히, 선미가 선수보다 약 2배 크게 보임). 랜드마크 4점 피팅 잔차 ≤12 px@500. 몽타주(2장 합성) 원근 왜곡이 있어 lens는 근사. 동쪽 수면 위 z=1.8. round2 D2: lens 26→24, 시선 2.2° 선미 쪽으로 회전 → 선미 꼬리재 끝 u≈0.05–0.08로 프레임 안.",
+      "source_ids": ["R2"],
+      "sun": {
+        "azimuth_deg": 115,
+        "elevation_deg": 35,
+        "tag": "[가정]",
+        "note": "카메라 방위 144° 기준 29° 옆. 우현 0.74, 선미면 0.35, 개판 0.57 → 우현 측광, 선미 꼬리재 윤곽.",
+        "lambert": {"port": -0.74, "stb": 0.74, "bow": -0.35, "stern": 0.35, "transom": -0.63, "up": 0.57}
+      }
     },
     {
-     "from_bollard": 1,
-     "to": [
-      -3.7,
-      -9.5,
-      2.0
-     ]
+      "id": "stern34",
+      "name": "Starboard stern quarter, high (gallery height ~8.5 m)",
+      "cam": [7.08, -25.58, 8.56],
+      "look_at": [0.34, -0.32, 0.2],
+      "lens_mm": 48,
+      "sensor_mm": 36,
+      "sensor_fit": "HORIZONTAL",
+      "shift_x": 0.0,
+      "shift_y": 0.0,
+      "ref_aspect": 0.666,
+      "ref": "refs/ref_stern34.jpg",
+      "tag": "[추정]",
+      "ref_match_note": "R3: 선미면(창)이 좌하단, 우현 벽이 우상향으로 선수까지 → 선미 우현 3/4, 2층 회랑 높이에서 내려봄(시선 약 17° 하향). 5점 피팅 잔차 ≤35 px@500(선체 중앙·저판 점). 세로 사진, 남남동 수면 위 z=8.6(드론/회랑 높이). round2 D2: lens 43→48, look_at z 0.2, 시선 1.6° 좌회전 → 배가 좌하단을 더 채움(선미 좌현 모서리 u≈0.01, 사진 0.045). 50 mm는 사진보다 배가 커져 모서리가 잘려 48 채택.",
+      "source_ids": ["R3"],
+      "sun": {
+        "azimuth_deg": 135,
+        "elevation_deg": 42,
+        "tag": "[가정]",
+        "note": "카메라 방위 164° 기준 29° 옆. 선미면 0.53, 우현 0.53, 개판 0.67. 제안값 160/40은 카메라와 거의 같은 방위(평판한 정면광)라 측광 쪽으로 돌림.",
+        "lambert": {"port": -0.53, "stb": 0.53, "bow": -0.53, "stern": 0.53, "transom": -0.83, "up": 0.67}
+      }
+    },
+    {
+      "id": "aerial",
+      "name": "Bow-on high oblique aerial from north",
+      "cam": [-0.22, 28.47, 12.09],
+      "look_at": [-1.36, -0.71, 5.27],
+      "lens_mm": 46,
+      "sensor_mm": 36,
+      "sensor_fit": "HORIZONTAL",
+      "shift_x": 0.0,
+      "shift_y": 0.0,
+      "ref_aspect": 0.75,
+      "ref": "refs/ref_aerial.jpg",
+      "tag": "[추정]",
+      "ref_match_note": "R4: 용두·선수면이 화면 하단 중앙, 선체가 위(선미)로 뻗음 → 선수 정면 상공 조감. 6점 피팅 잔차 ≤14 px@500 → 높이 ≈12 m, 선체 중심까지 내려봄 각 ≈13°(화면 하단 ~45°): '거의 수직'이 아니라 2층 난간에서 본 사선 조감. 바닥 타일 원근도 이와 일치. 북쪽 수면 위.",
+      "source_ids": ["R4"],
+      "sun": {
+        "azimuth_deg": 30,
+        "elevation_deg": 38,
+        "tag": "[가정]",
+        "note": "카메라 방위 0° 기준 30° 옆. 개판 0.62, 선수면 0.68, 우현 0.39, 이물비우 0.13(귀면 약순광), 좌현 그늘 → 입체감. 제안값 20/50은 귀면 그늘(−0.03).",
+        "lambert": {"port": -0.39, "stb": 0.39, "bow": 0.68, "stern": -0.68, "transom": 0.13, "up": 0.62}
+      }
     }
-   ],
-   "tag": "[가정]",
-   "note": "선체 서쪽(좌현) 석축 안벽. 안벽 끝 x=-10.5 (노 끝 x≈-8.9보다 1.6m 바깥). 촬영 카메라는 이 안벽 위."
-  },
-  "shore": {
-   "type": "flat_ground",
-   "x_min": -60.0,
-   "x_max": -22.0,
-   "y_min": -60.0,
-   "y_max": 60.0,
-   "z": 1.2,
-   "tag": "[가정]",
-   "note": "안벽 뒤 평지(포장/잔디). 단순 평면."
-  },
-  "background_hills": {
-   "direction_deg": 70,
-   "distance": 900,
-   "height": 120,
-   "tag": "[가정]",
-   "note": "선택 사항: 동북쪽 원경 섬 실루엣(통영 느낌)."
-  }
- },
- "sun": {
-  "azimuth_deg": 200,
-  "elevation_deg": 35,
-  "tag": "[가정]",
-  "note": "늦은 오후 서쪽 해(round1 D4: 230°/25° → 260°/32°, bow34 역광 완화). 좌현(서) 쪽 순광. | v2 오케스트레이터: 참고사진 side·stern34가 우현 선미 3/4라 260°(서)는 우현을 그늘지게 함 → 200°/35°로 좌현 선수(bow34)와 선미면(side·stern34)을 모두 순광~측광으로."
- },
- "views": [
-  {
-   "id": "bow34",
-   "name": "Port bow 3/4, low eye level (small boat just off quay)",
-   "cam": [
-    -9.9,
-    14.62,
-    1.3
-   ],
-   "look_at": [
-    2.29,
-    4.32,
-    5.69
-   ],
-   "lens_mm": 23,
-   "sensor_mm": 36,
-   "sensor_fit": "HORIZONTAL",
-   "shift_x": 0.0,
-   "shift_y": 0.0,
-   "ref_aspect": 1.3333,
-   "ref": "refs/ref_bow34.jpg",
-   "tag": "[추정]",
-   "ref_match_note": "R1: 좌현 선수 3/4. 랜드마크 4점(선수·선미 벽 상단 모서리, 선수·선미 저판 끝) LM 피팅 → 선수 벽 모서리 오차 ≈1 px@500. 선체가 화면 폭 u 0.21–0.96, 용두 좌상단(u≈0.05–0.18, v≈0.37–0.45), 앞돛 u 0.42–0.60. 사진은 거치대 위 선체를 바닥에서 올려본 시점(눈≈저판+0.6 m)이라 수면 위 z=1.3(소형 보트 높이)으로 대체, 위로 약 15° 올려봄. 저판 쪽 점은 실내 거치 차이로 큰 잔차(무시).",
-   "source_ids": [
-    "R1"
-   ]
-  },
-  {
-   "id": "side",
-   "name": "Starboard quarter, near-broadside low view (montage-like wide)",
-   "cam": [
-    13.06,
-    -17.83,
-    1.8
-   ],
-   "look_at": [
-    -2.73,
-    -2.93,
-    1.16
-   ],
-   "lens_mm": 26,
-   "sensor_mm": 36,
-   "sensor_fit": "HORIZONTAL",
-   "shift_x": 0.0,
-   "shift_y": 0.0,
-   "ref_aspect": 1.8868,
-   "ref": "refs/ref_side.jpg",
-   "tag": "[추정]",
-   "ref_match_note": "R2: 선미가 화면 왼쪽·선수가 오른쪽 → 좌현이 아니라 **우현** 측면(선미 쪽에서 비스듬히, 선미가 선수보다 약 2배 크게 보임). 랜드마크 4점 피팅 잔차 ≤12 px@500. 몽타주(2장 합성) 원근 왜곡이 있어 lens는 근사. 동쪽 수면 위 z=1.8.",
-   "source_ids": [
-    "R2"
-   ]
-  },
-  {
-   "id": "stern34",
-   "name": "Starboard stern quarter, high (gallery height ~8.5 m)",
-   "cam": [
-    7.08,
-    -25.58,
-    8.56
-   ],
-   "look_at": [
-    1.05,
-    -0.14,
-    0.74
-   ],
-   "lens_mm": 43,
-   "sensor_mm": 36,
-   "sensor_fit": "HORIZONTAL",
-   "shift_x": 0.0,
-   "shift_y": 0.0,
-   "ref_aspect": 0.666,
-   "ref": "refs/ref_stern34.jpg",
-   "tag": "[추정]",
-   "ref_match_note": "R3: 선미면(창)이 좌하단, 우현 벽이 우상향으로 선수까지 → 선미 우현 3/4, 2층 회랑 높이에서 내려봄(시선 약 17° 하향). 5점 피팅 잔차 ≤35 px@500(선체 중앙·저판 점). 세로 사진, 남남동 수면 위 z=8.6(드론/회랑 높이).",
-   "source_ids": [
-    "R3"
-   ]
-  },
-  {
-   "id": "aerial",
-   "name": "Bow-on high oblique aerial from north",
-   "cam": [
-    -0.22,
-    28.47,
-    12.09
-   ],
-   "look_at": [
-    -1.36,
-    -0.71,
-    5.27
-   ],
-   "lens_mm": 46,
-   "sensor_mm": 36,
-   "sensor_fit": "HORIZONTAL",
-   "shift_x": 0.0,
-   "shift_y": 0.0,
-   "ref_aspect": 0.75,
-   "ref": "refs/ref_aerial.jpg",
-   "tag": "[추정]",
-   "ref_match_note": "R4: 용두·선수면이 화면 하단 중앙, 선체가 위(선미)로 뻗음 → 선수 정면 상공 조감. 6점 피팅 잔차 ≤14 px@500 → 높이 ≈12 m, 선체 중심까지 내려봄 각 ≈13°(화면 하단 ~45°): '거의 수직'이 아니라 2층 난간에서 본 사선 조감. 바닥 타일 원근도 이와 일치. 북쪽 수면 위.",
-   "source_ids": [
-    "R4"
-   ]
-  }
- ],
- "flythrough": {
-  "fps": 24,
-  "seconds": 24,
-  "interp": "catmull_rom_nonuniform_t (gen_drawings.py: interp_flythrough)",
-  "keys": [
-   {
-    "t": 0.0,
-    "cam": [
-     16.0,
-     -22.0,
-     1.3
-    ],
-    "look_at": [
-     0.0,
-     -2.0,
-     1.6
-    ],
-    "lens_mm": 28
-   },
-   {
-    "t": 3.5,
-    "cam": [
-     17.5,
-     -4.0,
-     1.6
-    ],
-    "look_at": [
-     0.0,
-     2.0,
-     1.9
-    ],
-    "lens_mm": 28
-   },
-   {
-    "t": 7.0,
-    "cam": [
-     12.5,
-     13.5,
-     2.6
-    ],
-    "look_at": [
-     0.0,
-     9.0,
-     2.6
-    ],
-    "lens_mm": 32
-   },
-   {
-    "t": 10.0,
-    "cam": [
-     3.5,
-     19.5,
-     3.9
-    ],
-    "look_at": [
-     0.0,
-     13.3,
-     3.6
-    ],
-    "lens_mm": 40
-   },
-   {
-    "t": 13.0,
-    "cam": [
-     -6.0,
-     19.5,
-     3.8
-    ],
-    "look_at": [
-     0.0,
-     12.0,
-     3.0
-    ],
-    "lens_mm": 35
-   },
-   {
-    "t": 16.5,
-    "cam": [
-     -12.0,
-     6.0,
-     3.6
-    ],
-    "look_at": [
-     -6.0,
-     1.5,
-     1.0
-    ],
-    "lens_mm": 28
-   },
-   {
-    "t": 19.5,
-    "cam": [
-     -14.0,
-     -11.0,
-     6.0
-    ],
-    "look_at": [
-     -3.0,
-     -3.0,
-     1.5
-    ],
-    "lens_mm": 30
-   },
-   {
-    "t": 24.0,
-    "cam": [
-     -30.0,
-     -32.0,
-     27.0
-    ],
-    "look_at": [
-     0.0,
-     0.0,
-     1.5
-    ],
-    "lens_mm": 35
-   }
   ],
-  "tag": "[가정]",
-  "note": "남동 저공 → 동측 → 용두 클로즈업 → 북서 → 좌현 노(안벽 위 상공) → 남서 상승 조감. 약 270° 회전. 충돌 검사는 gen_drawings.py check_flythrough()."
- }
+  "flythrough": {
+    "fps": 24,
+    "seconds": 24,
+    "interp": "catmull_rom_nonuniform_t (gen_drawings.py: interp_flythrough)",
+    "keys": [
+      {"t": 0.0, "cam": [16.0, -22.0, 1.3], "look_at": [0.0, -2.0, 1.6], "lens_mm": 28},
+      {"t": 3.5, "cam": [17.5, -4.0, 1.6], "look_at": [0.0, 2.0, 1.9], "lens_mm": 28},
+      {"t": 7.0, "cam": [12.5, 13.5, 2.6], "look_at": [0.0, 9.0, 2.6], "lens_mm": 32},
+      {"t": 10.0, "cam": [3.5, 19.5, 3.9], "look_at": [0.0, 13.3, 3.6], "lens_mm": 40},
+      {"t": 13.0, "cam": [-6.0, 19.5, 3.8], "look_at": [0.0, 12.0, 3.0], "lens_mm": 35},
+      {"t": 16.5, "cam": [-12.0, 6.0, 3.6], "look_at": [-6.0, 1.5, 1.0], "lens_mm": 28},
+      {"t": 19.5, "cam": [-14.0, -11.0, 6.0], "look_at": [-3.0, -3.0, 1.5], "lens_mm": 30},
+      {"t": 24.0, "cam": [-30.0, -32.0, 27.0], "look_at": [0.0, 0.0, 1.5], "lens_mm": 35}
+    ],
+    "tag": "[가정]",
+    "note": "남동 저공 → 동측 → 용두 클로즈업 → 북서 → 좌현 노(안벽 위 상공) → 남서 상승 조감. 약 270° 회전. 충돌 검사는 gen_drawings.py check_flythrough()."
+  }
 }

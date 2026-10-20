@@ -933,30 +933,24 @@ def mat_water(name="water", foam_attr="hull_dist", foam_width=0.6):
     fn = g.nfac(Wd, 8.0, 6.0, 0.62, dist=0.3)
     foam = g.smooth(g.m("ADD", band, g.m("MULTIPLY", g.m("SUBTRACT", fn, 0.5), 0.9)), 0.6, 0.85)
     foam = g.m("MULTIPLY", foam, has)
-    # 셰이더
+    # 셰이더 (Cycles: Principled 1개 — 투과 0.8 + 청록 확산 몸체 0.2, 거품은 값 수준 혼합 → 클로저 최소)
     body = g.mix(g.smooth(n1, 0.3, 0.7), (0.012, 0.045, 0.042), (0.020, 0.062, 0.055))
-    glass = g.principled(Base_Color=(0.85, 0.97, 0.95), Roughness=rough, IOR=1.333, Normal=nrm,
-                         Transmission_Weight=1.0)
-    diff = g.principled(Base_Color=body, Roughness=rough, IOR=1.333, Normal=nrm, Specular_IOR_Level=0.0)
-    mx = g.node("ShaderNodeMixShader", {"Fac": 0.2})
-    g.nt.links.new(g.o(glass, "BSDF"), mx.inputs[1])
-    g.nt.links.new(g.o(diff, "BSDF"), mx.inputs[2])
-    foam_b = g.principled(Base_Color=(0.62, 0.66, 0.66), Roughness=0.55, Normal=nrm, Specular_IOR_Level=0.3)
-    mxf = g.node("ShaderNodeMixShader", {"Fac": foam})
-    g.nt.links.new(g.o(mx, "Shader"), mxf.inputs[1])
-    g.nt.links.new(g.o(foam_b, "BSDF"), mxf.inputs[2])
+    foam_c = (0.62, 0.66, 0.66)
+    ccol = g.mix(foam, body, foam_c)
+    trans = g.m("MULTIPLY", g.m("SUBTRACT", 1.0, foam), 0.8)
+    crough = g.mixf(foam, rough, 0.55)
+    mxf = g.principled(Base_Color=ccol, Roughness=crough, IOR=1.333, Normal=nrm,
+                       Transmission_Weight=trans)
     vol = g.node("ShaderNodeVolumeAbsorption", {"Color": (0.25, 0.45, 0.42), "Density": 0.6})
     outc = g.node("ShaderNodeOutputMaterial", target="CYCLES")
-    g.nt.links.new(g.o(mxf, "Shader"), _sock(outc.inputs, "Surface"))
+    g.nt.links.new(g.o(mxf, "BSDF"), _sock(outc.inputs, "Surface"))
     g.nt.links.new(g.o(vol, "Volume"), _sock(outc.inputs, "Volume"))
     # EEVEE: 불투명 반사 물 (예전 방식) + 거품
     ecol = g.mix(g.smooth(n1, 0.3, 0.7), (0.004, 0.015, 0.018), (0.008, 0.028, 0.030))
-    eb = g.principled(Base_Color=ecol, Roughness=rough, IOR=1.333, Normal=nrm, Specular_IOR_Level=0.5)
-    mxe = g.node("ShaderNodeMixShader", {"Fac": foam})
-    g.nt.links.new(g.o(eb, "BSDF"), mxe.inputs[1])
-    g.nt.links.new(g.o(foam_b, "BSDF"), mxe.inputs[2])
+    eb = g.principled(Base_Color=g.mix(foam, ecol, foam_c), Roughness=crough, IOR=1.333, Normal=nrm,
+                      Specular_IOR_Level=0.5)
     oute = g.node("ShaderNodeOutputMaterial", target="EEVEE")
-    g.nt.links.new(g.o(mxe, "Shader"), _sock(oute.inputs, "Surface"))
+    g.nt.links.new(g.o(eb, "BSDF"), _sock(oute.inputs, "Surface"))
     mat.surface_render_method = "DITHERED"
     return mat
 

@@ -74,7 +74,15 @@ DRAGON_RING = 20                 # 단면 링 버텍스 수
 DRAGON_MOUTH_U = 0.58            # 입꼬리 위치(길이 비율) — gen_drawings 실루엣의 입 노치 0.62L 부근
 DRAGON_HORN_LEN = 0.30           # 뿔 길이 = length × 비율 (JSON horns.length 없을 때)
 DRAGON_NECK_SINK = 0.6           # 목 밑동을 base 아래로 더 꽂는 길이(갑판까지)
-DRAGON_NECK_RINGS = 5            # 목 비늘 링 수
+NECK_R_BOTTOM = 1.27             # 목 밑동 반경 = neck_radius × 비율 (≈0.38)
+NECK_R_TOP = 0.87                # 목 위 반경 = neck_radius × 비율 (≈0.26)
+NECK_S_AMP = 0.045               # S자 곡선 진폭 = 목 길이 × 비율
+NECK_SCALE_DISP = 0.02           # 비늘 변위(m)
+NECK_SCALE_ROW = 0.14            # 비늘 행 간격(m)
+NECK_FINS = 8                    # 등 지느러미 돌기 수
+NECK_FIN_H = (0.08, 0.15)        # 돌기 높이 범위
+JAW_DROP = 1.6                   # 아래턱이 내려가는 양 = gap × 비율 (입 벌림 강조)
+FANG_LEN = 0.15                  # 흰 송곳니 길이(m)
 
 # 귀면
 GHOST_RELIEF = 0.10              # 귀면 부조 최대 돌출(m)
@@ -98,7 +106,13 @@ SAIL_BILLOW = 0.10               # 살 사이 패널 배부름 = 패널 높이 �
 SAIL_CAMBER = 0.012              # 돛 전체 약한 곡률 = w × 비율
 SAIL_SAG = 0.03                  # 패널 아래로 처짐(m)
 BATTEN_OVER = 0.12               # 살이 돛천 밖으로 나오는 길이
-SHEET_ANCHOR_FRAC = 0.85         # 시트 모이는 점 = 돛 폭 방향 이 비율 위치 아래 지붕
+SHEET_ANCHOR_FRAC = 0.85         # (구버전) 시트 모이는 점
+SHEET_GROUPS = 3                 # 아딧줄 다발(모음점) 수
+SHEET_AFT = 4.5                  # 아딧줄 갑판 고정점 = 돛대 y 에서 선미 쪽 거리
+SHEET_SIDE = 1.2                 # 고정점·모음점을 돛 면에서 옆으로 띄우는 거리(관통 방지)
+SHEET_CROW_T = 0.35              # 모음점 위치(살 끝→고정점 비율)
+SHEET_R = 0.012
+SHROUD_DY = (-0.6, 0.9)          # shroud 2쌍 착지 y 오프셋
 ROPE_R = 0.018                   # 삭구 반지름
 MOOR_R = 0.032                   # 계류줄 반지름
 ROPE_SAG = 0.035                 # 처짐 = 스팬 × 비율
@@ -1306,49 +1320,58 @@ def _smooth_profile(keys, u):
 
 
 def build_dragon_neck(dh, Q, colls, mats):
-    """v2 용두 목: base(밑동) → head_base 로 neck_lean 만큼 앞으로 기운 원기둥(반경 neck_radius), 비늘 링 몇 단.
-    밑동은 갑판까지 DRAGON_NECK_SINK 만큼 더 내려 꽂음(떠 보이지 않게)."""
+    """v2 용두 목(유기적): base(밑동) → head_base. 밑동 굵고 위로 가늘어지는 테이퍼(neck_radius × 비율),
+    앞으로 S자(neck_lean 을 아래는 크게·위는 되세움으로 분포), 비늘 띠는 링 대신 표면 변위,
+    등(뒤쪽)에 지느러미 돌기. 밑동은 DRAGON_NECK_SINK 만큼 갑판 쪽으로 꽂음."""
     b0, b1 = Vector(dh["base"]), Vector(dh["head_base"])
     r = dh["neck_radius"]
     ax_ = (b1 - b0).normalized()
     p0 = b0 - ax_ * DRAGON_NECK_SINK
-    n = 24 if Q["cyl"] > 16 else 14
-    seg = 24
+    Ltot = (b1 - p0).length
+    n = 36 if Q["cyl"] > 16 else 22
+    seg = 28 if Q["cyl"] > 16 else 20
+    rb, rt = r * NECK_R_BOTTOM, r * NECK_R_TOP
+
+    def center(t):
+        # 직선 + S 곡선(아래쪽은 앞으로 불룩, 위쪽은 뒤로 살짝 → 머리 밑에서 되세움)
+        c = p0.lerp(b1, t)
+        c.y += NECK_S_AMP * Ltot * math.sin(2 * math.pi * t) * (1 - 0.3 * t)
+        return c
+
+    def radius(t):
+        return rb + (rt - rb) * (t ** 0.8)
+
     bm = bmesh.new()
     rings = []
-    L_ = (b1 - p0).length
     for k in range(n + 1):
         t = k / n
-        c = p0.lerp(b1, t) + Vector((0, 0.06 * math.sin(math.pi * t), 0))   # 약한 S(앞으로 내민 가슴)
-        rr = r * (1.08 - 0.15 * t)
-        F = frame_from_z(ax_, Vector((0, 1, 0)))
-        rings.append([c + F @ Vector((rr * math.cos(2 * math.pi * j / seg), rr * math.sin(2 * math.pi * j / seg) * 1.08, 0))
-                      for j in range(seg)])
+        c = center(t)
+        tg = (center(min(1, t + 0.02)) - center(max(0, t - 0.02))).normalized()
+        F = frame_from_z(tg, Vector((0, 1, 0)))
+        rr = radius(t)
+        ring = []
+        for j in range(seg):
+            a_ = 2 * math.pi * j / seg
+            # 비늘 변위: 길이방향 행 × 둘레방향 엇갈림 (결정론적 사인 조합)
+            scale = NECK_SCALE_DISP * (0.5 + 0.5 * math.cos(2 * math.pi * (t * Ltot / NECK_SCALE_ROW) + (j % 2) * math.pi)) \
+                * (0.6 + 0.4 * math.cos(a_ * 3))
+            # 앞(+Y)쪽 배비늘 평탄화, 좌우 약간 넓게
+            fy = 1.06
+            ring.append(c + F @ Vector(((rr + scale) * math.cos(a_) * 1.04, (rr + scale) * math.sin(a_) * fy, 0)))
+        rings.append(ring)
     loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
-    # 비늘 링(얕은 둔덕 띠) + 앞쪽 배비늘 판
-    for k in range(DRAGON_NECK_RINGS):
-        t = (k + 1) / (DRAGON_NECK_RINGS + 1)
-        c = p0.lerp(b1, t) + Vector((0, 0.06 * math.sin(math.pi * t), 0))
-        rr = r * (1.08 - 0.15 * t)
-        F = frame_from_z(ax_, Vector((0, 1, 0)))
-        rr_list = []
-        for j in range(5):
-            a_ = 2 * math.pi * j / 5
-            rr_list.append([c + F @ Vector(((rr + 0.015 + 0.02 * math.cos(a_)) * math.cos(2 * math.pi * i / seg),
-                                            (rr + 0.015 + 0.02 * math.cos(a_)) * math.sin(2 * math.pi * i / seg) * 1.08,
-                                            0.03 * math.sin(a_))) for i in range(seg)])
-        rr_list.append(rr_list[0])
-        loft_grid(bm, rr_list, closed=True)
-    # 목 뒤 갈기(불꽃 판 줄)
-    for k in range(5):
-        t = 0.2 + 0.15 * k
-        c = p0.lerp(b1, t)
-        root = c - Vector((0, r * 0.9, 0))
-        tip = root + Vector((0, -0.28, 0.12))
-        th = Vector((0.015, 0, 0))
-        a = root + ax_ * 0.12
-        b = root - ax_ * 0.12
-        vs = [bm.verts.new(q) for q in (a - th, b - th, tip - th, a + th, b + th, tip + th)]
+    # 등 지느러미 돌기(뒤쪽 -Y 방향, 위로 비스듬)
+    for k in range(NECK_FINS):
+        t = 0.12 + 0.80 * k / max(1, NECK_FINS - 1)
+        c = center(t)
+        back = Vector((0, -1, 0))
+        root = c + back * radius(t) * 0.9
+        hgt = NECK_FIN_H[0] + (NECK_FIN_H[1] - NECK_FIN_H[0]) * math.sin(math.pi * t)
+        tip = root + back * hgt + Vector((0, 0, -hgt * 0.5))
+        a = root + ax_ * 0.09
+        b = root - ax_ * 0.09
+        th = Vector((0.018, 0, 0))
+        vs = [bm.verts.new(q) for q in (a - th, b - th, tip - th * 0.3, a + th, b + th, tip + th * 0.3)]
         bm.faces.new((vs[0], vs[1], vs[2]))
         bm.faces.new((vs[5], vs[4], vs[3]))
         bm.faces.new((vs[0], vs[3], vs[4], vs[1]))
@@ -1359,7 +1382,6 @@ def build_dragon_neck(dh, Q, colls, mats):
     sub = ob.modifiers.new("Subdiv", "SUBSURF")
     sub.levels = 1
     sub.render_levels = Q["subdiv"]
-    del L_
     return ob
 
 
@@ -1409,7 +1431,8 @@ def build_dragon(d, Q, colls, mats):
     rings = []
     for i in range(nsec + 1):
         u = 0.5 + 0.48 * i / nsec
-        rings.append(ring_tb(u, mz0 - gap(u) * 1.2, P(lo_bot, u) * Hh, P(lo_w, u) * hw, 2.6))
+        rings.append(ring_tb(u, mz0 - gap(u) * JAW_DROP, P(lo_bot, u) * Hh - gap(u) * (JAW_DROP - 1.0),
+                             P(lo_w, u) * hw, 2.6))
     loft_grid(bm, rings, closed=True, cap_start=True, cap_end=True)
 
     def tube(path, radii, ring_n=10):
@@ -1536,10 +1559,17 @@ def build_dragon(d, Q, colls, mats):
             u = 0.64 + 0.06 * k
             for sgn in (-1, 1):
                 w = P(up_w if jaw > 0 else lo_w, u) * hw * 0.80
-                z = mz0 + gap(u) if jaw > 0 else mz0 - gap(u) * 1.2
+                z = mz0 + gap(u) if jaw > 0 else mz0 - gap(u) * JAW_DROP
                 ln = Hh * (0.10 if k in (0, 5) else 0.05)
                 p0 = Vector((sgn * w, u * L, z + jaw * 0.01))
                 add_cyl(bm, p0, p0 + Vector((0, 0, -jaw * ln)), Hh * 0.024, 0.002, seg=6)
+    # 흰 송곳니 4개(위 2 아래로, 아래 2 위로, 약간 앞으로)
+    for jaw, u in ((1, 0.93), (-1, 0.90)):
+        for sgn in (-1, 1):
+            w = P(up_w if jaw > 0 else lo_w, u) * hw * 0.62
+            z = mz0 + gap(u) if jaw > 0 else mz0 - gap(u) * JAW_DROP
+            p0 = Vector((sgn * w, u * L, z + jaw * 0.02))
+            add_cyl(bm, p0, p0 + Vector((sgn * 0.01, FANG_LEN * 0.3, -jaw * FANG_LEN)), Hh * 0.045, 0.003, seg=8)
     teeth = mesh_object("DragonTeeth", bm, colls["Details"], [mats["_ivory"]], angle=60)
     teeth.matrix_world = head.matrix_world.copy()
     parent_keep(teeth, head)
@@ -1783,28 +1813,106 @@ def build_raised_sail(i, m, mo, R, Q, colls, mats):
     top = Vector((0, m["y"], m["base_z"] + m["height"] - 0.1))
     ytop = base + Vector((0, 0, z0 + h))
     rope_curve(f"Halyard{i}", [top, ytop], ROPE_R, colls["Rigging"], mats["rope"])
-    # 시트: 짝수 번째 살 뒤끝 → 지붕 위 한 점(부채꼴)
-    tx = base + u * (a + w * SHEET_ANCHOR_FRAC)
-    hx = R.c["half"](tx.y)
-    xx = max(-hx * 0.9, min(hx * 0.9, tx.x))
-    zr = R.c["eave_z"](tx.y) + (R.c["ridge_z"](tx.y) - R.c["eave_z"](tx.y)) * \
-        max(0.0, 1 - abs(xx / hx) ** R.p) ** (1 / R.p)
-    anchor = Vector((xx, tx.y, zr + 0.05))
-    for k, (pe, zz) in enumerate(ends):
-        if k % 2 == 1 or k == nb - 1:
+    # 아딧줄(시트) 다발: 살 자유단(돛대 반대쪽 끝)마다 → SHEET_GROUPS 개의 모음점(crowsfoot) → 선미 쪽 갑판 한 점
+    def roof_z(x, y):
+        hx_ = R.c["half"](y)
+        xx_ = max(-hx_ * 0.92, min(hx_ * 0.92, x))
+        e_, r_ = R.c["eave_z"](y), R.c["ridge_z"](y)
+        return xx_, e_ + (r_ - e_) * max(0.0, 1 - abs(xx_ / hx_) ** R.p) ** (1 / R.p)
+    free_end = base + u * (a + w) + nrm * (bd * 0.6)
+    ya = min(m["y"] - SHEET_AFT, free_end.y - SHEET_AFT * 0.5)
+    xa, za = roof_z(free_end.x * 0.6 + nrm.x * SHEET_SIDE, ya)
+    anchor = Vector((xa, ya, za + 0.08))
+    groups = [ends[g::SHEET_GROUPS] for g in range(SHEET_GROUPS)]
+    for g, grp in enumerate(groups):
+        if not grp:
             continue
-        rope_curve(f"Sheet{i}_{k:02d}", catenary_points(pe, anchor, (pe - anchor).length * ROPE_SAG * 0.6, 12),
-                   ROPE_R * 0.8, colls["Rigging"], mats["rope"])
+        zc = sum(zz for _, zz in grp) / len(grp)
+        crow = free_end.lerp(anchor, SHEET_CROW_T) + Vector((0, 0, (zc - free_end.z) * (1 - SHEET_CROW_T)))
+        crow += nrm * SHEET_SIDE * 0.5
+        for k, (pe, zz) in enumerate(grp):
+            rope_curve(f"Sheet{i}_{g}_{k:02d}", catenary_points(pe + nrm * bd, crow, 0.05, 10), SHEET_R,
+                       colls["Rigging"], mats["rope"])
+        rope_curve(f"SheetMain{i}_{g}", catenary_points(crow, anchor, 0.05, 12), SHEET_R * 1.2,
+                   colls["Rigging"], mats["rope"])
+    info = dict(base=base, nrm=nrm, u=u, a=a, w=w, z0=z0, h=h)
     # 돛 앞 끝(러프)을 돛대에 매는 고리 줄(몇 개)
     for k in range(0, nb, 3):
         zz = z0 + h * k / (nb - 1)
         rope_curve(f"Parrel{i}_{k:02d}", [Vector((0, m["y"], zz)) - off * 0.2, base + Vector((0, 0, zz)) + u * 0.0],
                    ROPE_R * 0.9, colls["Rigging"], mats["rope"])
+    return info
+
+
+def _clear_of_sails(top, P, sails, margin=0.3):
+    """top→P 직선이 어떤 세운 돛 사각형(살 포함)도 관통하지 않게 P 를 돛 면 법선 방향으로 밀어냄."""
+    P = Vector(P)
+    for _ in range(4):
+        hit = None
+        for sinfo in sails:
+            if not sinfo:
+                continue
+            o_, n_, u_ = sinfo["base"], sinfo["nrm"], sinfo["u"]
+            d0, d1 = (top - o_).dot(n_), (P - o_).dot(n_)
+            if d0 * d1 >= 0:
+                continue
+            t = d0 / (d0 - d1)
+            X = top.lerp(P, t)
+            su = (X - o_).dot(u_)
+            if sinfo["a"] - margin < su < sinfo["a"] + sinfo["w"] + margin and \
+                    sinfo["z0"] - margin < X.z < sinfo["z0"] + sinfo["h"] + margin:
+                hit = (sinfo, d0)
+                break
+        if not hit:
+            return P
+        sinfo, d0 = hit
+        # P 를 top 과 같은 쪽으로 옮김 (면을 건너지 않음)
+        d1 = (P - sinfo["base"]).dot(sinfo["nrm"])
+        P = P - sinfo["nrm"] * (d1 - math.copysign(margin + 0.2, d0))
+    return P
+
+
+def raised_stays(d, masts, sail_info, wc, R, colls, mats):
+    """세운 돛일 때 앞뒤 stay·좌우 shroud 2쌍 — 경로를 돛 옆으로(관통 금지)."""
+    wall_st = d["superstructure"]["wall"]["stations"]
+    wy0, wy1 = min(s_["y"] for s_ in wall_st), max(s_["y"] for s_ in wall_st)
+    sails = list(sail_info.values())
+    order = sorted(range(len(masts)), key=lambda k: -masts[k][1]["y"])     # 선수 → 선미
+    for rank, i in enumerate(order):
+        mo, m, zy, _ = masts[i]
+        if zy is not None or m.get("lowered"):
+            continue
+        top = Vector((0, m["y"], m["base_z"] + m["height"] - 0.25))
+        # 앞 stay: 맨 앞 돛대는 선수 벽 꼭대기, 그 뒤 돛대는 앞 돛대 꼭대기 근처
+        if rank == 0:
+            tgt = Vector((0, wy1, wc["top_z"](wy1) + 0.05))
+        else:
+            mf = masts[order[rank - 1]][1]
+            tgt = Vector((0, mf["y"], mf["base_z"] + mf["height"] * 0.92))
+        tgt = _clear_of_sails(top, tgt, sails)
+        rope_curve(f"Stay{i}F", catenary_points(top, tgt, (top - tgt).length * ROPE_SAG * 0.3), ROPE_R,
+                   colls["Rigging"], mats["rope"])
+        # 뒤 stay: 맨 뒤 돛대만 선미 벽 꼭대기로
+        if rank == len(order) - 1:
+            tgt = Vector((0, wy0, wc["top_z"](wy0) + 0.05))
+            tgt = _clear_of_sails(top, tgt, sails)
+            rope_curve(f"Stay{i}A", catenary_points(top, tgt, (top - tgt).length * ROPE_SAG * 0.3), ROPE_R,
+                       colls["Rigging"], mats["rope"])
+        # shroud 2쌍: 돛대 옆 벽 꼭대기(약간 뒤·앞)
+        for k, dy in enumerate(SHROUD_DY):
+            for sg in (-1, 1):
+                yy = m["y"] + dy
+                tgt = Vector((sg * wc["half"](yy), yy, wc["top_z"](yy) + 0.05))
+                tgt = _clear_of_sails(top - Vector((0, 0, 0.4 * k)), tgt, sails)
+                rope_curve(f"Shroud{i}{'P' if sg < 0 else 'S'}{k}",
+                           catenary_points(top - Vector((0, 0, 0.4 * k)), tgt, (top - tgt).length * ROPE_SAG * 0.3),
+                           ROPE_R, colls["Rigging"], mats["rope"])
 
 
 def build_rigging(d, H, wc, R, Q, colls, mats):
     seg = Q["cyl"]
     masts = []
+    sail_info = {}
     roof_ridge = R.c["ridge_z"]
     for i, m in enumerate(d["masts"]):
         r0 = m["diameter"] / 2
@@ -1831,7 +1939,7 @@ def build_rigging(d, H, wc, R, Q, colls, mats):
         collar = mesh_object(f"Mast{i}_Partner", bm, colls["Rigging"], [mats["hull_wood"]], angle=50)
         collar.matrix_world = Matrix.Translation((0, m["y"], m["base_z"]))
         if m["sail"].get("state") == "raised":
-            build_raised_sail(i, m, mo, R, Q, colls, mats)
+            sail_info[i] = build_raised_sail(i, m, mo, R, Q, colls, mats)
             masts.append((mo, m, None, None))
             continue
         # 활대(로컬 Z 결 → X 방향으로 눕힘)
@@ -1891,8 +1999,9 @@ def build_rigging(d, H, wc, R, Q, colls, mats):
     # 삭구(밧줄): 돛대 끝 → 선수·선미·양현, 활대 매달기(halyard)
     wall_st = d["superstructure"]["wall"]["stations"]
     wy0, wy1 = min(s["y"] for s in wall_st), max(s["y"] for s in wall_st)
+    raised_stays(d, masts, sail_info, wc, R, colls, mats)
     for i, (mo, m, zy, yfwd) in enumerate(masts):
-        if zy is None:     # 세운 돛: 삭구는 build_raised_sail 에서
+        if zy is None:     # 세운 돛: 시트는 build_raised_sail, stay/shroud 는 raised_stays
             continue
         top = mo.matrix_world @ Vector((0, 0, m["height"] - 0.15))
         yardc = mo.matrix_world @ Vector((0, yfwd, zy + 0.05))
