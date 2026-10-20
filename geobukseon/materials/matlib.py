@@ -956,7 +956,7 @@ def mat_water(name="water", foam_attr="hull_dist", foam_width=0.6):
     foam = g.smooth(g.m("ADD", band, g.m("MULTIPLY", g.m("SUBTRACT", fn, 0.5), 0.9)), 0.6, 0.85)
     foam = g.m("MULTIPLY", foam, has)
     # 셰이더 (Cycles: Principled 1개 — 투과 0.8 + 청록 확산 몸체 0.2, 거품은 값 수준 혼합 → 클로저 최소)
-    body = g.mix(g.smooth(n1, 0.3, 0.7), (0.10, 0.27, 0.26), (0.14, 0.33, 0.31))
+    body = g.mix(g.smooth(n1, 0.3, 0.7), (0.035, 0.10, 0.095), (0.05, 0.13, 0.12))
     foam_c = (0.62, 0.66, 0.66)
     ccol = g.mix(foam, body, foam_c)
     trans = g.m("MULTIPLY", g.m("SUBTRACT", 1.0, foam), 0.8)
