@@ -8,17 +8,20 @@
 
 // ===== 가게에 맞게 수정하는 부분 =====
 const CONFIG = {
-  shopName: '도시락 단체주문',
-  menus: [
-    '유부초밥+샌드위치 도시락',
-    '유부초밥 도시락',
-    '샌드위치 도시락',
+  shopName: '제육이다',
+  menus: [            // 이름, 개당 가격(원)
+    { name: '케일쌈밥제육도시락', price: 11000 },
+    { name: '유부초밥 샌드위치 도시락', price: 11000 },
+    { name: '제육도시락', price: 11000 },
   ],
+  discount: { minQty: 20, perItem: 1000 }, // 20개 이상이면 개당 1,000원 할인 (날짜별 주문 기준)
   minQty: 5,          // 최소 주문 수량
   maxQty: 300,
   leadDays: 1,        // 며칠 전까지 주문 가능 (1 = 내일부터 선택 가능)
   maxDates: 10,       // 한 번에 고를 수 있는 날짜 수
   pickupAllowed: true,
+  headline: '🍱 원하는 시간에, 원하는 곳으로',
+  promo: '회의·행사·워크숍 도시락, 아침에 정성껏 만들어 정해주신 시간에 맞춰 배달해 드려요. 따뜻한 한 끼로 모임을 챙겨보세요.',
   notice: '주문 확인 후 연락드려 결제·예약금을 안내해 드립니다.',
   ownerEmail: '',     // 비워두면 스크립트 소유자 Gmail로 발송
   sheetName: '주문',
@@ -28,7 +31,7 @@ const CONFIG = {
 
 const HEADERS = [
   '접수번호', '접수시각', '단체명', '담당자', '연락처', '필요날짜', '메뉴', '수량',
-  '수령방법', '수령시간', '배달장소', '요청사항', '상태', '메모',
+  '단가', '금액', '수령방법', '수령시간', '배달장소', '요청사항', '상태', '메모',
 ];
 const STATUSES = ['접수', '확정', '완료', '취소'];
 
@@ -45,6 +48,9 @@ function publicConfig_() {
   return {
     shopName: CONFIG.shopName,
     menus: CONFIG.menus,
+    discount: CONFIG.discount,
+    headline: CONFIG.headline,
+    promo: CONFIG.promo,
     minQty: CONFIG.minQty,
     maxQty: CONFIG.maxQty,
     maxDates: CONFIG.maxDates,
@@ -70,7 +76,7 @@ function submitOrder(form) {
     ids = order.dates.map((_, i) => order.dates.length > 1 ? `${stamp}-${i + 1}` : stamp);
     const rows = order.dates.map((d, i) => [
       ids[i], at, order.org, order.name, order.phone, d, order.menu, order.qty,
-      order.method, order.time, order.place, order.requests, '접수', '',
+      order.unitPrice, order.amount, order.method, order.time, order.place, order.requests, '접수', '',
     ].map(safeCell_));
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
   } finally {
@@ -101,7 +107,8 @@ function validate_(f) {
   if (!o.org) fail('단체명(회사명)을 입력해 주세요.');
   if (!o.name) fail('담당자 성함을 입력해 주세요.');
   if (!/^01\d-?\d{3,4}-?\d{4}$|^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(o.phone)) fail('연락처 형식을 확인해 주세요.');
-  if (CONFIG.menus.indexOf(o.menu) < 0) fail('메뉴를 선택해 주세요.');
+  const menu = CONFIG.menus.filter(m => m.name === o.menu)[0];
+  if (!menu) fail('메뉴를 선택해 주세요.');
   if (!(o.qty >= CONFIG.minQty && o.qty <= CONFIG.maxQty)) fail(`수량은 ${CONFIG.minQty}~${CONFIG.maxQty}개 사이로 입력해 주세요.`);
   if (o.method !== '배달' && !(o.method === '픽업' && CONFIG.pickupAllowed)) fail('수령 방법을 선택해 주세요.');
   if (!/^\d{2}:\d{2}$/.test(o.time)) fail('수령(배달) 시간을 선택해 주세요.');
@@ -117,7 +124,14 @@ function validate_(f) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) fail('날짜 형식이 올바르지 않아요.');
     if (d < minDate) fail(`${d}은(는) 주문 가능 날짜가 지났어요. ${minDate}부터 가능합니다.`);
   });
+  o.unitPrice = unitPrice_(menu.price, o.qty);
+  o.amount = o.unitPrice * o.qty;
   return o;
+}
+
+function unitPrice_(price, qty) {
+  const dc = CONFIG.discount;
+  return dc && qty >= dc.minQty ? price - dc.perItem : price;
 }
 
 function notify_(o, ids) {
@@ -127,7 +141,8 @@ function notify_(o, ids) {
     `단체/담당: ${o.org} (${o.name})`,
     `연락처: ${o.phone}`,
     `날짜: ${dates}`,
-    `메뉴: ${o.menu} × ${o.qty}개`,
+    `메뉴: ${o.menu} × ${o.qty}개 (개당 ${won_(o.unitPrice)})`,
+    `금액: ${won_(o.amount)}${o.dates.length > 1 ? ` × ${o.dates.length}일 = ${won_(o.amount * o.dates.length)}` : ''}`,
     `수령: ${o.method} ${o.time}${o.place ? ' / ' + o.place : ''}`,
     o.requests ? `요청: ${o.requests}` : '',
     `접수번호: ${ids.join(', ')}`,
@@ -150,7 +165,7 @@ function notify_(o, ids) {
   if (to) {
     MailApp.sendEmail({
       to: to,
-      subject: `[새 주문] ${o.org} · ${dates} · ${o.qty}개`,
+      subject: `[${CONFIG.shopName} 새 주문] ${o.org} · ${dates} · ${o.qty}개`,
       body: text + '\n\n시트: ' + SpreadsheetApp.getActiveSpreadsheet().getUrl(),
     });
   }
@@ -180,6 +195,10 @@ function dateAfter_(days) {
   return Utilities.formatDate(new Date(Date.now() + days * 864e5), CONFIG.timezone, 'yyyy-MM-dd');
 }
 
+function won_(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '원';
+}
+
 function fmtDate_(d) {
   const [y, m, day] = d.split('-').map(Number);
   const w = '일월화수목금토'[new Date(y, m - 1, day).getDay()];
@@ -201,7 +220,8 @@ function setupFindTelegramChatId() {
 function setupTestNotify() {
   getSheet_();
   notify_({
-    org: '테스트단체', name: '홍길동', phone: '010-0000-0000', menu: CONFIG.menus[0], qty: 10,
+    org: '테스트단체', name: '홍길동', phone: '010-0000-0000', menu: CONFIG.menus[0].name, qty: 20,
+    unitPrice: unitPrice_(CONFIG.menus[0].price, 20), amount: unitPrice_(CONFIG.menus[0].price, 20) * 20,
     method: '배달', time: '09:00', place: '테스트 장소', requests: '알림 테스트입니다',
     dates: [dateAfter_(CONFIG.leadDays)],
   }, ['TEST']);
