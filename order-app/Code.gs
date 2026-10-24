@@ -16,7 +16,7 @@ const CONFIG = {
   ],
   discount: { minQty: 20, perItem: 1000 }, // 20개 이상이면 개당 1,000원 할인 (날짜별 주문 기준)
   minQty: 10,         // 최소 주문 수량
-  maxQty: 300,
+  maxQty: 999,
   leadDays: 2,        // 배달일 며칠 전까지 주문 + 예약금 입금 (2 = 2일 전 마감)
   maxDates: 10,       // 한 번에 고를 수 있는 날짜 수
   pickupAllowed: true,
@@ -24,9 +24,16 @@ const CONFIG = {
   promo: '회의·행사·워크숍 도시락, 아침에 정성껏 만들어 정해주신 시간에 맞춰 배달해 드려요. 따뜻한 한 끼로 모임을 챙겨보세요.',
   notice: '배달일 2일 전까지 주문하고 예약금을 입금해 주셔야 주문이 확정돼요.',
   deposit: {
-    amount: 0,        // 예약금(원). 0이면 '연락드려 안내'로 표시
-    account: '',      // 예) '농협 000-0000-0000-00 (예금주 홍길동)'
+    // 수량별 예약금 · 취소/변경 가능 기한(배달일 며칠 전까지)
+    tiers: [
+      { maxQty: 50, amount: 30000, cancelDays: 1 },
+      { maxQty: 99, amount: 50000, cancelDays: 3 },
+      { maxQty: 9999, amount: 100000, cancelDays: 3 },
+    ],
+    account: '카카오뱅크 3333-27-0373154 (예금주 민지인)',
   },
+  deliveryNote: '배달료는 배송 거리에 따라 실비로 청구됩니다.',
+  cancelNote: '취소 가능 기한 이후에는 식재료 구매·사전 손질·조리 준비·인력 배치가 진행되므로 예약금은 환불되지 않으며, 이미 진행된 준비에 대해서는 실비가 청구될 수 있습니다.',
   ownerEmail: '',     // 비워두면 스크립트 소유자 Gmail로 발송
   sheetName: '주문',
   timezone: 'Asia/Seoul',
@@ -35,7 +42,7 @@ const CONFIG = {
 
 const HEADERS = [
   '접수번호', '접수시각', '단체명', '담당자', '연락처', '필요날짜', '메뉴', '수량',
-  '단가', '금액', '수령방법', '수령시간', '배달장소', '요청사항', '입금기한', '상태', '메모',
+  '단가', '금액', '예약금', '수령방법', '수령시간', '배달장소', '요청사항', '입금기한', '취소가능기한', '상태', '메모',
 ];
 const STATUSES = ['입금대기', '확정', '완료', '취소'];
 
@@ -61,6 +68,8 @@ function publicConfig_() {
     pickupAllowed: CONFIG.pickupAllowed,
     notice: CONFIG.notice,
     deposit: CONFIG.deposit,
+    deliveryNote: CONFIG.deliveryNote,
+    cancelNote: CONFIG.cancelNote,
     leadDays: CONFIG.leadDays,
     minDate: dateAfter_(CONFIG.leadDays),
   };
@@ -82,7 +91,8 @@ function submitOrder(form) {
     ids = order.dates.map((_, i) => order.dates.length > 1 ? `${stamp}-${i + 1}` : stamp);
     const rows = order.dates.map((d, i) => [
       ids[i], at, order.org, order.name, order.phone, d, order.menu, order.qty,
-      order.unitPrice, order.amount, order.method, order.time, order.place, order.requests, dateShift_(d, -CONFIG.leadDays), '입금대기', '',
+      order.unitPrice, order.amount, order.deposit, order.method, order.time, order.place, order.requests,
+      dateShift_(d, -CONFIG.leadDays), dateShift_(d, -order.cancelDays), '입금대기', '',
     ].map(safeCell_));
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
   } finally {
@@ -120,6 +130,7 @@ function validate_(f) {
   if (!/^\d{2}:\d{2}$/.test(o.time)) fail('수령(배달) 시간을 선택해 주세요.');
   if (o.method === '배달' && !o.place) fail('배달 받을 장소를 입력해 주세요.');
   if (o.method === '픽업') o.place = '';
+  if (f.policy !== true) fail('예약금·취소 규정을 확인해 주세요.');
   if (f.consent !== true) fail('개인정보 수집·이용에 동의해 주세요.');
 
   const minDate = dateAfter_(CONFIG.leadDays);
@@ -132,7 +143,14 @@ function validate_(f) {
   });
   o.unitPrice = unitPrice_(menu.price, o.qty);
   o.amount = o.unitPrice * o.qty;
+  const tier = tier_(o.qty);
+  o.deposit = tier.amount;
+  o.cancelDays = tier.cancelDays;
   return o;
+}
+
+function tier_(qty) {
+  return CONFIG.deposit.tiers.filter(t => qty <= t.maxQty)[0];
 }
 
 function unitPrice_(price, qty) {
@@ -149,9 +167,11 @@ function notify_(o, ids) {
     `날짜: ${dates}`,
     `메뉴: ${o.menu} × ${o.qty}개 (개당 ${won_(o.unitPrice)})`,
     `금액: ${won_(o.amount)}${o.dates.length > 1 ? ` × ${o.dates.length}일 = ${won_(o.amount * o.dates.length)}` : ''}`,
-    `수령: ${o.method} ${o.time}${o.place ? ' / ' + o.place : ''}`,
+    `수령: ${o.method} ${o.time}${o.place ? ' / ' + o.place : ''}${o.method === '배달' ? ' (배달료 실비 별도)' : ''}`,
     o.requests ? `요청: ${o.requests}` : null,
+    `예약금: ${won_(o.deposit)}${o.dates.length > 1 ? ` × ${o.dates.length}일 = ${won_(o.deposit * o.dates.length)}` : ''}`,
     `입금기한: ${o.dates.map(d => fmtDate_(dateShift_(d, -CONFIG.leadDays))).join(', ')}`,
+    `취소가능: ${o.dates.map(d => fmtDate_(dateShift_(d, -o.cancelDays))).join(', ')}까지`,
     `접수번호: ${ids.join(', ')}`,
     '',
     '⚠️ 예약금 입금 확인되면 시트 상태를 [확정]으로 바꿔주세요.',
@@ -260,6 +280,7 @@ function setupTestNotify() {
   notify_({
     org: '테스트단체', name: '홍길동', phone: '010-0000-0000', menu: CONFIG.menus[0].name, qty: 20,
     unitPrice: unitPrice_(CONFIG.menus[0].price, 20), amount: unitPrice_(CONFIG.menus[0].price, 20) * 20,
+    deposit: tier_(20).amount, cancelDays: tier_(20).cancelDays,
     method: '배달', time: '09:00', place: '테스트 장소', requests: '알림 테스트입니다',
     dates: [dateAfter_(CONFIG.leadDays)],
   }, ['TEST']);
