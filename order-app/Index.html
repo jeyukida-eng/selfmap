@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>단체주문</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #fff; --ink: #222; --sub: #6b6b6b; --line: #e3dfd6;
+    --accent: #e0662f; --accent-soft: #fdeee6; --err: #c62828;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; }
+  .lead { color: var(--sub); font-size: 14px; margin: 0 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; color: var(--sub); font-weight: 600; }
+  label { display: block; font-size: 14px; font-weight: 600; margin: 12px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  .req::after { content: " *"; color: var(--accent); }
+  input, select, textarea { width: 100%; font: inherit; padding: 11px 12px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; color: var(--ink); }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  textarea { min-height: 84px; resize: vertical; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; min-width: 0; }
+  .btn-sub { flex: 0 0 auto; padding: 0 14px; border: 1px solid var(--accent); color: var(--accent);
+    background: #fff; border-radius: 10px; font: inherit; font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 4px 6px 4px 12px;
+    font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+  .chip button { border: 0; background: none; color: inherit; font-size: 16px; line-height: 1; padding: 2px 6px; cursor: pointer; }
+  .hint { color: var(--sub); font-size: 13px; margin-top: 6px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg label { flex: 1; margin: 0; text-align: center; padding: 11px 0; font-weight: 600; cursor: pointer; }
+  .seg input { display: none; }
+  .seg label:has(input:checked) { background: var(--accent); color: #fff; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; font-weight: 400; margin: 0; }
+  .consent input { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 1px; }
+  details { font-size: 13px; color: var(--sub); margin-top: 8px; }
+  .submit { width: 100%; padding: 15px; border: 0; border-radius: 12px; background: var(--accent); color: #fff;
+    font: inherit; font-size: 17px; font-weight: 700; margin-top: 4px; cursor: pointer; }
+  .submit:disabled { opacity: .6; }
+  .error { color: var(--err); font-size: 14px; margin: 10px 2px 0; min-height: 1em; }
+  .hp { position: absolute; left: -9999px; }
+  .done { text-align: center; padding: 28px 16px; }
+  .done .big { font-size: 44px; }
+  .summary { text-align: left; font-size: 14px; background: var(--bg); border-radius: 10px; padding: 12px; margin: 16px 0; white-space: pre-line; }
+  .demo { background: #fff6d6; border: 1px solid #f0d77a; border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<script type="application/json" id="cfg"><?!= config ?></script>
+<main>
+  <div id="demo" class="demo" hidden>미리보기 모드 — 실제 접수/알림은 Apps Script 배포 후 동작합니다.</div>
+  <h1 id="shopName">🍱 단체주문</h1>
+  <p class="lead" id="notice"></p>
+
+  <form id="f" novalidate>
+    <div class="card">
+      <h2>주문자 정보</h2>
+      <label class="req" for="org">단체명(회사·기관명)</label>
+      <input id="org" name="org" maxlength="60" placeholder="예) ○○공단" autocomplete="organization">
+      <label class="req" for="name">담당자 성함</label>
+      <input id="name" name="name" maxlength="30" placeholder="예) 홍길동" autocomplete="name">
+      <label class="req" for="phone">연락처</label>
+      <input id="phone" name="phone" type="tel" inputmode="numeric" maxlength="13" placeholder="010-0000-0000" autocomplete="tel">
+    </div>
+
+    <div class="card">
+      <h2>주문 내용</h2>
+      <label class="req" for="dateInput">필요한 날짜 <span class="hint">(여러 날 가능)</span></label>
+      <div class="row">
+        <input id="dateInput" type="date">
+        <button type="button" class="btn-sub" id="addDate">추가</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="hint">같은 메뉴·수량·장소로 날짜별 주문이 각각 접수됩니다.</div>
+
+      <label class="req" for="menu">주문 메뉴</label>
+      <select id="menu" name="menu"></select>
+      <label class="req" for="qty">수량 <span class="hint" id="qtyHint"></span></label>
+      <input id="qty" name="qty" type="number" inputmode="numeric">
+    </div>
+
+    <div class="card">
+      <h2>수령 방법</h2>
+      <div class="seg" id="methodSeg">
+        <label><input type="radio" name="method" value="배달" checked>배달</label>
+        <label id="pickupOpt"><input type="radio" name="method" value="픽업">픽업</label>
+      </div>
+      <label class="req" for="time" id="timeLabel">배달 받을 시간</label>
+      <input id="time" name="time" type="time" step="600" value="09:00">
+      <div id="placeWrap">
+        <label class="req" for="place">배달 받을 장소</label>
+        <input id="place" name="place" maxlength="120" placeholder="예) ○○동 ○○리조트 로비">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>기타 요청사항</h2>
+      <textarea id="requests" name="requests" maxlength="500" placeholder="예) 예약금 포함 카드결제 후 예약금 환불 요청, 영수증 필요 등"></textarea>
+    </div>
+
+    <div class="card">
+      <label class="consent"><input type="checkbox" id="consent"> <span><b>[필수]</b> 개인정보 수집·이용에 동의합니다.</span></label>
+      <details>
+        <summary>내용 보기</summary>
+        수집 항목: 단체명, 담당자 성함, 연락처, 배달 장소<br>
+        이용 목적: 주문 확인·연락, 배달, 결제 안내<br>
+        보유 기간: 주문 완료 후 1년 (이후 파기)<br>
+        동의를 거부할 수 있으나, 이 경우 주문 접수가 불가합니다.
+      </details>
+    </div>
+
+    <input class="hp" name="website" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="submit" id="submitBtn" type="submit">주문 접수하기</button>
+    <p class="error" id="err" role="alert"></p>
+  </form>
+
+  <div class="card done" id="done" hidden>
+    <div class="big">✅</div>
+    <h1>주문이 접수되었습니다</h1>
+    <p class="lead">확인 후 담당자님 연락처로 연락드릴게요.</p>
+    <div class="summary" id="summary"></div>
+    <button class="submit" type="button" id="again">새 주문서 작성</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  var DEMO_CFG = {
+    shopName: '도시락 단체주문', menus: ['유부초밥+샌드위치 도시락', '유부초밥 도시락', '샌드위치 도시락'],
+    minQty: 5, maxQty: 300, maxDates: 10, pickupAllowed: true,
+    notice: '주문 확인 후 연락드려 결제·예약금을 안내해 드립니다.', minDate: ymd(addDays(new Date(), 1))
+  };
+  var cfg;
+  try { cfg = JSON.parse(document.getElementById('cfg').textContent); } catch (e) { cfg = DEMO_CFG; }
+  var live = typeof google !== 'undefined' && google.script && google.script.run;
+  if (!live) document.getElementById('demo').hidden = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var dates = [];
+
+  $('shopName').textContent = '🍱 ' + cfg.shopName;
+  document.title = cfg.shopName;
+  $('notice').textContent = cfg.notice;
+  $('menu').innerHTML = '<option value="">메뉴를 선택하세요</option>' +
+    cfg.menus.map(function (m) { return '<option>' + esc(m) + '</option>'; }).join('');
+  $('qty').min = cfg.minQty; $('qty').max = cfg.maxQty;
+  $('qty').placeholder = cfg.minQty + '개 이상';
+  $('qtyHint').textContent = '(최소 ' + cfg.minQty + '개)';
+  $('dateInput').min = cfg.minDate;
+  if (!cfg.pickupAllowed) $('pickupOpt').hidden = true;
+
+  // 연락처 자동 하이픈
+  $('phone').addEventListener('input', function (e) {
+    var d = e.target.value.replace(/\D/g, '').slice(0, 11);
+    e.target.value = d.length < 4 ? d : d.length < 8 ? d.slice(0, 3) + '-' + d.slice(3)
+      : d.slice(0, 3) + '-' + d.slice(3, d.length - 4) + '-' + d.slice(-4);
+  });
+
+  function addDate() {
+    var v = $('dateInput').value;
+    if (!v) return showErr('날짜를 고른 뒤 추가를 눌러주세요.');
+    if (v < cfg.minDate) return showErr(fmt(cfg.minDate) + '부터 주문할 수 있어요.');
+    if (dates.indexOf(v) >= 0) return;
+    if (dates.length >= cfg.maxDates) return showErr('날짜는 최대 ' + cfg.maxDates + '개까지 가능해요.');
+    dates.push(v); dates.sort(); $('dateInput').value = ''; showErr(''); renderChips();
+  }
+  $('addDate').addEventListener('click', addDate);
+  $('dateInput').addEventListener('change', addDate);
+
+  function renderChips() {
+    $('chips').innerHTML = dates.map(function (d) {
+      return '<span class="chip">' + fmt(d) + '<button type="button" aria-label="삭제" data-d="' + d + '">×</button></span>';
+    }).join('');
+  }
+  $('chips').addEventListener('click', function (e) {
+    var d = e.target.getAttribute('data-d');
+    if (d) { dates = dates.filter(function (x) { return x !== d; }); renderChips(); }
+  });
+
+  function method() { return document.querySelector('input[name=method]:checked').value; }
+  $('methodSeg').addEventListener('change', function () {
+    var delivery = method() === '배달';
+    $('placeWrap').hidden = !delivery;
+    $('timeLabel').textContent = delivery ? '배달 받을 시간' : '픽업 시간';
+  });
+
+  $('f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var o = {
+      org: $('org').value.trim(), name: $('name').value.trim(), phone: $('phone').value.trim(),
+      dates: dates.slice(), menu: $('menu').value, qty: $('qty').value, method: method(),
+      time: $('time').value, place: $('place').value.trim(), requests: $('requests').value.trim(),
+      consent: $('consent').checked, website: $('website').value
+    };
+    var msg = check(o);
+    if (msg) return showErr(msg);
+    showErr(''); $('submitBtn').disabled = true; $('submitBtn').textContent = '접수 중…';
+
+    var ok = function (res) { finish(o, res.ids); };
+    var fail = function (err) {
+      $('submitBtn').disabled = false; $('submitBtn').textContent = '주문 접수하기';
+      showErr((err && err.message ? err.message : String(err)).replace(/^Error:\s*/, ''));
+    };
+    if (live) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).submitOrder(o);
+    else setTimeout(function () { ok({ ids: ['미리보기'] }); }, 400);
+  });
+
+  function check(o) {
+    if (!o.org) return '단체명(회사·기관명)을 입력해 주세요.';
+    if (!o.name) return '담당자 성함을 입력해 주세요.';
+    if (!/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(o.phone)) return '연락처를 정확히 입력해 주세요.';
+    if (!o.dates.length) return '필요한 날짜를 추가해 주세요.';
+    if (!o.menu) return '메뉴를 선택해 주세요.';
+    var q = parseInt(o.qty, 10);
+    if (!(q >= cfg.minQty && q <= cfg.maxQty)) return '수량은 ' + cfg.minQty + '~' + cfg.maxQty + '개로 입력해 주세요.';
+    if (!o.time) return '시간을 선택해 주세요.';
+    if (o.method === '배달' && !o.place) return '배달 받을 장소를 입력해 주세요.';
+    if (!o.consent) return '개인정보 수집·이용에 동의해 주세요.';
+    return '';
+  }
+
+  function finish(o, ids) {
+    $('f').hidden = true; $('done').hidden = false; window.scrollTo(0, 0);
+    $('summary').textContent = [
+      '접수번호: ' + ids.join(', '),
+      '주문자: ' + o.org + ' (' + o.name + ')',
+      '연락처: ' + o.phone,
+      '날짜: ' + o.dates.map(fmt).join(', '),
+      '메뉴: ' + o.menu + ' × ' + o.qty + '개',
+      '수령: ' + o.method + ' ' + o.time + (o.method === '배달' ? ' / ' + o.place : ''),
+      o.requests ? '요청사항: ' + o.requests : ''
+    ].filter(Boolean).join('\n');
+  }
+  $('again').addEventListener('click', function () {
+    $('f').reset(); dates = []; renderChips(); $('placeWrap').hidden = false;
+    $('submitBtn').disabled = false; $('submitBtn').textContent = '주문 접수하기';
+    $('done').hidden = true; $('f').hidden = false;
+  });
+
+  function showErr(m) { $('err').textContent = m; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function fmt(s) {
+    var p = s.split('-').map(Number), d = new Date(p[0], p[1] - 1, p[2]);
+    return p[1] + '.' + p[2] + '.(' + '일월화수목금토'[d.getDay()] + ')';
+  }
+})();
+</script>
+</body>
+</html>
