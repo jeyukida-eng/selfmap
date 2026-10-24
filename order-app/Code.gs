@@ -15,14 +15,18 @@ const CONFIG = {
     { name: '제육도시락', price: 11000 },
   ],
   discount: { minQty: 20, perItem: 1000 }, // 20개 이상이면 개당 1,000원 할인 (날짜별 주문 기준)
-  minQty: 5,          // 최소 주문 수량
+  minQty: 10,         // 최소 주문 수량
   maxQty: 300,
-  leadDays: 1,        // 며칠 전까지 주문 가능 (1 = 내일부터 선택 가능)
+  leadDays: 2,        // 배달일 며칠 전까지 주문 + 예약금 입금 (2 = 2일 전 마감)
   maxDates: 10,       // 한 번에 고를 수 있는 날짜 수
   pickupAllowed: true,
   headline: '🍱 원하는 시간에, 원하는 곳으로',
   promo: '회의·행사·워크숍 도시락, 아침에 정성껏 만들어 정해주신 시간에 맞춰 배달해 드려요. 따뜻한 한 끼로 모임을 챙겨보세요.',
-  notice: '주문 확인 후 연락드려 결제·예약금을 안내해 드립니다.',
+  notice: '배달일 2일 전까지 주문하고 예약금을 입금해 주셔야 주문이 확정돼요.',
+  deposit: {
+    amount: 0,        // 예약금(원). 0이면 '연락드려 안내'로 표시
+    account: '',      // 예) '농협 000-0000-0000-00 (예금주 홍길동)'
+  },
   ownerEmail: '',     // 비워두면 스크립트 소유자 Gmail로 발송
   sheetName: '주문',
   timezone: 'Asia/Seoul',
@@ -31,9 +35,9 @@ const CONFIG = {
 
 const HEADERS = [
   '접수번호', '접수시각', '단체명', '담당자', '연락처', '필요날짜', '메뉴', '수량',
-  '단가', '금액', '수령방법', '수령시간', '배달장소', '요청사항', '상태', '메모',
+  '단가', '금액', '수령방법', '수령시간', '배달장소', '요청사항', '입금기한', '상태', '메모',
 ];
-const STATUSES = ['접수', '확정', '완료', '취소'];
+const STATUSES = ['입금대기', '확정', '완료', '취소'];
 
 function doGet() {
   const t = HtmlService.createTemplateFromFile('Index');
@@ -56,6 +60,8 @@ function publicConfig_() {
     maxDates: CONFIG.maxDates,
     pickupAllowed: CONFIG.pickupAllowed,
     notice: CONFIG.notice,
+    deposit: CONFIG.deposit,
+    leadDays: CONFIG.leadDays,
     minDate: dateAfter_(CONFIG.leadDays),
   };
 }
@@ -76,7 +82,7 @@ function submitOrder(form) {
     ids = order.dates.map((_, i) => order.dates.length > 1 ? `${stamp}-${i + 1}` : stamp);
     const rows = order.dates.map((d, i) => [
       ids[i], at, order.org, order.name, order.phone, d, order.menu, order.qty,
-      order.unitPrice, order.amount, order.method, order.time, order.place, order.requests, '접수', '',
+      order.unitPrice, order.amount, order.method, order.time, order.place, order.requests, dateShift_(d, -CONFIG.leadDays), '입금대기', '',
     ].map(safeCell_));
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
   } finally {
@@ -144,11 +150,17 @@ function notify_(o, ids) {
     `메뉴: ${o.menu} × ${o.qty}개 (개당 ${won_(o.unitPrice)})`,
     `금액: ${won_(o.amount)}${o.dates.length > 1 ? ` × ${o.dates.length}일 = ${won_(o.amount * o.dates.length)}` : ''}`,
     `수령: ${o.method} ${o.time}${o.place ? ' / ' + o.place : ''}`,
-    o.requests ? `요청: ${o.requests}` : '',
+    o.requests ? `요청: ${o.requests}` : null,
+    `입금기한: ${o.dates.map(d => fmtDate_(dateShift_(d, -CONFIG.leadDays))).join(', ')}`,
     `접수번호: ${ids.join(', ')}`,
-  ].filter(Boolean);
-  const text = lines.join('\n');
+    '',
+    '⚠️ 예약금 입금 확인되면 시트 상태를 [확정]으로 바꿔주세요.',
+  ].filter(l => l !== null);
+  sendOwner_(`[${CONFIG.shopName} 새 주문] ${o.org} · ${dates} · ${o.qty}개`, lines.join('\n'));
+}
 
+/** 사장님에게 텔레그램 + 이메일 발송 */
+function sendOwner_(subject, text) {
   const props = PropertiesService.getScriptProperties();
   const token = props.getProperty('TELEGRAM_TOKEN');
   const chatId = props.getProperty('TELEGRAM_CHAT_ID');
@@ -165,7 +177,7 @@ function notify_(o, ids) {
   if (to) {
     MailApp.sendEmail({
       to: to,
-      subject: `[${CONFIG.shopName} 새 주문] ${o.org} · ${dates} · ${o.qty}개`,
+      subject: subject,
       body: text + '\n\n시트: ' + SpreadsheetApp.getActiveSpreadsheet().getUrl(),
     });
   }
@@ -193,6 +205,32 @@ function safeCell_(v) {
 
 function dateAfter_(days) {
   return Utilities.formatDate(new Date(Date.now() + days * 864e5), CONFIG.timezone, 'yyyy-MM-dd');
+}
+
+function dateShift_(d, days) {
+  const [y, m, day] = d.split('-').map(Number);
+  const x = new Date(Date.UTC(y, m - 1, day + days));
+  return x.toISOString().slice(0, 10);
+}
+
+/**
+ * 매일 아침 자동 실행 (README의 트리거 설정 참고)
+ * 입금기한이 오늘이거나 지났는데 아직 '입금대기'인 주문을 알려줌
+ */
+function dailyDepositCheck() {
+  const sh = getSheet_();
+  const values = sh.getDataRange().getValues();
+  const col = name => HEADERS.indexOf(name);
+  const today = dateAfter_(0);
+  const ymd = v => v instanceof Date ? Utilities.formatDate(v, CONFIG.timezone, 'yyyy-MM-dd') : String(v);
+  const due = values.slice(1).filter(r => r[col('상태')] === '입금대기' && ymd(r[col('입금기한')]) <= today);
+  if (!due.length) return;
+  const lines = due.map(r => {
+    const late = ymd(r[col('입금기한')]) < today ? ' (기한 지남)' : ' (오늘 마감)';
+    return `• ${r[col('단체명')]} ${r[col('담당자')]} ${r[col('연락처')]} / 배달 ${fmtDate_(ymd(r[col('필요날짜')]))} ${r[col('수량')]}개${late}`;
+  });
+  sendOwner_(`[${CONFIG.shopName}] 예약금 미입금 ${due.length}건`,
+    `💰 예약금 확인 필요 (${due.length}건)\n` + lines.join('\n') + '\n\n입금됐으면 [확정], 아니면 연락 후 [취소]로 바꿔주세요.');
 }
 
 function won_(n) {
