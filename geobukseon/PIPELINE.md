@@ -32,7 +32,8 @@ export EGL_PLATFORM=surfaceless                                         # EEVEE 
 | 파일 | 내용 |
 |---|---|
 | `still_{bow34,side,stern34,aerial}.png` | Cycles 스틸(참고 사진과 같은 구도) |
-| `geobukseon_flythrough.mp4` | 24 s · 24 fps · 960×540 EEVEE 플라이스루 + 환경음 |
+| `flythrough_partial_preview.mp4` | **현재 상태:** 245/576프레임까지 렌더한 앞부분 10초 미리보기 + 환경음. 2026-10-24 사용자 요청으로 중단 |
+| `geobukseon_flythrough.mp4` | 24 s 완성본. 아직 없음. `bash final/run_final.sh`를 다시 실행하면 남은 331프레임만 렌더한 뒤 생성한다(약 1.9 h [추정]). 렌더한 프레임(`out/frames/`)은 git에 올리지 않으므로, 새 환경에서는 576프레임 전체를 다시 렌더해야 한다 |
 | `ambience.wav` | 48 kHz 스테레오 환경음 원본 |
 | `plan.png`, `elevation.png`, `views_check.png` | 배치도, 입면·단면도, 참고 사진 대 설계 카메라 비교 |
 | `contact_sheet_final.png` | 최종 검증: 참고 사진과 렌더 나란히 |
