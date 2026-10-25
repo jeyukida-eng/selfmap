@@ -71,6 +71,8 @@
   .tbl th, .tbl td { border-bottom: 1px solid var(--line); padding: 7px 4px; text-align: center; }
   .tbl th { color: var(--sub); font-weight: 600; }
   .account { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-size: 14px; }
+  .tel { white-space: nowrap; }
+  .confirm-note { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 14px; font-weight: 700; }
   .demo { background: #fff6d6; border: 1px solid #f0d77a; border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
 </style>
 </head>
@@ -105,13 +107,14 @@
     <h2>📌 예약 안내</h2>
     <ol>
       <li>최소 <b id="ruleQty">10</b>개부터 주문 가능</li>
-      <li>배달일 <b id="ruleDays">3</b>일 전까지 주문서 작성</li>
+      <li>배달일 <b id="ruleDays">3</b>일 전까지 주문서 작성<br><span class="hint">(<span id="urgentNote"></span> ☎ <b class="tel" id="storePhone1"></b>)</span></li>
       <li><b>예약금 입금 완료 후 예약이 확정</b>돼요</li>
     </ol>
     <table class="tbl">
       <thead><tr><th>수량</th><th>예약금</th><th>취소·변경</th></tr></thead>
       <tbody id="tierRows"></tbody>
     </table>
+    <div class="hint"><b>(<span id="cancelCallNote"></span> ☎ <span class="tel" id="storePhone2"></span>)</b></div>
     <div class="hint" id="cancelNote"></div>
     <div class="hint">🚚 <span id="deliveryNote"></span></div>
     <div class="account">입금 계좌 <b id="account"></b></div>
@@ -136,7 +139,7 @@
         <button type="button" class="btn-sub" id="addDate">추가</button>
       </div>
       <div class="chips" id="chips"></div>
-      <div class="hint">배달일 <span id="leadHint">3</span>일 전까지 주문 가능 · 같은 메뉴·수량·장소로 날짜별 주문이 각각 접수돼요.</div>
+      <div class="hint">배달일 <span id="leadHint">3</span>일 전까지 주문 가능 · 급한 일정은 ☎ <span class="tel" id="storePhone3"></span> · 같은 메뉴·수량·장소로 날짜별 주문이 각각 접수돼요.</div>
 
       <label class="req" for="menu">주문 메뉴</label>
       <select id="menu" name="menu"></select>
@@ -166,6 +169,7 @@
     </div>
 
     <div class="card">
+      <div class="confirm-note">📩 <span id="confirmNote"></span></div>
       <label class="consent" style="margin-bottom:12px"><input type="checkbox" id="policy"> <span><b>[필수]</b> 예약금·취소 규정을 확인했습니다.</span></label>
       <label class="consent"><input type="checkbox" id="consent"> <span><b>[필수]</b> 개인정보 수집·이용에 동의합니다.</span></label>
       <details>
@@ -200,8 +204,10 @@
     headline: '🍱 원하는 시간에, 원하는 곳으로',
     promo: '회의·행사·워크숍 도시락, 아침에 정성껏 만들어 정해주신 시간에 맞춰 배달해 드려요. 따뜻한 한 끼로 모임을 챙겨보세요.',
     leadDays: 3,
-    deposit: { tiers: [{ maxQty: 50, amount: 30000, cancelDays: 3 }, { maxQty: 99, amount: 50000, cancelDays: 3 }, { maxQty: 9999, amount: 100000, cancelDays: 3 }],
+    deposit: { tiers: [{ maxQty: 50, amount: 30000, cancelDays: 3 }, { maxQty: 99, amount: 50000, cancelDays: 5 }, { maxQty: 9999, amount: 100000, cancelDays: 5 }],
       account: '카카오뱅크 3333-27-0373154 (예금주 민지인)' },
+    storePhone: '010-5845-2450', urgentNote: '일정이 급박한 경우 매장으로 전화 문의',
+    cancelCallNote: '3일 또는 5일 전 오전까지 매장 전화 필수', confirmNote: '예약이 확정되면 문자 보내드립니다.',
     deliveryNote: '배달료는 배송 거리에 따라 실비로 청구됩니다.',
     cancelNote: '취소 가능 기한 이후에는 식재료 구매·사전 손질·조리 준비·인력 배치가 진행되므로 예약금은 환불되지 않으며, 이미 진행된 준비에 대해서는 실비가 청구될 수 있습니다.',
     minQty: 10, maxQty: 999, maxDates: 10, pickupAllowed: true,
@@ -231,6 +237,10 @@
   }).join('');
   $('cancelNote').textContent = cfg.cancelNote;
   $('deliveryNote').textContent = cfg.deliveryNote;
+  $('urgentNote').textContent = cfg.urgentNote;
+  $('cancelCallNote').textContent = cfg.cancelCallNote;
+  $('confirmNote').textContent = cfg.confirmNote;
+  ['storePhone1', 'storePhone2', 'storePhone3'].forEach(function (id) { $(id).textContent = cfg.storePhone; });
   $('account').textContent = cfg.deposit.account;
   function tier(q) { return tiers.filter(function (t) { return q <= t.maxQty; })[0]; }
   $('menuList').innerHTML = cfg.menus.map(function (m) {
@@ -282,7 +292,7 @@
   function addDate() {
     var v = $('dateInput').value;
     if (!v) return showErr('날짜를 고른 뒤 추가를 눌러주세요.');
-    if (v < cfg.minDate) return showErr(fmt(cfg.minDate) + '부터 주문할 수 있어요.');
+    if (v < cfg.minDate) return showErr(fmt(cfg.minDate) + '부터 예약할 수 있어요. 급한 일정은 매장(' + cfg.storePhone + ')으로 전화 주세요.');
     if (dates.indexOf(v) >= 0) return;
     if (dates.length >= cfg.maxDates) return showErr('날짜는 최대 ' + cfg.maxDates + '개까지 가능해요.');
     dates.push(v); dates.sort(); $('dateInput').value = ''; showErr(''); renderChips();
@@ -364,7 +374,8 @@
       '예약금: <b>' + won(t.amount * n) + '</b>' + (n > 1 ? ' (' + won(t.amount) + ' × ' + n + '일)' : '') + '<br>' +
       '입금 계좌: <b>' + esc(cfg.deposit.account) + '</b><br>' +
       '입금 기한: <b>' + shift(cfg.leadDays) + '</b>까지<br>' +
-      '취소·변경: <b>' + shift(t.cancelDays) + '</b>까지 가능' +
+      '취소·변경: <b>' + shift(t.cancelDays) + '</b> 오전까지 매장 전화(' + esc(cfg.storePhone) + ')<br>' +
+      '📩 ' + esc(cfg.confirmNote) +
       (o.method === '배달' ? '<br>배달료: 거리에 따라 실비 별도' : '');
   }
   $('again').addEventListener('click', function () {

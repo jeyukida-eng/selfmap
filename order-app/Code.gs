@@ -27,11 +27,15 @@ const CONFIG = {
     // 수량별 예약금 · 취소/변경 가능 기한(배달일 며칠 전까지)
     tiers: [
       { maxQty: 50, amount: 30000, cancelDays: 3 },
-      { maxQty: 99, amount: 50000, cancelDays: 3 },
-      { maxQty: 9999, amount: 100000, cancelDays: 3 },
+      { maxQty: 99, amount: 50000, cancelDays: 5 },
+      { maxQty: 9999, amount: 100000, cancelDays: 5 },
     ],
     account: '카카오뱅크 3333-27-0373154 (예금주 민지인)',
   },
+  storePhone: '010-5845-2450',
+  urgentNote: '일정이 급박한 경우 매장으로 전화 문의',
+  cancelCallNote: '3일 또는 5일 전 오전까지 매장 전화 필수',
+  confirmNote: '예약이 확정되면 문자 보내드립니다.',
   deliveryNote: '배달료는 배송 거리에 따라 실비로 청구됩니다.',
   cancelNote: '취소 가능 기한 이후에는 식재료 구매·사전 손질·조리 준비·인력 배치가 진행되므로 예약금은 환불되지 않으며, 이미 진행된 준비에 대해서는 실비가 청구될 수 있습니다.',
   ownerEmail: '',     // 비워두면 스크립트 소유자 Gmail로 발송
@@ -68,8 +72,16 @@ function publicConfig_() {
     pickupAllowed: CONFIG.pickupAllowed,
     notice: CONFIG.notice,
     deposit: CONFIG.deposit,
-    deliveryNote: CONFIG.deliveryNote,
+    storePhone: '010-5845-2450',
+  urgentNote: '일정이 급박한 경우 매장으로 전화 문의',
+  cancelCallNote: '3일 또는 5일 전 오전까지 매장 전화 필수',
+  confirmNote: '예약이 확정되면 문자 보내드립니다.',
+  deliveryNote: CONFIG.deliveryNote,
     cancelNote: CONFIG.cancelNote,
+    storePhone: CONFIG.storePhone,
+    urgentNote: CONFIG.urgentNote,
+    cancelCallNote: CONFIG.cancelCallNote,
+    confirmNote: CONFIG.confirmNote,
     leadDays: CONFIG.leadDays,
     minDate: dateAfter_(CONFIG.leadDays),
   };
@@ -139,7 +151,7 @@ function validate_(f) {
   if (o.dates.length > CONFIG.maxDates) fail(`날짜는 최대 ${CONFIG.maxDates}개까지 선택할 수 있어요.`);
   o.dates.forEach(d => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) fail('날짜 형식이 올바르지 않아요.');
-    if (d < minDate) fail(`${d}은(는) 주문 가능 날짜가 지났어요. ${minDate}부터 가능합니다.`);
+    if (d < minDate) fail(`${d}은(는) 예약 마감이 지났어요. ${minDate}부터 가능하고, 급한 일정은 매장(${CONFIG.storePhone})으로 전화 주세요.`);
   });
   o.unitPrice = unitPrice_(menu.price, o.qty);
   o.amount = o.unitPrice * o.qty;
@@ -174,7 +186,7 @@ function notify_(o, ids) {
     `취소가능: ${o.dates.map(d => fmtDate_(dateShift_(d, -o.cancelDays))).join(', ')}까지`,
     `접수번호: ${ids.join(', ')}`,
     '',
-    '⚠️ 예약금 입금 확인되면 시트 상태를 [확정]으로 바꿔주세요.',
+    '⚠️ 예약금 입금 확인되면 시트 상태를 [확정]으로 바꾸고 손님에게 확정 문자를 보내주세요.',
   ].filter(l => l !== null);
   sendOwner_(`[${CONFIG.shopName} 새 주문] ${o.org} · ${dates} · ${o.qty}개`, lines.join('\n'));
 }
