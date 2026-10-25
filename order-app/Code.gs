@@ -26,7 +26,7 @@ const CONFIG = {
   deposit: {
     // 수량별 예약금 · 취소/변경 가능 기한(배달일 며칠 전까지)
     tiers: [
-      { maxQty: 50, amount: 30000, cancelDays: 1 },
+      { maxQty: 50, amount: 30000, cancelDays: 3 },
       { maxQty: 99, amount: 50000, cancelDays: 3 },
       { maxQty: 9999, amount: 100000, cancelDays: 3 },
     ],
