@@ -11,9 +11,11 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
+    word-break: keep-all; overflow-wrap: break-word; line-break: strict;
     font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
   main { max-width: 520px; margin: 0 auto; padding: 20px 16px 48px; }
-  h1 { font-size: 22px; margin: 4px 0 4px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; text-wrap: balance; }
+  p, li, .hint { text-wrap: pretty; }
   .lead { color: var(--sub); font-size: 14px; margin: 0 0 16px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
   .card h2 { font-size: 15px; margin: 0 0 12px; color: var(--sub); font-weight: 600; }
@@ -107,15 +109,15 @@
     <h2>📌 예약 안내</h2>
     <ol>
       <li>최소 <b id="ruleQty">10</b>개부터 주문 가능</li>
-      <li>배달일 <b id="ruleDays">3</b>일 전까지 주문서 작성<br><span class="hint">(<span id="urgentNote"></span> ☎ <b class="tel" id="storePhone1"></b>)</span></li>
+      <li>배달일 <b id="ruleDays">3</b>일 전까지 주문서 작성<br><span class="hint">(<span id="urgentNote"></span> <b class="tel" id="storePhone1"></b>)</span></li>
       <li><b>예약금 입금 완료 후 예약이 확정</b>돼요</li>
     </ol>
     <table class="tbl">
       <thead><tr><th>수량</th><th>예약금</th><th>취소·변경</th></tr></thead>
       <tbody id="tierRows"></tbody>
     </table>
-    <div class="hint"><b>(<span id="cancelCallNote"></span> ☎ <span class="tel" id="storePhone2"></span>)</b></div>
-    <div class="hint" id="cancelNote"></div>
+    <div class="hint"><b>(<span id="cancelCallNote"></span> <span class="tel" id="storePhone2"></span>)</b></div>
+    <div class="hint" id="cancelNote" style="white-space: pre-line"></div>
     <div class="hint">🚚 <span id="deliveryNote"></span></div>
     <div class="account">입금 계좌 <b id="account"></b></div>
   </div>
@@ -139,7 +141,7 @@
         <button type="button" class="btn-sub" id="addDate">추가</button>
       </div>
       <div class="chips" id="chips"></div>
-      <div class="hint">배달일 <span id="leadHint">3</span>일 전까지 주문 가능 · 급한 일정은 ☎ <span class="tel" id="storePhone3"></span> · 같은 메뉴·수량·장소로 날짜별 주문이 각각 접수돼요.</div>
+      <div class="hint">배달일 <span id="leadHint">3</span>일 전까지 주문 가능해요.<br>급한 일정은 매장으로 전화 주세요. <span class="tel" id="storePhone3"></span><br>여러 날을 고르면 같은 메뉴·수량·장소로 날짜별 주문이 각각 접수돼요.</div>
 
       <label class="req" for="menu">주문 메뉴</label>
       <select id="menu" name="menu"></select>
@@ -209,7 +211,7 @@
     storePhone: '010-5845-2450', urgentNote: '일정이 급박한 경우 매장으로 전화 문의',
     cancelCallNote: '3일 또는 5일 전 오전까지 매장 전화 필수', confirmNote: '예약이 확정되면 문자 보내드립니다.',
     deliveryNote: '배달료는 배송 거리에 따라 실비로 청구됩니다.',
-    cancelNote: '취소 가능 기한 이후에는 식재료 구매·사전 손질·조리 준비·인력 배치가 진행되므로 예약금은 환불되지 않으며, 이미 진행된 준비에 대해서는 실비가 청구될 수 있습니다.',
+    cancelNote: '취소 가능 기한 이후에는 식재료 구매, 사전 손질, 조리 준비 및 인력 배치가 진행되므로 예약금은 환불되지 않습니다.\n또한 이미 진행된 준비에 대해서는 실비가 청구될 수 있습니다.',
     minQty: 10, maxQty: 999, maxDates: 10, pickupAllowed: true,
     notice: '', minDate: ymd(addDays(new Date(), 3))
   };
@@ -240,7 +242,7 @@
   $('urgentNote').textContent = cfg.urgentNote;
   $('cancelCallNote').textContent = cfg.cancelCallNote;
   $('confirmNote').textContent = cfg.confirmNote;
-  ['storePhone1', 'storePhone2', 'storePhone3'].forEach(function (id) { $(id).textContent = cfg.storePhone; });
+  ['storePhone1', 'storePhone2', 'storePhone3'].forEach(function (id) { $(id).textContent = '☎ ' + cfg.storePhone; });
   $('account').textContent = cfg.deposit.account;
   function tier(q) { return tiers.filter(function (t) { return q <= t.maxQty; })[0]; }
   $('menuList').innerHTML = cfg.menus.map(function (m) {
