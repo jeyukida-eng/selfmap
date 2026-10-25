@@ -1,14 +1,16 @@
 {
+  "id": "/selfmap/jeyuk/",
   "name": "제육이다 단체주문",
   "short_name": "제육이다",
-  "start_url": "./",
-  "scope": "./",
+  "description": "모임의 한 끼, 제육이다 단체 도시락 예약",
+  "start_url": "/selfmap/jeyuk/",
+  "scope": "/selfmap/jeyuk/",
   "display": "standalone",
-  "background_color": "#fff4e2",
-  "theme_color": "#141010",
+  "background_color": "#faf8f3",
+  "theme_color": "#faf8f3",
   "lang": "ko",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
