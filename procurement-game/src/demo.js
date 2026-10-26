@@ -18,5 +18,5 @@ async function runDemo() {
   await wait(TL.end + 800);                                         // 39~50초: 설치·회복
   await wait(6400);                                                 // 결과·점수 확인
   show('map'); await wait(3200);                                    // 50~60초: 제주가 밝아진 실제 지도 + 핵심 메시지
-  openModal(`<div class="eyebrow">NEXT DESTINATION</div><h2>🚐 다음 지역으로 출발!</h2><p>남은 16개 시·도에도 각자 다른 문제가 기다리고 있어요.</p><p class="message">우리의 선택이 지역을 살립니다.<br>필요한 곳에, 필요한 것을.<br>조달로 연결되는 대한민국.</p>`, true);
+  openModal(`<div class="eyebrow">NEXT DESTINATION</div><h2>🚐 다음 지역으로 출발!</h2><p>남은 16개 시·도에도 각자 다른 문제가 기다리고 있어요.</p><img class="ppslogo" src="${ASSETS.ppsLogo}" alt="조달청" style="display:block;margin:0 auto 10px"><p class="message">우리의 선택이 지역을 살립니다.<br>필요한 곳에, 필요한 것을.<br>조달로 연결되는 대한민국.</p>`, true);
 }

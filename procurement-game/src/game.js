@@ -322,6 +322,7 @@ function showFinal() {
     <p>원정대가 조사하고, 비교하고, 제때 공급한 덕분에 대한민국 곳곳의 일상이 달라졌어요.</p>
     <div class="summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div class="stat"><small>평균 점수</small><strong>${avg}</strong><em>/100</em></div><div class="stat"><small>모은 별</small><strong>${stars}</strong><em>/51</em></div><div class="stat"><small>완벽 회복</small><strong>${sc.filter(x => x.stars === 3).length}</strong><em>/17</em></div></div>
     <div class="finalgrid">${ROUTE.map(id => `<div>${byId[id].icon} ${byId[id].name}<small>${'★'.repeat(save.best[id] ? save.best[id].stars : 0)}</small></div>`).join('')}</div>
+    <img class="ppslogo" src="${ASSETS.ppsLogo}" alt="조달청" style="display:block;margin:0 auto 10px">
     <p class="message">우리의 선택이 지역을 살립니다.<br>필요한 곳에, 필요한 것을.<br>조달로 연결되는 대한민국.</p>
     <button class="primary" id="mClose"><span>완성된 전국 지도 보기</span><span>→</span></button><div class="btnrow"><button class="sec" id="mRestart">처음부터 다시 도전</button></div>`, true);
   $('mClose').onclick = closeModal; $('mRestart').onclick = confirmReset;
@@ -331,7 +332,7 @@ function showFinal() {
 function showTitle() {
   view = 'title'; reg = byId.seoul; R = null; show('title'); renderTitleRegion();
   const has = doneCount() > 0;
-  openModal(`<div class="titlecard"><div class="sub">우리 마을 조달청 · 확장 캠페인</div><h2>전국 조달 원정대</h2>
+  openModal(`<div class="titlecard"><img class="ppslogo" src="${ASSETS.ppsLogo}" alt="조달청"><div class="sub">우리 마을 조달청 · 확장 캠페인</div><h2>전국 조달 원정대</h2>
     <p>전국 17개 시·도를 여행하며 주민의 이야기를 듣고, 제한된 예산으로 꼭 맞는 제품을 제때 공급해 지역을 회복시켜요.</p>
     <div class="lead">${LEAD.map(([k, n, d]) => `<div><img src="${portrait(k)}" alt=""><span><small>주연</small><b>${n}</b>${d} · 조달청 마스코트</span></div>`).join('')}</div>
     <div class="label">함께하는 원정대 <span>조연</span></div>
