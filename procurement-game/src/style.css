@@ -163,3 +163,9 @@ footer{display:block}
 .tip{font-size:10px;line-height:1.55;background:#eef3fb;border:1px solid #d3deef;border-radius:9px;padding:7px 9px;color:#41557a;margin:8px 0}
 .tip b{display:block;font-size:10px;color:#2f5c86;margin-bottom:2px}
 .pill.inno{background:#fff1d6;color:#b06d12;border:1px solid #f0cf8f}
+.lead{display:grid;gap:8px;margin:14px 0 6px}
+.lead div{display:flex;align-items:center;gap:14px;background:#fff;border:2px solid #e8aa49;border-radius:16px;padding:10px 14px;box-shadow:0 4px 0 #f1d6a4;font-size:12px;color:#5d6f58;line-height:1.5}
+.lead img{width:76px;height:76px;border-radius:50%;background:#eef4fb;object-fit:contain}
+.lead small{display:inline-block;font-size:10px;font-weight:bold;color:#fff;background:#d98a4e;border-radius:5px;padding:2px 6px;margin-bottom:3px}
+.lead b{display:block;font-size:17px;color:var(--ink)}
+.team{margin-top:6px}

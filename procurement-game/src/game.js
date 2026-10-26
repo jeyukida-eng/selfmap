@@ -3,7 +3,8 @@ const DEMO = /[?&]demo/.test(location.search);
 const SAVE_KEY = 'umjc-nationwide-v1';
 const STEPS = [['survey', '현장 조사', '주민 이야기 듣기'], ['budget', '예산 배분', '우선순위 정하기'], ['product', '제품 비교', '가격·성능·납기'], ['event', '긴급 상황', '납기 확인'], ['install', '지역 회복', '공급·설치·작동']];
 const TL = { strike: 2000, truck: 1500, unload: 2300, built: 4600, active: 5400, end: 6800 };
-const TEAM = [['emperor', '제육황제', '원정대장 · 현장 조사'], ['buoy', '부이', '조달·예산 담당'], ['bandit', '반딧대왕', '시설 설치 담당'], ['deer', '다랑이', '길 안내 담당']];
+const LEAD = [['narmi', '나르미', '주인공 · 조달 원정대장']];
+const TEAM = [['emperor', '제육황제', '현장 조사 도우미'], ['buoy', '부이', '조달·예산 담당'], ['bandit', '반딧대왕', '시설 설치 담당'], ['deer', '다랑이', '길 안내 담당']];
 const byId = Object.fromEntries(REGIONS.map(r => [r.id, r]));
 
 let save = loadSave(), view = 'title', reg = byId.seoul, R = null, mapSel = null, sound = false, audioCtx, lastStepIdx = -1;
@@ -83,7 +84,7 @@ function renderPanel() {
   const back = (to, label) => `<button class="ghost" data-back="${to}">← ${label}</button>`;
   if (R.phase === 'survey') {
     P.innerHTML = `<div class="tag"><span>STEP 1 · 현장 조사</span><span>${R.heard.length}/3 명</span></div><h2>${esc(r.mission)}</h2>
-      ${quoteBox('emperor', '제육황제 · 원정대장', `${esc(r.town)}에 도착! 주민들에게 무엇이 필요한지 먼저 들어보자. 장면 속 주민이나 아래 이름을 눌러봐.`)}
+      ${quoteBox('narmi', '나르미 · 조달 원정대장', `${esc(r.town)}에 도착! 주민들에게 무엇이 필요한지 먼저 들어보자. 장면 속 주민이나 아래 이름을 눌러봐.`)}
       <div class="label">주민 이야기<span>3명 모두 들으면 만족도 보너스</span></div>
       <div class="list">${r.residents.map((x, i) => `<button class="card who ${R.heard.includes(i) ? 'sel' : ''}" data-hear="${i}"><img src="${portrait(x.k)}" alt=""><span><span class="t">${esc(x.n)}</span><span class="d" style="display:block">${R.heard.includes(i) ? '“' + esc(x.line) + '”' : '눌러서 이야기 듣기'}</span></span><span class="pill ${R.heard.includes(i) ? 'ok' : ''}">${R.heard.includes(i) ? '✓' : '?'}</span></button>`).join('')}</div>
       ${R.heard.length ? `<div class="notes">${R.heard.map(i => `<div class="note">📝 ${esc(r.residents[i].clue)}</div>`).join('')}</div>` : ''}
@@ -233,9 +234,11 @@ function drawActors(S) {
     S.actor('r' + i, x, y, key, { name: res.n, mark: surv ? (heard ? '✓' : '?') : null, ring: surv && !heard ? '#e8aa49' : null, hop: phase === 'result' && !S.late && i === 0 && S.active });
   });
   const T = Lr.team;
-  if (phase === 'survey' || phase === 'budget' || phase === 'product' || phase === 'event') S.actor('emperor', T[0][0], T[0][1], 'emperor', { h: 80 });
-  if (phase === 'budget' || phase === 'product' || phase === 'event') S.actor('buoy', T[1][0], T[1][1], 'buoy', { h: 66 });
-  if (phase === 'title') { S.actor('emperor', T[0][0], T[0][1], 'emperor', { h: 80 }); S.actor('buoy', T[1][0], T[1][1], 'buoy', { h: 66 }) }
+  // 주인공 나르미는 모든 단계에 등장, 조연은 단계별로 등장
+  S.actor('narmi', T[0][0], T[0][1], phase === 'install' ? 'narmiSide' : 'narmi', { hop: phase === 'result' && S.active, flip: phase === 'install' });
+  if (phase === 'survey') S.actor('emperor', T[1][0], T[1][1], 'emperor', { h: 72 });
+  if (phase === 'budget' || phase === 'product' || phase === 'event') S.actor('buoy', T[1][0], T[1][1], 'buoy', { h: 64 });
+  if (phase === 'title') S.actor('buoy', T[1][0], T[1][1], 'buoy', { h: 64 });
   // 공급 차량 → 하역 → 설치 담당
   if (phase === 'install' || phase === 'finishing') {
     const base = S.base ?? 1e9, lane = Lr.lane, stop = Lr.stop;
@@ -296,7 +299,7 @@ function renderMap() {
   const r = byId[mapSel], b = save.best[r.id], dc = doneCount();
   $('mapPanel').innerHTML = `<div class="tag"><span>선택한 지역</span><span>${b ? '최고 ' + b.score + '점' : '도전 전'}</span></div>
     <h2>${r.icon} ${esc(r.full)}</h2>
-    ${quoteBox('deer', '다랑이 · 길 안내 담당', `${esc(r.town)}에서 「${esc(r.mission)}」 임무가 기다려요. 조달 품목은 ${esc(r.item)}!`)}
+    ${quoteBox('narmi', '나르미 · 조달 원정대장', `${esc(r.town)}에서 「${esc(r.mission)}」 임무가 기다려요. 조달 품목은 ${esc(r.item)}!`)}
     <div class="chips"><span class="chip">예산 ${r.budget}코인</span><span class="chip warn">${r.event.icon} ${esc(r.event.name)}</span>${b ? `<span class="chip" style="color:#e0a43c">${starStr(b.stars)}</span>` : ''}</div>
     <button class="primary" id="btnGo" style="margin:4px 0 12px"><span>${b ? '↻ 최고 점수 재도전' : '🚐 이 지역으로 출발'}</span><span>→</span></button>
     <div class="label">17개 시·도 <span>추천 순서 · ${dc}곳 회복</span></div>
@@ -330,6 +333,8 @@ function showTitle() {
   const has = doneCount() > 0;
   openModal(`<div class="titlecard"><div class="sub">우리 마을 조달청 · 확장 캠페인</div><h2>전국 조달 원정대</h2>
     <p>전국 17개 시·도를 여행하며 주민의 이야기를 듣고, 제한된 예산으로 꼭 맞는 제품을 제때 공급해 지역을 회복시켜요.</p>
+    <div class="lead">${LEAD.map(([k, n, d]) => `<div><img src="${portrait(k)}" alt=""><span><small>주연</small><b>${n}</b>${d} · 조달청 마스코트</span></div>`).join('')}</div>
+    <div class="label">함께하는 원정대 <span>조연</span></div>
     <div class="team">${TEAM.map(([k, n, d]) => `<div><img src="${portrait(k)}" alt=""><b>${n}</b>${d}</div>`).join('')}</div>
     <button class="primary" id="tStart"><span>${has ? `이어하기 (${doneCount()}/17 회복)` : '원정 시작하기'}</span><span>→</span></button>
     <div class="btnrow"><button class="sec" id="tHelp">게임 방법</button>${has ? '<button class="ghost" id="tReset">처음부터 다시 시작</button>' : ''}</div></div>`);

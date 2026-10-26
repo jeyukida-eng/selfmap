@@ -4,7 +4,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 src = ROOT / 'src'
 html = (src / 'index.html').read_text(encoding='utf-8')
 css = (src / 'style.css').read_text(encoding='utf-8')
-names = {'res': 'atlas_res', 'elder': 'atlas_elder', 'bandit': 'bandit', 'jacheong': 'jacheong', 'yeongdeung': 'yeongdeung'}
+names = {'res': 'atlas_res', 'elder': 'atlas_elder', 'bandit': 'bandit', 'jacheong': 'jacheong', 'yeongdeung': 'yeongdeung', 'narmi': 'narmi', 'narmiSide': 'narmi_side'}
 assets = ',\n'.join(f"{k}:'data:image/webp;base64,{base64.b64encode((ROOT / 'assets' / (v + '.webp')).read_bytes()).decode()}'" for k, v in names.items())
 js = '\n'.join((src / f).read_text(encoding='utf-8') for f in ['data.js', 'engine.js', 'scenes.js', 'game.js', 'demo.js'])
 out = html.replace('/*STYLE*/', css).replace('/*ASSETS*/', 'const ASSETS={\n' + assets + '\n};').replace('/*SCRIPTS*/', js)
