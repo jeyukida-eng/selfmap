@@ -27,7 +27,7 @@
 ## 공모전 제출 (요강 기준)
 
 ```bash
-sh tools/package.sh 성명      # submit/ 에 규칙 파일명으로 ZIP·MP4 생성
+python3 tools/package.py 성명   # submit/ 에 규칙 파일명으로 ZIP·MP4 생성 (ZIP 내부는 영문 파일명)
 ```
 
 ## 지역 1곳의 흐름 (약 35~45초)
