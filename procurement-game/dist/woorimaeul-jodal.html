@@ -162,6 +162,9 @@ footer{display:block}
 .team{grid-template-columns:repeat(2,1fr)}
 .titlecard h2{font-size:27px}
 }
+.tip{font-size:10px;line-height:1.55;background:#eef3fb;border:1px solid #d3deef;border-radius:9px;padding:7px 9px;color:#41557a;margin:8px 0}
+.tip b{display:block;font-size:10px;color:#2f5c86;margin-bottom:2px}
+.pill.inno{background:#fff1d6;color:#b06d12;border:1px solid #f0cf8f}
 </style></head><body>
 <header><div class="brand"><span class="logo">▦</span> 우리 마을 조달청 <span class="badge">전국 조달 원정대</span></div>
 <div class="hbtns"><button class="topbtn" id="btnMap">🗺 전국 지도</button><button class="topbtn" id="btnHelp">도움말</button><button class="topbtn" id="btnSound" aria-pressed="false">🔈 소리 켜기</button></div></header>
@@ -426,6 +429,18 @@ const REGIONS = [
   thanks: '태풍에도 대피소 불이 꺼지지 않았어요!' }
 ];
 
+// 혁신제품 표시: 새로운 기술이 담긴 제품 (게임 속 가상 제품, 점수 영향 없음)
+const INNOVATIVE = { seoul: 2, busan: 2, gwangju: 2, ulsan: 2, sejong: 2, chungnam: 2, jeonbuk: 2, gyeongbuk: 2, daejeon: 2, jeju: 2 };
+// 단계별 '실제 조달에서는?' 카드 (공공조달 절차를 게임용으로 단순화한 설명)
+const TIPS = {
+  survey: ['수요 조사', '공공기관(수요기관)은 실제로 쓸 사람의 필요를 먼저 파악해 구매 규격을 정해요.'],
+  budget: ['예산 편성', '공공 예산은 정해진 범위 안에서 써야 해요. 사는 값뿐 아니라 관리할 돈도 함께 계획해요.'],
+  product: ['나라장터 비교', '공공기관은 국가종합전자조달 시스템 「나라장터」에서 여러 업체의 제품 가격·규격을 비교해 구매해요.'],
+  event: ['긴급 조달', '재난처럼 급할 때는 필요한 물품을 빠르게 공급하는 긴급 조달이 중요해요. 납기가 곧 안전이에요.'],
+  install: ['납품·검사', '물품이 도착하면 계약한 규격대로 설치되었는지 검사한 뒤 사용해요.'],
+  result: ['생애주기비용', '좋은 조달은 구입가만이 아니라 쓰는 기간 전체의 비용(생애주기비용)과 효과를 따져요.']
+};
+
 // 추천 여행 순서 (수도권 → 강원 → 충청 → 호남 → 제주 → 영남)
 const ROUTE = ['seoul', 'gyeonggi', 'incheon', 'gangwon', 'chungbuk', 'sejong', 'daejeon', 'chungnam', 'jeonbuk', 'gwangju', 'jeonnam', 'jeju', 'gyeongnam', 'busan', 'ulsan', 'daegu', 'gyeongbuk'];
 
@@ -453,7 +468,7 @@ function scoreRegion(reg, ch) {
   return { parts, total, stars: total >= 85 ? 3 : total >= 65 ? 2 : 1, meets, late, spent, eff, price, perf, maint, days };
 }
 
-if (typeof module !== 'undefined') module.exports = { REGIONS, PRI, ROUTE, scoreRegion, capOf, expressOf };
+if (typeof module !== 'undefined') module.exports = { INNOVATIVE, TIPS, REGIONS, PRI, ROUTE, scoreRegion, capOf, expressOf };
 
 // ── 블록 마을 렌더링 엔진 ───────────────────────────────────────
 // 기존 '우리 마을 조달청'의 아이소메트릭 좌표계(p 함수)와 블록 표현을 그대로 이어받고,
@@ -1117,6 +1132,7 @@ function updateMapState(t) {
 }
 
 function quoteBox(key, who, text) { return `<div class="quote"><img src="${portrait(key)}" alt=""><div><b>${esc(who)}</b>${text}</div></div>` }
+function tipCard(k) { const [t, d] = TIPS[k]; return `<div class="tip"><b>🏛 실제 조달에서는? · ${t}</b>${d}</div>` }
 function renderPanel() {
   const r = reg, P = $('panel'); if (!R) return;
   const back = (to, label) => `<button class="ghost" data-back="${to}">← ${label}</button>`;
@@ -1126,7 +1142,7 @@ function renderPanel() {
       <div class="label">주민 이야기<span>3명 모두 들으면 만족도 보너스</span></div>
       <div class="list">${r.residents.map((x, i) => `<button class="card who ${R.heard.includes(i) ? 'sel' : ''}" data-hear="${i}"><img src="${portrait(x.k)}" alt=""><span><span class="t">${esc(x.n)}</span><span class="d" style="display:block">${R.heard.includes(i) ? '“' + esc(x.line) + '”' : '눌러서 이야기 듣기'}</span></span><span class="pill ${R.heard.includes(i) ? 'ok' : ''}">${R.heard.includes(i) ? '✓' : '?'}</span></button>`).join('')}</div>
       ${R.heard.length ? `<div class="notes">${R.heard.map(i => `<div class="note">📝 ${esc(r.residents[i].clue)}</div>`).join('')}</div>` : ''}
-      <p class="hint">조사 노트는 다음 단계에서도 계속 보여요.</p>
+      ${tipCard('survey')}
       <button class="primary" id="go" ${R.heard.length ? '' : 'disabled'}><span>예산 정하러 가기</span><span>→</span></button>`;
   }
   if (R.phase === 'budget') {
@@ -1134,18 +1150,18 @@ function renderPanel() {
       ${quoteBox('buoy', '부이 · 조달·예산 담당', `예산은 ${r.budget}코인이야. 모든 요청을 다 들어줄 순 없으니, 주민에게 가장 중요한 것부터 정하자!`)}
       ${notes()}
       <div class="list">${Object.entries(PRI).map(([k, v]) => `<button class="card ${R.pri === k ? 'sel' : ''}" data-pri="${k}"><span class="row"><span class="t">${v.icon} ${v.n}</span><span class="pill">구매 한도 ${capOf(r, k)}</span></span><span class="d">${esc(r.pt[k])}</span><span class="d">예비비 ${r.budget - capOf(r, k)}코인 ${k === 'upkeep' ? '· 유지관리 점수 +3' : k === 'comfort' ? '· 벤치·꽃밭 추가' : ''}</span></button>`).join('')}</div>
-      <div class="btnrow">${back('survey', '조사로')}</div>
+      ${tipCard('budget')}<div class="btnrow">${back('survey', '조사로')}</div>
       <button class="primary" id="go" ${R.pri ? '' : 'disabled'}><span>제품 비교하러 가기</span><span>→</span></button>`;
   }
   if (R.phase === 'product') {
     const cap = capOf(r, R.pri), minM = Math.min(...r.products.map(p => p[3]));
-    P.innerHTML = `<div class="tag"><span>STEP 3 · 제품 비교</span><span>구매 한도 ${cap}코인</span></div><h2>어떤 제품을 공급할까요?</h2>
-      <div class="chips"><span class="chip">필요 ${esc(r.perf)} ${r.min} 이상</span><span class="chip warn">${r.event.icon} ${esc(r.event.name)} D-${r.event.d}</span><span class="chip">한도 ${cap}코인</span></div>
+    P.innerHTML = `<div class="tag"><span>STEP 3 · 제품 비교</span><span>구매 한도 ${cap}코인</span></div><h2>🛒 나라장터에서 제품 비교</h2>
+      <div class="chips"><span class="chip">필요 ${esc(r.perf)} ${r.min} 이상</span><span class="chip warn">${r.event.icon} ${esc(r.event.name)} D-${r.event.d}</span></div>
       <div class="list">${r.products.map((p, i) => { const over = p[1] > cap, low = p[2] < r.min, late = p[4] > r.event.d; return `<button class="card ${R.prod === i ? 'sel' : ''}" data-prod="${i}" ${over ? 'disabled' : ''}>
-        <span class="row"><span class="t">${esc(p[0])}</span><span class="pill ${'abc'[i]}">${TYPES[i]}</span></span><span class="d">${esc(p[5])}${over ? ' · <b style="color:#b4553f">구매 한도 초과</b>' : ''}</span>
+        <span class="row"><span class="t">${esc(p[0])}${INNOVATIVE[r.id] === i ? ' <span class="pill inno">✦ 혁신제품</span>' : ''}</span><span class="pill ${'abc'[i]}">${TYPES[i]}</span></span><span class="d">${esc(p[5])}${over ? ' · <b style="color:#b4553f">구매 한도 초과</b>' : ''}</span>
         <span class="metrics"><span class="metric">가격<b>${p[1]}</b></span><span class="metric ${low ? 'bad' : 'good'}">성능<b>${p[2]}</b></span><span class="metric ${p[3] > minM * 2 ? 'bad' : p[3] === minM ? 'good' : ''}">유지비/년<b>${p[3]}</b></span><span class="metric ${late ? 'bad' : 'good'}">납기<b>${p[4]}일</b></span></span>
-        <span class="d">5년 총비용 ${p[1] + p[3] * 5}코인 = ${p[1]} + ${p[3]}×5</span></button>` }).join('')}</div>
-      <p class="hint">빨간 칸은 조건을 못 맞춘 항목이에요. 싸다고 무조건 좋은 선택은 아니에요.</p>
+        <span class="d">생애주기비용(5년) ${p[1] + p[3] * 5}코인 = ${p[1]} + ${p[3]}×5</span></button>` }).join('')}</div>
+      ${tipCard('product')}
       <div class="btnrow">${back('budget', '예산으로')}</div>
       <button class="primary" id="go" ${R.prod == null ? 'disabled' : ''}><span>이 제품으로 계약하기</span><span>→</span></button>`;
   }
@@ -1157,9 +1173,9 @@ function renderPanel() {
       <div class="timeline"><div class="bar"></div><div class="mark" style="left:${pos(0)}%">오늘<i style="background:#6e9473"></i></div><div class="mark" style="left:${pos(r.event.d)}%;color:#b4553f">${r.event.icon} D-${r.event.d}<i style="background:#d0533f"></i></div><div class="mark" style="left:${pos(eff)}%;top:${Math.abs(eff - r.event.d) < 1.5 ? 27 : 6}px;color:#2f5c86">🚚 ${eff}일<i style="background:#2f5c86"></i></div></div>
       <div class="lesson ${late ? 'bad' : 'good'}">${late ? `⚠ 이대로면 ${eff - r.event.d}일 늦어요. ${esc(r.event.name)} 피해를 막지 못할 수 있어요.` : '✓ 위기 전에 공급할 수 있어요!'}</div>
       <div class="label" style="margin-top:10px">배송 방법</div>
-      <div class="list"><button class="card ${!R.express ? 'sel' : ''}" data-ex="0"><span class="row"><span class="t">📦 일반 배송</span><span class="pill">추가 0</span></span><span class="d">납기 ${p[4]}일</span></button>
-      <button class="card ${R.express ? 'sel' : ''}" data-ex="1" ${canEx ? '' : 'disabled'}><span class="row"><span class="t">🚀 긴급 배송 요청</span><span class="pill bad">+${ex.cost}코인</span></span><span class="d">${p[4] <= r.event.d ? '이미 제때 도착해서 필요 없어요.' : canEx ? `예비비로 납기 ${ex.days}일 단축 → ${Math.max(1, p[4] - ex.days)}일` : '예비비가 부족해요.'}</span></button></div>
-      <div class="btnrow">${back('product', '제품 다시 고르기')}</div>
+      <div class="list"><button class="card ${!R.express ? 'sel' : ''}" data-ex="0"><span class="row"><span class="t">📦 계약 납기대로 공급</span><span class="pill">추가 0</span></span><span class="d">납기 ${p[4]}일</span></button>
+      <button class="card ${R.express ? 'sel' : ''}" data-ex="1" ${canEx ? '' : 'disabled'}><span class="row"><span class="t">🚨 긴급 조달 요청</span><span class="pill bad">+${ex.cost}코인</span></span><span class="d">${p[4] <= r.event.d ? '이미 제때 도착해서 필요 없어요.' : canEx ? `예비비로 납기 ${ex.days}일 단축 → ${Math.max(1, p[4] - ex.days)}일` : '예비비가 부족해요.'}</span></button></div>
+      ${tipCard('event')}<div class="btnrow">${back('product', '제품 다시 고르기')}</div>
       <button class="primary" id="go"><span>🚚 공급 시작</span><span>→</span></button>`;
   }
   if (R.phase === 'install') {
@@ -1169,7 +1185,7 @@ function renderPanel() {
     P.innerHTML = `<div class="tag"><span>STEP 5 · 지역 회복</span><span>공급 중</span></div><h2>${esc(r.item)} 공급·설치</h2>
       ${quoteBox('bandit', '반딧대왕 · 시설 설치 담당', '자로 재고, 블록을 맞추고! 정확한 위치에 단단히 설치하겠다.')}
       <ul class="log">${items.map((s, i) => `<li class="${i < cur ? 'on' : i === cur ? 'now' : ''}">${i < cur ? '✓' : i === cur ? '▶' : '·'} ${s}</li>`).join('')}</ul>
-      <button class="primary" id="skip2"><span>⏭ 결과 바로 보기</span><span>→</span></button>`;
+      ${tipCard('install')}<button class="primary" id="skip2"><span>⏭ 결과 바로 보기</span><span>→</span></button>`;
   }
   if (R.phase === 'result') {
     const s = R.res, best = save.best[r.id];
@@ -1178,7 +1194,7 @@ function renderPanel() {
       <div class="total"><b>${s.total}</b> / 100점 ${R.newBest ? '· 🏅 최고 기록!' : ''}</div>
       <div class="bars">${SCORE_PARTS.map(([k, n, m]) => `<div class="barrow"><span>${n}</span><span class="track"><span class="fill" style="display:block;width:${s.parts[k] / m * 100}%"></span></span><b>${s.parts[k]}/${m}</b></div>`).join('')}</div>
       <div class="lessons">${lessons(r, s).map(([c, t]) => `<div class="lesson ${c}">${t}</div>`).join('')}</div>
-      <button class="primary" id="go"><span>${doneCount() === 17 && !save.seenFinal ? '전국 회복 결과 보기' : '전국 지도로 돌아가기'}</span><span>→</span></button>
+      ${tipCard('result')}<button class="primary" id="go"><span>${doneCount() === 17 && !save.seenFinal ? '전국 회복 결과 보기' : '전국 지도로 돌아가기'}</span><span>→</span></button>
       <div class="btnrow"><button class="sec" id="retry">↻ 다시 도전</button>${nextRecommended() ? `<button class="sec" id="nextReg">다음 추천: ${byId[nextRecommended()].name} →</button>` : ''}</div>`;
   }
   bindPanel();
@@ -1188,12 +1204,13 @@ function lessons(r, s) {
   const out = [], p = r.products[R.prod];
   if (!s.meets) out.push(['bad', `가격은 낮았지만 필요한 ${r.perf} ${r.min}을(를) 채우지 못했어요 (성능 ${p[2]}).`]);
   if (s.late) out.push(['bad', `납기가 ${s.eff - r.event.d}일 늦어 ${r.event.name}에 대비하지 못했어요. 위기 상황에선 납기가 핵심!`]);
-  else if (R.express) out.push(['good', `예비비로 긴급 배송을 요청해 ${r.event.name} 전에 공급했어요.`]);
+  else if (R.express) out.push(['good', `예비비로 긴급 조달을 요청해 ${r.event.name} 전에 공급했어요.`]);
   else out.push(['good', `${r.event.name} 전에 제때 공급했어요.`]);
-  if (s.parts.care <= 4) out.push(['bad', `연 유지비 ${p[3]}코인 · 5년 총비용 ${p[1] + p[3] * 5}코인. 구입가만 보면 장기 지출을 놓쳐요.`]);
+  if (s.parts.care <= 4) out.push(['bad', `연 유지비 ${p[3]}코인 · 생애주기비용(5년) ${p[1] + p[3] * 5}코인. 구입가만 보면 장기 지출을 놓쳐요.`]);
   if (R.pri === r.focus) out.push(['good', `주민이 가장 원한 「${PRI[r.focus].n}」을 먼저 챙겼어요.`]);
   else out.push(['', `주민들의 이야기를 다시 보면 「${PRI[r.focus].n}」이 더 필요했어요.`]);
   if (R.heard.length < 3) out.push(['', `주민 ${3 - R.heard.length}명의 이야기를 더 들었다면 숨은 조건을 알 수 있었어요.`]);
+  if (INNOVATIVE[r.id] === R.prod) out.push(['good', '새 기술이 담긴 혁신제품을 공공이 먼저 구매해 현장에서 써봤어요. 좋은 기술이 자랄 기회가 돼요.']);
   if (s.stars === 3) out.push(['good', '필요한 곳에, 필요한 것을, 제때! 좋은 조달이에요.']);
   return out;
 }
@@ -1388,9 +1405,10 @@ function showHelp() {
   openModal(`<div class="eyebrow">HOW TO PLAY</div><h2>좋은 조달의 5단계</h2>
     <p>① <b>현장 조사</b> — 장면 속 주민을 눌러 이야기를 들어요. 숨은 조건(성능 기준·마감일·유지비 걱정)이 나와요.<br>
     ② <b>예산 배분</b> — 안전시설·편의시설·유지관리 중 무엇을 먼저 할지 정해요. 우선순위에 따라 구매 한도와 예비비가 달라져요.<br>
-    ③ <b>제품 비교</b> — A형 경제형·B형 균형형·C형 고급형의 가격·성능·연 유지비·납기를 비교해요.<br>
-    ④ <b>긴급 상황</b> — 기상·안전 이벤트 전에 도착하는지 확인하고, 필요하면 예비비로 긴급 배송을 요청해요.<br>
+    ③ <b>제품 비교</b> — 나라장터처럼 A형 경제형·B형 균형형·C형 고급형의 가격·성능·연 유지비·납기를 비교해요.<br>
+    ④ <b>긴급 상황</b> — 기상·안전 이벤트 전에 도착하는지 확인하고, 필요하면 예비비로 긴급 조달을 요청해요.<br>
     ⑤ <b>지역 회복</b> — 공급 차량 도착 → 하역 → 조립 → 작동 → 주민 생활 변화를 확인해요.</p>
+    <p>✦ 표시는 새로운 기술이 담긴 <b>혁신제품</b>이에요. 5년 총비용은 <b>생애주기비용</b>, 즉 사는 값 + 쓰는 동안의 관리비예요.</p>
     <p><b>점수(100점)</b> 주민 만족도 30 · 예산 운영 20 · 제품 적합성 25 · 납기·위기 대응 15 · 유지관리 효율 10 → 85점 이상 ★★★, 65점 이상 ★★</p>
     <p style="font-size:11px">진행 기록은 이 브라우저에 자동 저장돼요. 게임 코인과 제품·지역 상황은 모두 가상입니다.</p>
     <button class="primary" id="hClose"><span>알겠어요</span><span>→</span></button>`);
@@ -1439,10 +1457,8 @@ async function runDemo() {
   await click('#go', 0);
   await wait(TL.end + 800);                                         // 39~50초: 설치·회복
   await wait(6400);                                                 // 결과·점수 확인
-  show('map'); await wait(900);                                     // 50~60초: 전국 지도가 차례로 밝아짐(시연용 가상 완료)
-  for (const [i, id] of ROUTE.entries()) { if (!save.best[id]) save.best[id] = { score: 84 + (i * 7) % 12, stars: i % 4 ? 3 : 2 }; mapSel = id; renderMap(); await wait(190) }
-  await wait(1300);
-  showFinal();
+  show('map'); await wait(3200);                                    // 50~60초: 제주가 밝아진 실제 지도 + 핵심 메시지
+  openModal(`<div class="eyebrow">NEXT DESTINATION</div><h2>🚐 다음 지역으로 출발!</h2><p>남은 16개 시·도에도 각자 다른 문제가 기다리고 있어요.</p><p class="message">우리의 선택이 지역을 살립니다.<br>필요한 곳에, 필요한 것을.<br>조달로 연결되는 대한민국.</p>`, true);
 }
 
 </script></body></html>

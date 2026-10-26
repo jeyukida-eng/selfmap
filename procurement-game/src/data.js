@@ -231,6 +231,18 @@ const REGIONS = [
   thanks: '태풍에도 대피소 불이 꺼지지 않았어요!' }
 ];
 
+// 혁신제품 표시: 새로운 기술이 담긴 제품 (게임 속 가상 제품, 점수 영향 없음)
+const INNOVATIVE = { seoul: 2, busan: 2, gwangju: 2, ulsan: 2, sejong: 2, chungnam: 2, jeonbuk: 2, gyeongbuk: 2, daejeon: 2, jeju: 2 };
+// 단계별 '실제 조달에서는?' 카드 (공공조달 절차를 게임용으로 단순화한 설명)
+const TIPS = {
+  survey: ['수요 조사', '공공기관(수요기관)은 실제로 쓸 사람의 필요를 먼저 파악해 구매 규격을 정해요.'],
+  budget: ['예산 편성', '공공 예산은 정해진 범위 안에서 써야 해요. 사는 값뿐 아니라 관리할 돈도 함께 계획해요.'],
+  product: ['나라장터 비교', '공공기관은 국가종합전자조달 시스템 「나라장터」에서 여러 업체의 제품 가격·규격을 비교해 구매해요.'],
+  event: ['긴급 조달', '재난처럼 급할 때는 필요한 물품을 빠르게 공급하는 긴급 조달이 중요해요. 납기가 곧 안전이에요.'],
+  install: ['납품·검사', '물품이 도착하면 계약한 규격대로 설치되었는지 검사한 뒤 사용해요.'],
+  result: ['생애주기비용', '좋은 조달은 구입가만이 아니라 쓰는 기간 전체의 비용(생애주기비용)과 효과를 따져요.']
+};
+
 // 추천 여행 순서 (수도권 → 강원 → 충청 → 호남 → 제주 → 영남)
 const ROUTE = ['seoul', 'gyeonggi', 'incheon', 'gangwon', 'chungbuk', 'sejong', 'daejeon', 'chungnam', 'jeonbuk', 'gwangju', 'jeonnam', 'jeju', 'gyeongnam', 'busan', 'ulsan', 'daegu', 'gyeongbuk'];
 
@@ -258,4 +270,4 @@ function scoreRegion(reg, ch) {
   return { parts, total, stars: total >= 85 ? 3 : total >= 65 ? 2 : 1, meets, late, spent, eff, price, perf, maint, days };
 }
 
-if (typeof module !== 'undefined') module.exports = { REGIONS, PRI, ROUTE, scoreRegion, capOf, expressOf };
+if (typeof module !== 'undefined') module.exports = { INNOVATIVE, TIPS, REGIONS, PRI, ROUTE, scoreRegion, capOf, expressOf };

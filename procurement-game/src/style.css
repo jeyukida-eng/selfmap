@@ -160,3 +160,6 @@ footer{display:block}
 .team{grid-template-columns:repeat(2,1fr)}
 .titlecard h2{font-size:27px}
 }
+.tip{font-size:10px;line-height:1.55;background:#eef3fb;border:1px solid #d3deef;border-radius:9px;padding:7px 9px;color:#41557a;margin:8px 0}
+.tip b{display:block;font-size:10px;color:#2f5c86;margin-bottom:2px}
+.pill.inno{background:#fff1d6;color:#b06d12;border:1px solid #f0cf8f}
