@@ -1,7 +1,7 @@
 // ── 17개 지역 장면 ──────────────────────────────────────────────
 // S.built: 설치 시작 이후 / S.b: 조립 진행도(0~1) / S.active: 시설 작동 / S.late: 납기 지연
 // S.q: 'low'(성능 미달) 또는 'ok' / S.storm: 기상 강도(0~1) / S.pri: 선택한 예산 우선순위
-const LAYOUT_DEFAULT = { lane: 8.5, stop: 5, res: [[2.3, 10.9], [5.1, 11.1], [7.9, 10.9]], team: [[10.9, 4.3], [10.9, 6.1]], crew: [7.4, 7.2], cars: true };
+const LAYOUT_DEFAULT = { lane: 8.5, stop: 5, res: [[2.3, 10.9], [5.1, 11.1], [7.9, 10.9]], team: [[10.9, 3.4], [10.9, 6.4]], crew: [7.4, 7.2], cars: true };
 const LAYOUT = {
   seoul: { stop: 5.2 },
   busan: { stop: 4.2, crew: [6.3, 5.0] },
@@ -16,7 +16,7 @@ const LAYOUT = {
   chungbuk: { stop: 6.4, crew: [8.7, 6.0] },
   chungnam: { stop: 6.6, crew: [9.0, 6.5] },
   jeonbuk: { stop: 5.6, crew: [8.6, 6.9] },
-  jeonnam: { stop: 6.0, lane: 8.2, res: [[2.4, 10.2], [5.0, 10.3], [7.6, 10.2]], crew: [8.8, 6.6], team: [[10.2, 4.3], [10.2, 6.1]], cars: false },
+  jeonnam: { stop: 6.0, lane: 8.2, res: [[2.4, 10.2], [5.0, 10.3], [7.6, 10.2]], crew: [8.8, 6.6], team: [[10.2, 3.4], [10.2, 6.4]], cars: false },
   gyeongbuk: { stop: 6.4, crew: [8.4, 6.6], res: [[4.6, 6.6], [5.6, 11.0], [8.2, 10.9]] },
   gyeongnam: { stop: 6.4, crew: [9.8, 6.4] },
   jeju: { stop: 6.2, crew: [8.8, 6.4] }

@@ -3,8 +3,8 @@ const DEMO = /[?&]demo/.test(location.search);
 const SAVE_KEY = 'umjc-nationwide-v1';
 const STEPS = [['survey', '현장 조사', '주민 이야기 듣기'], ['budget', '예산 배분', '우선순위 정하기'], ['product', '제품 비교', '가격·성능·납기'], ['event', '긴급 상황', '납기 확인'], ['install', '지역 회복', '공급·설치·작동']];
 const TL = { strike: 2000, truck: 1500, unload: 2300, built: 4600, active: 5400, end: 6800 };
-const LEAD = [['narmi', '나르미', '주인공 · 조달 원정대장']];
-const TEAM = [['emperor', '제육황제', '현장 조사 도우미'], ['buoy', '부이', '조달·예산 담당'], ['bandit', '반딧대왕', '시설 설치 담당'], ['deer', '다랑이', '길 안내 담당']];
+const LEAD = [['narmi', '나르미', '조달 원정대장 · 현장 조사와 원정 지휘'], ['dari', '달이', '조달·계약 담당 · 예산과 제품 비교']];
+const TEAM = [['emperor', '제육황제', '현장 조사 도우미'], ['buoy', '부이', '예산 도우미'], ['bandit', '반딧대왕', '시설 설치 담당'], ['deer', '다랑이', '길 안내 담당']];
 const byId = Object.fromEntries(REGIONS.map(r => [r.id, r]));
 
 let save = loadSave(), view = 'title', reg = byId.seoul, R = null, mapSel = null, sound = false, audioCtx, lastStepIdx = -1;
@@ -93,7 +93,7 @@ function renderPanel() {
   }
   if (R.phase === 'budget') {
     P.innerHTML = `<div class="tag"><span>STEP 2 · 예산 배분</span><span>예산 ${r.budget}코인</span></div><h2>무엇을 먼저 할까요?</h2>
-      ${quoteBox('buoy', '부이 · 조달·예산 담당', `예산은 ${r.budget}코인이야. 모든 요청을 다 들어줄 순 없으니, 주민에게 가장 중요한 것부터 정하자!`)}
+      ${quoteBox('dari', '달이 · 조달·계약 담당', `예산은 ${r.budget}코인이야. 모든 요청을 다 들어줄 순 없으니, 주민에게 가장 중요한 것부터 정하자!`)}
       ${notes()}
       <div class="list">${Object.entries(PRI).map(([k, v]) => `<button class="card ${R.pri === k ? 'sel' : ''}" data-pri="${k}"><span class="row"><span class="t">${v.icon} ${v.n}</span><span class="pill">구매 한도 ${capOf(r, k)}</span></span><span class="d">${esc(r.pt[k])}</span><span class="d">예비비 ${r.budget - capOf(r, k)}코인 ${k === 'upkeep' ? '· 유지관리 점수 +3' : k === 'comfort' ? '· 벤치·꽃밭 추가' : ''}</span></button>`).join('')}</div>
       ${tipCard('budget')}<div class="btnrow">${back('survey', '조사로')}</div>
@@ -234,11 +234,9 @@ function drawActors(S) {
     S.actor('r' + i, x, y, key, { name: res.n, mark: surv ? (heard ? '✓' : '?') : null, ring: surv && !heard ? '#e8aa49' : null, hop: phase === 'result' && !S.late && i === 0 && S.active });
   });
   const T = Lr.team;
-  // 주인공 나르미는 모든 단계에 등장, 조연은 단계별로 등장
-  S.actor('narmi', T[0][0], T[0][1], phase === 'install' ? 'narmiSide' : 'narmi', { hop: phase === 'result' && S.active, flip: phase === 'install' });
-  if (phase === 'survey') S.actor('emperor', T[1][0], T[1][1], 'emperor', { h: 72 });
-  if (phase === 'budget' || phase === 'product' || phase === 'event') S.actor('buoy', T[1][0], T[1][1], 'buoy', { h: 64 });
-  if (phase === 'title') S.actor('buoy', T[1][0], T[1][1], 'buoy', { h: 64 });
+  // 주연 나르미·달이는 모든 단계에 등장, 조연은 패널과 설치 장면에 등장
+  S.actor('narmi', T[0][0], T[0][1], 'narmi', { hop: phase === 'result' && S.active });
+  S.actor('dari', T[1][0], T[1][1], 'dari', { hop: phase === 'result' && S.active });
   // 공급 차량 → 하역 → 설치 담당
   if (phase === 'install' || phase === 'finishing') {
     const base = S.base ?? 1e9, lane = Lr.lane, stop = Lr.stop;
@@ -334,7 +332,7 @@ function showTitle() {
   const has = doneCount() > 0;
   openModal(`<div class="titlecard"><img class="ppslogo" src="${ASSETS.ppsLogo}" alt="조달청"><div class="sub">우리 마을 조달청 · 확장 캠페인</div><h2>전국 조달 원정대</h2>
     <p>전국 17개 시·도를 여행하며 주민의 이야기를 듣고, 제한된 예산으로 꼭 맞는 제품을 제때 공급해 지역을 회복시켜요.</p>
-    <div class="lead">${LEAD.map(([k, n, d]) => `<div><img src="${portrait(k)}" alt=""><span><small>주연</small><b>${n}</b>${d} · 조달청 마스코트</span></div>`).join('')}</div>
+    <div class="lead">${LEAD.map(([k, n, d]) => `<div><img src="${portrait(k)}" alt=""><span><small>주연 · 조달청 마스코트</small><b>${n}</b>${d}</span></div>`).join('')}</div>
     <div class="label">함께하는 원정대 <span>조연</span></div>
     <div class="team">${TEAM.map(([k, n, d]) => `<div><img src="${portrait(k)}" alt=""><b>${n}</b>${d}</div>`).join('')}</div>
     <button class="primary" id="tStart"><span>${has ? `이어하기 (${doneCount()}/17 회복)` : '원정 시작하기'}</span><span>→</span></button>

@@ -18,8 +18,8 @@ const SPR = {
   bandit: { img: 'bandit', s: 1, rect: [0, 0, 432, 465], name: '반딧대왕', h: 72 },
   jacheong: { img: 'jacheong', s: 1, rect: [0, 0, 226, 533], name: '자청비', h: 88 },
   // 조달청 마스코트 (원본 디자인 그대로 사용, 변형 없음)
-  narmi: { img: 'narmi', s: 1, rect: [0, 0, 333, 420], name: '나르미', h: 84 },
-  narmiSide: { img: 'narmiSide', s: 1, rect: [0, 0, 315, 420], name: '나르미', h: 84 }
+  narmi: { img: 'narmi', s: 1, rect: [0, 0, 362, 460], name: '나르미', h: 86 },
+  dari: { img: 'dari', s: 1, rect: [0, 0, 358, 460], name: '달이', h: 76 }
 };
 function sprReady(key) { const im = IMG[SPR[key].img]; return im && im.complete && im.naturalWidth > 0 }
 function paintSprite(target, key, x, y, height, flip = false) {
@@ -40,7 +40,7 @@ function portrait(key) {
   if (!sprReady(key)) return ASSETS.yeongdeung;
   const c = document.createElement('canvas'); c.width = c.height = 120; const g = c.getContext('2d');
   g.fillStyle = '#f4efdf'; g.fillRect(0, 0, 120, 120);
-  const def = SPR[key], [, , sw, sh] = def.rect, focus = { chiefLying: [190, 120, 1.0], mongdol: [120, 190, 1.25], bandit: [110, 170, 1.15], deer: [125, 185, 1.25], sorang: [130, 200, 1.2], jacheong: [118, 300, 1.6], narmi: [0, 0, .75], narmiSide: [0, 0, .75] }[key] || [125, 210, 1.25];
+  const def = SPR[key], [, , sw, sh] = def.rect, focus = { chiefLying: [190, 120, 1.0], mongdol: [120, 190, 1.25], bandit: [110, 170, 1.15], deer: [125, 185, 1.25], sorang: [130, 200, 1.2], jacheong: [118, 300, 1.6], narmi: [0, 0, .9], dari: [0, 0, .9] }[key] || [125, 210, 1.25];
   const h = 120 * sh / Math.max(sw, sh) * focus[2] * (sh > sw ? 1.6 : 1.2);
   paintSprite(g, key, 60, h + 6 - (h * .02), h);
   return portraitCache[key] = c.toDataURL('image/png');

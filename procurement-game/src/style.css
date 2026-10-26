@@ -163,10 +163,78 @@ footer{display:block}
 .tip{font-size:10px;line-height:1.55;background:#eef3fb;border:1px solid #d3deef;border-radius:9px;padding:7px 9px;color:#41557a;margin:8px 0}
 .tip b{display:block;font-size:10px;color:#2f5c86;margin-bottom:2px}
 .pill.inno{background:#fff1d6;color:#b06d12;border:1px solid #f0cf8f}
-.lead{display:grid;gap:8px;margin:14px 0 6px}
-.lead div{display:flex;align-items:center;gap:14px;background:#fff;border:2px solid #e8aa49;border-radius:16px;padding:10px 14px;box-shadow:0 4px 0 #f1d6a4;font-size:12px;color:#5d6f58;line-height:1.5}
-.lead img{width:76px;height:76px;border-radius:50%;background:#eef4fb;object-fit:contain}
+.lead{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 6px}
+.lead div{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #e8aa49;border-radius:16px;padding:10px 14px;box-shadow:0 4px 0 #f1d6a4;font-size:12px;color:#5d6f58;line-height:1.5}
+.lead img{width:64px;height:64px;flex:none;border-radius:50%;background:#eef4fb;object-fit:contain}
 .lead small{display:inline-block;font-size:10px;font-weight:bold;color:#fff;background:#d98a4e;border-radius:5px;padding:2px 6px;margin-bottom:3px}
 .lead b{display:block;font-size:17px;color:var(--ink)}
 .team{margin-top:6px}
 .ppslogo{height:34px;width:auto;display:block;margin-bottom:10px}
+@media(max-width:700px){.lead{grid-template-columns:1fr}}
+
+/* ── 정돈된 화면(clean) : 입체 그림자·중복 정보를 줄이고 마을 화면을 넓게 ── */
+:root{--bg:#f2f4ef;--card:#ffffff;--hair:#e3e8de;--soft:0 1px 2px #23403510,0 6px 18px #2340350d}
+body{background:var(--bg)}
+header{height:52px;background:#fff;border-bottom:1px solid var(--hair)}
+.logo{box-shadow:none;border-radius:8px}
+.badge{box-shadow:none;background:#e9894c;font-weight:bold}
+.topbtn{border-color:var(--hair);border-radius:8px}
+main{padding:14px 22px}
+.topbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:18px;margin-bottom:12px}
+.tb-title h1{font-size:21px;letter-spacing:-.8px;margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-title .eyebrow{font-size:10px;letter-spacing:.4px;color:#7d917f;text-transform:none}
+.steps{display:flex;gap:0;margin:0;align-items:center}
+.step{background:none;border:0;box-shadow:none;padding:0;gap:6px;font-size:11px;color:#9aa596}
+.step+.step::before{content:'';width:18px;height:2px;background:#dbe2d6;margin:0 8px;border-radius:1px}
+.step span{display:none}
+.step b{font-size:11px;font-weight:bold}
+.step small{width:20px;height:20px;border-radius:50%;background:#e4e9df;color:#8a958a}
+.step.active{background:none;box-shadow:none;border:0;color:#2f5a42}
+.step.active small{background:#2f5a42;box-shadow:0 0 0 4px #2f5a4222}
+.step.done small{background:#8fb39a}
+.step.done{color:#6d8a75}
+.kpis{display:flex;gap:6px}
+.kpi{background:var(--card);border-radius:10px;padding:6px 11px;box-shadow:var(--soft);min-width:74px}
+.kpi small{display:block;font-size:9px;color:#8a958a}
+.kpi b{font-size:16px}
+.kpi em{font-style:normal;font-size:10px;color:#9aa596;margin-left:3px}
+.layout{grid-template-columns:minmax(0,1fr) 340px}
+.mapwrap{height:calc(100dvh - 150px);max-height:none;border:0;border-radius:20px;box-shadow:var(--soft)}
+.maphead{display:flex;align-items:center;gap:10px;background:#ffffffe6;border:0;border-radius:10px;padding:7px 12px;box-shadow:var(--soft)}
+.maphead h2{font-size:14px;margin:0}
+.maphead .weather{position:static;background:#f1f4ee;border:0;border-radius:6px;padding:3px 7px;font-size:11px;color:#55705f}
+.mapfoot{background:#ffffffeb;border:0;box-shadow:var(--soft);border-radius:12px;padding:10px 14px;min-height:42px}
+.dots{display:none}
+.mapstate{bottom:68px;border-radius:7px;border:0;box-shadow:var(--soft)}
+.skip{bottom:68px;border:0;box-shadow:var(--soft)}
+.panel{background:var(--card);border:0;border-radius:18px;box-shadow:var(--soft);padding:18px;max-height:calc(100dvh - 150px);overflow:auto}
+.panel h2{font-size:18px;margin:6px 0 10px}
+.tag{font-size:10px;color:#8a958a}
+.quote{background:#f4f6f1;border-radius:12px}
+.card{border:1px solid var(--hair);box-shadow:none;border-radius:12px}
+.card:hover:not(:disabled){border-color:#9cb7a2;transform:none;background:#fbfcf9}
+.card.sel{border:1.5px solid #2f5a42;background:#f1f6ef;padding:9.5px}
+.metric{background:#f4f6f1}
+.note{background:#fbf6ea;border:0;border-left:3px solid #e8c47a;border-radius:6px}
+.tip{background:#f1f5fb;border:0;border-left:3px solid #8fb0d8;border-radius:6px}
+.primary{box-shadow:none;border-radius:10px;background:#2f5a42}
+.primary:hover:not(:disabled){background:#3a6b50}
+.sec{box-shadow:none;border-color:var(--hair)}
+.lesson{border-radius:7px}
+.log li{border-radius:8px}
+.modal{border:0;box-shadow:0 20px 60px #0f2a2033;border-radius:20px}
+.lead div{border:1.5px solid #f0c78a;box-shadow:none;border-radius:14px}
+.team div{background:#f4f6f1}
+.korea{border:0;box-shadow:var(--soft)}
+.intro{margin-bottom:12px}.intro h1{font-size:21px}.day{border-radius:8px}
+footer{margin-top:10px;color:#a0aa9c}
+@media(max-width:1100px){.topbar{grid-template-columns:1fr auto}.steps{grid-column:1/-1;order:3}}
+@media(max-width:1000px) and (min-width:701px){.layout{grid-template-columns:minmax(0,1fr) 290px}}
+@media(max-width:700px){
+.layout,.maplayout{grid-template-columns:1fr}
+.topbar{grid-template-columns:1fr;gap:8px}.tb-title h1{font-size:17px;white-space:normal}
+.steps{justify-content:space-between}.step b{display:none}.step{flex-direction:row;padding:0}.step+.step::before{flex:1;width:auto;margin:0 4px}.step+.step{flex:1}
+.kpis{order:2}.kpi{flex:1;min-width:0;padding:5px 8px}
+.mapwrap{height:50svh}.panel{max-height:none}
+.mapstate,.skip{bottom:58px}
+}
