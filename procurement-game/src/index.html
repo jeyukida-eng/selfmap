@@ -1,0 +1,29 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163e35">
+<title>우리 마을 조달청 · 전국 조달 원정대</title>
+<style>/*STYLE*/</style></head><body>
+<header><div class="brand"><span class="logo">▦</span> 우리 마을 조달청 <span class="badge">전국 조달 원정대</span></div>
+<div class="hbtns"><button class="topbtn" id="btnMap">🗺 전국 지도</button><button class="topbtn" id="btnHelp">도움말</button><button class="topbtn" id="btnSound" aria-pressed="false">🔈 소리 켜기</button></div></header>
+<main>
+<section id="viewRegion">
+  <div class="intro"><div><div class="eyebrow" id="rEyebrow"></div><h1 id="rTitle"></h1><p id="rSub"></p></div><div class="day" id="rDay"></div></div>
+  <div class="steps" id="steps" aria-label="임무 단계"></div>
+  <div class="layout"><section>
+    <div class="mapwrap"><canvas id="scene" aria-label="블록 마을 장면"></canvas>
+      <div class="maphead"><small id="townType"></small><h2 id="townName"></h2></div><div class="weather" id="weather"></div>
+      <div class="mapstate" id="mapstate"></div><button class="skip hidden" id="btnSkip">⏭ 애니메이션 건너뛰기</button><button class="skip hidden" id="btnCompare">조달 전 보기 ↶</button>
+      <div class="mapfoot"><span id="mapmsg"></span><div class="dots" id="dots"></div></div></div>
+    <div class="stats"><div class="stat"><small>지역 예산 잔액</small><strong id="sBudget">0</strong><em id="sBudgetTot"></em></div><div class="stat"><small id="sMidLabel">조사한 주민</small><strong id="sMid">0</strong><em id="sMidTot">/ 3</em></div><div class="stat"><small>회복한 지역</small><strong id="sDone">0</strong><em>/ 17</em></div></div>
+  </section><aside class="panel" id="panel" aria-live="polite"></aside></div>
+</section>
+<section id="viewMap" class="hidden">
+  <div class="intro"><div><div class="eyebrow">NATIONWIDE PROCUREMENT JOURNEY</div><h1>전국 17개 시·도를 회복시켜요</h1><p>지역을 골라 출발하세요. 추천 순서대로 가도 좋고, 원하는 곳부터 가도 좋아요.</p></div><div class="day" id="mDay"></div></div>
+  <div class="maplayout"><div class="korea" id="korea"></div><aside class="panel" id="mapPanel"></aside></div>
+</section>
+<footer><span>2026 조달청 AI 게임·콘텐츠 공모전 출품작 · 우리 마을 조달청: 전국 조달 원정대 · 오리지널 캐릭터</span><span>공공조달의 원리를 쉽게 체험하도록 단순화한 창작 게임입니다. 지역 상황·제품·수치는 모두 가상입니다.</span></footer>
+</main>
+<div class="overlay hidden" id="overlay"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<script>
+const $ = id => document.getElementById(id);
+/*ASSETS*/
+/*SCRIPTS*/
+</script></body></html>
