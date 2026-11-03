@@ -1,7 +1,8 @@
-const CACHE = 'jeyuk-app-v1';
+const CACHE = 'jeyuk-app-v2-menu';
 const BASE = new URL('./', self.location.href);
 const SHELL = ['', 'index.html', 'install.js', 'manifest.json', 'logo.png',
-  'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-32.png'];
+  'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-32.png',
+  'menu/kale.webp', 'menu/jeyuk.webp', 'menu/sandwich.webp'];
 const ASSETS = new Set(SHELL.map(path => new URL(path, BASE).href));
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([...ASSETS]))
@@ -20,6 +21,16 @@ self.addEventListener('fetch', event => {
       !url.pathname.startsWith(BASE.pathname)) return;
   const canonical = new URL(url.pathname, BASE.origin).href;
   if (!ASSETS.has(canonical)) return;
+  if (url.pathname.endsWith('.webp')) {
+    event.respondWith(caches.match(canonical).then(cached => cached || fetch(event.request).then(response => {
+      if (response.ok) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE).then(cache => cache.put(canonical, copy)));
+      }
+      return response;
+    })));
+    return;
+  }
   event.respondWith(fetch(event.request).then(response => {
     if (response.ok && response.type === 'basic') {
       const copy = response.clone();

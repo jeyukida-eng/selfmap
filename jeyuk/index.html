@@ -49,10 +49,14 @@
   h2 { margin:0; font-size:14px; font-weight:600; }
   .price { font-size:23px; font-weight:800; letter-spacing:-.8px; white-space:nowrap; }
   .price small { color:var(--sub); font-size:12px; font-weight:400; margin-right:6px; letter-spacing:0; }
-  ul { list-style:none; margin:0; padding:0 20px 12px; }
-  li { display:flex; align-items:center; gap:12px; min-height:40px; font-size:15px; font-weight:500; letter-spacing:-.5px; }
-  li + li { border-top:1px solid #f2efe9; }
-  .num { color:#b2aa9a; font-size:11px; font-variant-numeric:tabular-nums; letter-spacing:0; }
+  .menu-grid { list-style:none; margin:0; padding:0 12px 12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .menu-item { min-width:0; overflow:hidden; border:1px solid #eeeae2; border-radius:14px; background:#fff; }
+  .menu-photo { position:relative; aspect-ratio:1.65; overflow:hidden; background:#fff; }
+  .menu-photo img { display:block; width:100%; height:100%; object-fit:contain; }
+  .menu-photo.duo img { position:absolute; width:160%; height:auto; max-width:none; }
+  .menu-photo.inari img { right:0; top:-35%; }
+  .menu-photo.kimbap img { left:0; top:-7%; }
+  .menu-name { display:block; min-height:44px; margin:0; padding:6px 10px 8px; font-size:13px; line-height:1.35; letter-spacing:-.3px; font-weight:650; }
   .discount { margin:0; padding:13px 20px; background:#fdf0e8; color:#b83c1b; font-size:13px; }
   .discount strong { font-weight:750; }
   .rules { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:0; }
@@ -69,6 +73,16 @@
   @media (max-height:720px) { main { gap:18px; padding-top:max(16px,env(safe-area-inset-top)); padding-bottom:max(14px,env(safe-area-inset-bottom)); } .logo { width:68px; } h1 { font-size:30px; } .intro p { margin-top:7px; } .card-head { padding-top:14px; padding-bottom:10px; } li { min-height:36px; } }
   @media (max-height:620px) { main { gap:12px; padding-top:max(12px,env(safe-area-inset-top)); padding-bottom:max(12px,env(safe-area-inset-bottom)); } .logo { width:52px; } h1 { font-size:28px; line-height:1.2; } .intro p { font-size:13px; margin-top:6px; } .card-head { padding-top:12px; padding-bottom:8px; } .price { font-size:22px; } li { min-height:32px; } .discount { padding-top:10px; padding-bottom:10px; font-size:12px; } .cta { min-height:54px; padding-top:13px; padding-bottom:13px; } .note { font-size:11px; margin-top:8px; } }
   @media (max-width:350px) { main { padding-left:18px; padding-right:18px; } h1 { font-size:29px; } .card-head, .discount { padding-left:16px; padding-right:16px; } ul { padding-left:16px; padding-right:16px; } li { font-size:14px; gap:9px; } .price { font-size:21px; } }
+  /* Keep all four photos and the reservation action together on mobile. */
+  main { gap:18px; }
+  .logo { width:64px; }
+  h1 { font-size:30px; }
+  .intro p { margin-top:6px; font-size:13px; }
+  .card-head { padding:13px 16px 11px; }
+  .discount { padding:10px 16px; }
+  @media (max-height:740px) { main { gap:10px; padding-top:max(14px,env(safe-area-inset-top)); padding-bottom:max(14px,env(safe-area-inset-bottom)); } .logo { width:56px; } h1 { font-size:27px; line-height:1.2; } .menu-photo { aspect-ratio:2; } .menu-grid { gap:8px; padding:0 10px 10px; } .menu-name { min-height:40px; font-size:12px; padding:5px 8px 7px; } .card-head { padding:10px 14px 8px; } .discount { padding:8px 14px; font-size:12px; } .cta { min-height:50px; padding:12px 16px; } .note { margin-top:7px; font-size:11px; } }
+  @media (max-height:600px) { main { gap:8px; padding-top:max(10px,env(safe-area-inset-top)); padding-bottom:max(10px,env(safe-area-inset-bottom)); } h1 { font-size:25px; } .intro p { font-size:12px; margin-top:4px; } .menu-photo { aspect-ratio:2.4; } .menu-name { min-height:38px; } .rules dt { font-size:11px; } .rules dd { font-size:14px; } }
+  @media (max-width:350px) { .tag { font-size:11px; letter-spacing:0; } .header-tools { gap:6px; } .menu-grid { padding-left:8px; padding-right:8px; } .menu-name { font-size:12px; padding-left:7px; padding-right:7px; } }
 </style>
 </head>
 <body>
@@ -86,10 +100,11 @@
       <h2 id="menu-title">도시락 메뉴</h2>
       <div class="price"><small>전 메뉴</small>11,000원</div>
     </div>
-    <ul>
-      <li><span class="num" aria-hidden="true">01</span>케일쌈밥제육도시락</li>
-      <li><span class="num" aria-hidden="true">02</span>유부초밥 샌드위치 도시락</li>
-      <li><span class="num" aria-hidden="true">03</span>제육도시락</li>
+    <ul class="menu-grid">
+      <li class="menu-item"><div class="menu-photo"><img src="menu/kale.webp" alt="케일쌈밥과 제육볶음을 담은 도시락" width="960" height="720" fetchpriority="high"></div><h3 class="menu-name">케일쌈밥<br>제육도시락</h3></li>
+      <li class="menu-item"><div class="menu-photo"><img src="menu/jeyuk.webp" alt="제육볶음과 밥을 담은 도시락" width="960" height="720"></div><h3 class="menu-name">제육도시락</h3></li>
+      <li class="menu-item"><div class="menu-photo duo inari"><img src="menu/sandwich.webp" alt="유부초밥과 샌드위치를 담은 도시락" width="960" height="720"></div><h3 class="menu-name">유부초밥 샌드위치<br>도시락</h3></li>
+      <li class="menu-item"><div class="menu-photo duo kimbap"><img src="menu/sandwich.webp" alt="김밥과 샌드위치를 담은 도시락" width="960" height="720"></div><h3 class="menu-name">김밥 샌드위치<br>도시락</h3></li>
     </ul>
     <p class="discount"><strong>20개 이상</strong> 주문 시 · 개당 <strong>1,000원 할인</strong></p>
   </section>

@@ -13,6 +13,7 @@ const CONFIG = {
     { name: '케일쌈밥제육도시락', price: 11000 },
     { name: '유부초밥 샌드위치 도시락', price: 11000 },
     { name: '제육도시락', price: 11000 },
+    { name: '김밥 샌드위치 도시락', price: 11000 },
   ],
   discount: { minQty: 20, perItem: 1000 }, // 20개 이상이면 개당 1,000원 할인 (날짜별 주문 기준)
   minQty: 10,         // 최소 주문 수량
