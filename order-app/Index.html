@@ -34,6 +34,13 @@
   .chip { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 4px 6px 4px 12px;
     font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
   .chip button { border: 0; background: none; color: inherit; font-size: 16px; line-height: 1; padding: 2px 6px; cursor: pointer; }
+  .chips { display:grid; gap:8px; }
+  .date-order { display:grid; grid-template-columns:minmax(0,1fr) 96px 36px; align-items:center; gap:8px; padding:10px; border:1px solid var(--line); border-radius:10px; background:#fffaf6; }
+  .date-order label { margin:0; font-size:14px; }
+  .date-order label small { display:block; font-size:12px; font-weight:400; color:var(--sub); }
+  .date-order input { padding:9px 8px; min-width:0; }
+  .date-order button { border:0; background:transparent; color:var(--sub); min-height:44px; font-size:22px; cursor:pointer; }
+  .quote-row { margin:6px 0; padding-bottom:6px; border-bottom:1px solid #ead8cd; }
   .hint { color: var(--sub); font-size: 13px; margin-top: 6px; }
   .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
   .seg label { flex: 1; margin: 0; text-align: center; padding: 11px 0; font-weight: 600; cursor: pointer; }
@@ -141,12 +148,10 @@
         <button type="button" class="btn-sub" id="addDate">추가</button>
       </div>
       <div class="chips" id="chips"></div>
-      <div class="hint">배달일 <span id="leadHint">3</span>일 전까지 주문 가능해요.<br>급한 일정은 매장으로 전화 주세요. <span class="tel" id="storePhone3"></span><br>여러 날을 고르면 같은 메뉴·수량·장소로 날짜별 주문이 각각 접수돼요.</div>
+      <div class="hint">날짜를 추가한 뒤 <b>각 날짜 옆에 수량을 따로 입력</b>해 주세요. (예: 첫날 13개, 다음 날 20개)<br>할인은 날짜별 수량을 기준으로 적용돼요.<br>배달일 <span id="leadHint">3</span>일 전까지 주문 가능해요. 급한 일정은 매장으로 전화 주세요. <span class="tel" id="storePhone3"></span></div>
 
       <label class="req" for="menu">주문 메뉴</label>
       <select id="menu" name="menu"></select>
-      <label class="req" for="qty">수량 <span class="hint" id="qtyHint"></span></label>
-      <input id="qty" name="qty" type="number" inputmode="numeric">
       <div class="price" id="priceBox" hidden></div>
     </div>
 
@@ -201,7 +206,7 @@
 (function () {
   var DEMO_CFG = {
     shopName: '제육이다',
-    menus: [{ name: '케일쌈밥제육도시락', price: 11000 }, { name: '유부초밥 샌드위치 도시락', price: 11000 }, { name: '제육도시락', price: 11000 }],
+    menus: [{ name: '케일쌈밥제육도시락', price: 11000 }, { name: '유부초밥 샌드위치 도시락', price: 11000 }, { name: '제육도시락', price: 11000 }, { name: '김밥 샌드위치 도시락', price: 11000 }],
     discount: { minQty: 20, perItem: 1000 },
     headline: '🍱 원하는 시간에, 원하는 곳으로',
     promo: '회의·행사·워크숍 도시락, 아침에 정성껏 만들어 정해주신 시간에 맞춰 배달해 드려요. 따뜻한 한 끼로 모임을 챙겨보세요.',
@@ -222,6 +227,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var dates = [];
+  var dateQuantities = {};
 
   var dc = cfg.discount;
   $('shopName').textContent = cfg.shopName;
@@ -257,30 +263,32 @@
 
   function quote() {
     var m = cfg.menus.filter(function (x) { return x.name === $('menu').value; })[0];
-    var q = parseInt($('qty').value, 10);
-    if (!m || !(q > 0)) return null;
-    var unit = dc && q >= dc.minQty ? m.price - dc.perItem : m.price;
-    var days = Math.max(dates.length, 1);
-    return { unit: unit, qty: q, each: unit * q, days: days, total: unit * q * days,
-      save: (m.price - unit) * q * days, base: m.price };
+    if (!m || !dates.length) return null;
+    var items = dates.map(function (d) {
+      var q = Number(dateQuantities[d]);
+      if (!Number.isInteger(q) || q < cfg.minQty || q > cfg.maxQty) return null;
+      var unit = dc && q >= dc.minQty ? m.price - dc.perItem : m.price;
+      var t = tier(q);
+      return { date:d, qty:q, unit:unit, amount:unit*q, deposit:t.amount, cancelDays:t.cancelDays, save:(m.price-unit)*q };
+    });
+    if (items.some(function (item) { return !item; })) return null;
+    return { items:items, total:items.reduce(function (sum,item) { return sum+item.amount; },0),
+      qty:items.reduce(function (sum,item) { return sum+item.qty; },0),
+      deposit:items.reduce(function (sum,item) { return sum+item.deposit; },0),
+      save:items.reduce(function (sum,item) { return sum+item.save; },0) };
   }
   function renderPrice() {
     var p = quote(), box = $('priceBox');
     if (!p) { box.hidden = true; return; }
     box.hidden = false;
-    var lines = '개당 ' + won(p.unit) + (p.unit < p.base ? ' <s style="opacity:.6">' + won(p.base) + '</s>' : '') +
-      ' × ' + p.qty + '개' + (p.days > 1 ? ' × ' + p.days + '일' : '');
-    var tip = p.save ? '<div class="save">🎉 할인 적용! ' + won(p.save) + ' 절약</div>'
-      : dc && p.qty < dc.minQty ? '<div class="hint">' + (dc.minQty - p.qty) + '개 더 주문하면 개당 ' + won(dc.perItem) + ' 할인돼요</div>' : '';
-    var t = tier(p.qty);
-    box.innerHTML = lines + '<div class="total">예상 금액 ' + won(p.total) + '</div>' + tip +
-      '<div class="hint">예약금 ' + won(t.amount) + (p.days > 1 ? ' × ' + p.days + '일' : '') + ' · 취소·변경은 배달 ' + t.cancelDays + '일 전까지</div>';
+    var lines = p.items.map(function (item) {
+      return '<div class="quote-row"><b>'+fmt(item.date)+' · '+item.qty+'개</b><br>개당 '+won(item.unit)+' × '+item.qty+'개 = '+won(item.amount)+
+        (item.save ? ' <span class="save">할인 적용</span>' : '')+'<div class="hint">예약금 '+won(item.deposit)+' · 취소·변경은 배달 '+item.cancelDays+'일 전까지</div></div>';
+    }).join('');
+    box.innerHTML = lines+'<div class="total">총 '+p.qty+'개 · 예상 금액 '+won(p.total)+'</div>'+
+      (p.save ? '<div class="save">할인 합계 '+won(p.save)+'</div>' : '')+'<div class="hint">예약금 합계 '+won(p.deposit)+' · 배달료 별도</div>';
   }
   $('menu').addEventListener('change', renderPrice);
-  $('qty').addEventListener('input', renderPrice);
-  $('qty').min = cfg.minQty; $('qty').max = cfg.maxQty;
-  $('qty').placeholder = cfg.minQty + '개 이상';
-  $('qtyHint').textContent = '(최소 ' + cfg.minQty + '개)';
   $('dateInput').min = cfg.minDate;
   if (!cfg.pickupAllowed) $('pickupOpt').hidden = true;
 
@@ -297,20 +305,26 @@
     if (v < cfg.minDate) return showErr(fmt(cfg.minDate) + '부터 예약할 수 있어요. 급한 일정은 매장(' + cfg.storePhone + ')으로 전화 주세요.');
     if (dates.indexOf(v) >= 0) return;
     if (dates.length >= cfg.maxDates) return showErr('날짜는 최대 ' + cfg.maxDates + '개까지 가능해요.');
-    dates.push(v); dates.sort(); $('dateInput').value = ''; showErr(''); renderChips();
+    dates.push(v); dateQuantities[v]=''; dates.sort(); $('dateInput').value = ''; showErr(''); renderChips();
   }
   $('addDate').addEventListener('click', addDate);
   $('dateInput').addEventListener('change', addDate);
 
   function renderChips() {
     $('chips').innerHTML = dates.map(function (d) {
-      return '<span class="chip">' + fmt(d) + '<button type="button" aria-label="삭제" data-d="' + d + '">×</button></span>';
+      return '<div class="date-order"><label for="qty-'+d+'">'+fmt(d)+'<small>최소 '+cfg.minQty+'개</small></label>'+
+        '<input id="qty-'+d+'" type="number" step="1" inputmode="numeric" min="'+cfg.minQty+'" max="'+cfg.maxQty+'" placeholder="수량" aria-label="'+d+' 수량" data-qty-date="'+d+'" value="'+esc(dateQuantities[d])+'">'+
+        '<button type="button" aria-label="'+d+' 삭제" data-d="'+d+'">×</button></div>';
     }).join('');
     renderPrice();
   }
   $('chips').addEventListener('click', function (e) {
     var d = e.target.getAttribute('data-d');
-    if (d) { dates = dates.filter(function (x) { return x !== d; }); renderChips(); }
+    if (d) { dates = dates.filter(function (x) { return x !== d; }); delete dateQuantities[d]; renderChips(); }
+  });
+  $('chips').addEventListener('input', function (e) {
+    var d=e.target.getAttribute('data-qty-date');
+    if (d) { dateQuantities[d]=e.target.value; renderPrice(); }
   });
 
   function method() { return document.querySelector('input[name=method]:checked').value; }
@@ -324,7 +338,7 @@
     e.preventDefault();
     var o = {
       org: $('org').value.trim(), name: $('name').value.trim(), phone: $('phone').value.trim(),
-      dates: dates.slice(), menu: $('menu').value, qty: $('qty').value, method: method(),
+      dates: dates.slice(), dateOrders:dates.map(function (d) { return {date:d,qty:dateQuantities[d]}; }), menu: $('menu').value, method: method(),
       time: $('time').value, place: $('place').value.trim(), requests: $('requests').value.trim(),
       policy: $('policy').checked, consent: $('consent').checked, website: $('website').value
     };
@@ -332,7 +346,8 @@
     if (msg) return showErr(msg);
     showErr(''); $('submitBtn').disabled = true; $('submitBtn').textContent = '접수 중…';
 
-    var ok = function (res) { finish(o, res.ids); };
+    var submittedQuote = quote();
+    var ok = function (res) { finish(o, res.ids, submittedQuote); };
     var fail = function (err) {
       $('submitBtn').disabled = false; $('submitBtn').textContent = '주문 접수하기';
       showErr((err && err.message ? err.message : String(err)).replace(/^Error:\s*/, ''));
@@ -347,8 +362,10 @@
     if (!/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(o.phone)) return '연락처를 정확히 입력해 주세요.';
     if (!o.dates.length) return '필요한 날짜를 추가해 주세요.';
     if (!o.menu) return '메뉴를 선택해 주세요.';
-    var q = parseInt(o.qty, 10);
-    if (!(q >= cfg.minQty && q <= cfg.maxQty)) return '수량은 ' + cfg.minQty + '~' + cfg.maxQty + '개로 입력해 주세요.';
+    for (var i=0;i<o.dateOrders.length;i++) {
+      var item=o.dateOrders[i], q=Number(item.qty);
+      if (!Number.isInteger(q) || q<cfg.minQty || q>cfg.maxQty) return fmt(item.date)+' 수량은 '+cfg.minQty+'~'+cfg.maxQty+'개의 정수로 입력해 주세요.';
+    }
     if (!o.time) return '시간을 선택해 주세요.';
     if (o.method === '배달' && !o.place) return '배달 받을 장소를 입력해 주세요.';
     if (!o.policy) return '예약금·취소 규정 확인에 체크해 주세요.';
@@ -356,32 +373,33 @@
     return '';
   }
 
-  function finish(o, ids) {
+  function finish(o, ids, p) {
     $('f').hidden = true; $('done').hidden = false; window.scrollTo(0, 0);
     $('summary').textContent = [
       '접수번호: ' + ids.join(', '),
       '주문자: ' + o.org + ' (' + o.name + ')',
       '연락처: ' + o.phone,
-      '날짜: ' + o.dates.map(fmt).join(', '),
-      '메뉴: ' + o.menu + ' × ' + o.qty + '개',
-      '예상 금액: ' + won(quote().total) + (o.dates.length > 1 ? ' (' + o.dates.length + '일 합계)' : ''),
+      '메뉴: ' + o.menu,
+      p.items.map(function (item) { return fmt(item.date)+' · '+item.qty+'개 · 개당 '+won(item.unit)+' · '+won(item.amount); }).join('\n'),
+      '예상 금액: ' + won(p.total) + ' (총 '+p.qty+'개)',
       '수령: ' + o.method + ' ' + o.time + (o.method === '배달' ? ' / ' + o.place : ''),
       o.requests ? '요청사항: ' + o.requests : ''
     ].filter(Boolean).join('\n');
-    var t = tier(parseInt(o.qty, 10)), n = o.dates.length;
+    var n = o.dates.length;
     var shift = function (days) {
       return o.dates.map(function (d) { return fmt(ymd(addDays(new Date(d + 'T00:00'), -days))); }).join(', ');
     };
     $('depositInfo').innerHTML = '<b>⏳ 아직 예약 확정 전이에요.</b> 예약금 입금이 확인되면 예약이 확정돼요.<br><br>' +
-      '예약금: <b>' + won(t.amount * n) + '</b>' + (n > 1 ? ' (' + won(t.amount) + ' × ' + n + '일)' : '') + '<br>' +
+      '예약금 합계: <b>' + won(p.deposit) + '</b><br>' +
+      p.items.map(function (item) { return fmt(item.date)+' 배달분: '+won(item.deposit); }).join('<br>')+'<br>'+
       '입금 계좌: <b>' + esc(cfg.deposit.account) + '</b><br>' +
       '입금 기한: <b>' + shift(cfg.leadDays) + '</b>까지<br>' +
-      '취소·변경: <b>' + shift(t.cancelDays) + '</b> 오전까지 매장 전화(' + esc(cfg.storePhone) + ')<br>' +
+      '취소·변경:<br>' + p.items.map(function (item) { return fmt(item.date)+' 배달분 → <b>'+fmt(ymd(addDays(new Date(item.date+'T00:00'),-item.cancelDays)))+'</b>'; }).join('<br>') + ' 오전까지 매장 전화(' + esc(cfg.storePhone) + ')<br>' +
       '📩 ' + esc(cfg.confirmNote) +
       (o.method === '배달' ? '<br>배달료: 거리에 따라 실비 별도' : '');
   }
   $('again').addEventListener('click', function () {
-    $('f').reset(); dates = []; renderChips(); $('priceBox').hidden = true; $('placeWrap').hidden = false;
+    $('f').reset(); dates = []; dateQuantities={}; renderChips(); $('priceBox').hidden = true; $('placeWrap').hidden = false;
     $('submitBtn').disabled = false; $('submitBtn').textContent = '주문 접수하기';
     $('done').hidden = true; $('f').hidden = false;
   });

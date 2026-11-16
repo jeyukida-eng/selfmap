@@ -102,10 +102,10 @@ function submitOrder(form) {
     const stamp = Utilities.formatDate(now, CONFIG.timezone, 'yyMMdd-HHmmss');
     const at = Utilities.formatDate(now, CONFIG.timezone, 'yyyy-MM-dd HH:mm');
     ids = order.dates.map((_, i) => order.dates.length > 1 ? `${stamp}-${i + 1}` : stamp);
-    const rows = order.dates.map((d, i) => [
-      ids[i], at, order.org, order.name, order.phone, d, order.menu, order.qty,
-      order.unitPrice, order.amount, order.deposit, order.method, order.time, order.place, order.requests,
-      dateShift_(d, -CONFIG.leadDays), dateShift_(d, -order.cancelDays), '입금대기', '',
+    const rows = order.items.map((item, i) => [
+      ids[i], at, order.org, order.name, order.phone, item.date, order.menu, item.qty,
+      item.unitPrice, item.amount, item.deposit, order.method, order.time, order.place, order.requests,
+      dateShift_(item.date, -CONFIG.leadDays), dateShift_(item.date, -item.cancelDays), '입금대기', '',
     ].map(safeCell_));
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
   } finally {
@@ -138,7 +138,6 @@ function validate_(f) {
   if (!/^01\d-?\d{3,4}-?\d{4}$|^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(o.phone)) fail('연락처 형식을 확인해 주세요.');
   const menu = CONFIG.menus.filter(m => m.name === o.menu)[0];
   if (!menu) fail('메뉴를 선택해 주세요.');
-  if (!(o.qty >= CONFIG.minQty && o.qty <= CONFIG.maxQty)) fail(`수량은 ${CONFIG.minQty}~${CONFIG.maxQty}개 사이로 입력해 주세요.`);
   if (o.method !== '배달' && !(o.method === '픽업' && CONFIG.pickupAllowed)) fail('수령 방법을 선택해 주세요.');
   if (!/^\d{2}:\d{2}$/.test(o.time)) fail('수령(배달) 시간을 선택해 주세요.');
   if (o.method === '배달' && !o.place) fail('배달 받을 장소를 입력해 주세요.');
@@ -147,18 +146,27 @@ function validate_(f) {
   if (f.consent !== true) fail('개인정보 수집·이용에 동의해 주세요.');
 
   const minDate = dateAfter_(CONFIG.leadDays);
-  o.dates = Array.from(new Set(o.dates)).sort();
-  if (!o.dates.length) fail('필요한 날짜를 선택해 주세요.');
-  if (o.dates.length > CONFIG.maxDates) fail(`날짜는 최대 ${CONFIG.maxDates}개까지 선택할 수 있어요.`);
-  o.dates.forEach(d => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) fail('날짜 형식이 올바르지 않아요.');
+  // Accept the old form as well, so already-open customer pages still work.
+  const entries = Array.isArray(f.dateOrders) ? f.dateOrders : o.dates.map(date => ({ date, qty: f.qty }));
+  if (!entries.length) fail('필요한 날짜를 선택해 주세요.');
+  if (entries.length > CONFIG.maxDates) fail(`날짜는 최대 ${CONFIG.maxDates}개까지 선택할 수 있어요.`);
+  const seen = new Set();
+  o.items = entries.map(entry => {
+    if (!entry || typeof entry !== 'object') fail('날짜별 주문 내용을 확인해 주세요.');
+    const d = s(entry.date, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || dateShift_(d, 0) !== d) fail('날짜 형식이 올바르지 않아요.');
+    if (seen.has(d)) fail('같은 날짜가 중복되어 있어요.');
+    seen.add(d);
     if (d < minDate) fail(`${d}은(는) 예약 마감이 지났어요. ${minDate}부터 가능하고, 급한 일정은 매장(${CONFIG.storePhone})으로 전화 주세요.`);
-  });
-  o.unitPrice = unitPrice_(menu.price, o.qty);
-  o.amount = o.unitPrice * o.qty;
-  const tier = tier_(o.qty);
-  o.deposit = tier.amount;
-  o.cancelDays = tier.cancelDays;
+    const qty = Number(entry.qty);
+    if (!Number.isInteger(qty) || qty < CONFIG.minQty || qty > CONFIG.maxQty) fail(`${d} 수량은 ${CONFIG.minQty}~${CONFIG.maxQty}개의 정수로 입력해 주세요.`);
+    const unitPrice = unitPrice_(menu.price, qty), tier = tier_(qty);
+    return { date: d, qty, unitPrice, amount: unitPrice * qty, deposit: tier.amount, cancelDays: tier.cancelDays };
+  }).sort((a, b) => a.date.localeCompare(b.date));
+  o.dates = o.items.map(item => item.date);
+  o.totalQty = o.items.reduce((sum, item) => sum + item.qty, 0);
+  o.totalAmount = o.items.reduce((sum, item) => sum + item.amount, 0);
+  o.totalDeposit = o.items.reduce((sum, item) => sum + item.deposit, 0);
   return o;
 }
 
@@ -173,23 +181,26 @@ function unitPrice_(price, qty) {
 
 function notify_(o, ids) {
   const dates = o.dates.map(fmtDate_).join(', ');
+  const items = o.items || o.dates.map(date => ({ date, qty: o.qty, unitPrice: o.unitPrice, amount: o.amount, deposit: o.deposit, cancelDays: o.cancelDays }));
+  const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
   const lines = [
     `🍱 새 단체주문 (${o.dates.length}건)`,
     `단체/담당: ${o.org} (${o.name})`,
     `연락처: ${o.phone}`,
     `날짜: ${dates}`,
-    `메뉴: ${o.menu} × ${o.qty}개 (개당 ${won_(o.unitPrice)})`,
-    `금액: ${won_(o.amount)}${o.dates.length > 1 ? ` × ${o.dates.length}일 = ${won_(o.amount * o.dates.length)}` : ''}`,
+    `메뉴: ${o.menu}`,
+    ...items.map(item => `• ${fmtDate_(item.date)} ${item.qty}개 · 개당 ${won_(item.unitPrice)} · ${won_(item.amount)} · 예약금 ${won_(item.deposit)}`),
+    `합계: ${totalQty}개 / ${won_(items.reduce((sum, item) => sum + item.amount, 0))}`,
     `수령: ${o.method} ${o.time}${o.place ? ' / ' + o.place : ''}${o.method === '배달' ? ' (배달료 실비 별도)' : ''}`,
     o.requests ? `요청: ${o.requests}` : null,
-    `예약금: ${won_(o.deposit)}${o.dates.length > 1 ? ` × ${o.dates.length}일 = ${won_(o.deposit * o.dates.length)}` : ''}`,
+    `예약금 합계: ${won_(items.reduce((sum, item) => sum + item.deposit, 0))}`,
     `입금기한: ${o.dates.map(d => fmtDate_(dateShift_(d, -CONFIG.leadDays))).join(', ')}`,
-    `취소가능: ${o.dates.map(d => fmtDate_(dateShift_(d, -o.cancelDays))).join(', ')}까지`,
+    `취소가능: ${items.map(item => fmtDate_(item.date) + ' 배달분 → ' + fmtDate_(dateShift_(item.date, -item.cancelDays))).join(', ')} 오전까지`,
     `접수번호: ${ids.join(', ')}`,
     '',
     '⚠️ 예약금 입금 확인되면 시트 상태를 [확정]으로 바꾸고 손님에게 확정 문자를 보내주세요.',
   ].filter(l => l !== null);
-  sendOwner_(`[${CONFIG.shopName} 새 주문] ${o.org} · ${dates} · ${o.qty}개`, lines.join('\n'));
+  sendOwner_(`[${CONFIG.shopName} 새 주문] ${o.org} · ${dates} · 총 ${totalQty}개`, lines.join('\n'));
 }
 
 /** 사장님에게 텔레그램 + 이메일 발송 */
