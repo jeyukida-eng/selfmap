@@ -1,8 +1,8 @@
-const CACHE = 'jeyuk-app-v2-menu';
+const CACHE = 'jeyuk-app-v3-tricolor';
 const BASE = new URL('./', self.location.href);
 const SHELL = ['', 'index.html', 'install.js', 'manifest.json', 'logo.png',
   'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-32.png',
-  'menu/kale.webp', 'menu/jeyuk.webp', 'menu/sandwich.webp'];
+  'menu/tricolor-jeyuk.webp', 'menu/kale.webp', 'menu/jeyuk.webp', 'menu/sandwich.webp'];
 const ASSETS = new Set(SHELL.map(path => new URL(path, BASE).href));
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([...ASSETS]))
